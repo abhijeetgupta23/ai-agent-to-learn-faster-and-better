@@ -1,0 +1,20 @@
+{
+  "case_id": "case_02_struggling_use_socratic",
+  "domain_id": "cognitive_biases",
+  "description": "Learner has mastered prerequisites for base_rate_neglect but is STRUGGLING with base_rate_neglect itself — modality should switch to SOCRATIC to surface the misconception, not more reading.",
+  "learner_model": {
+    "user_id": "test_struggling",
+    "domain_id": "cognitive_biases",
+    "mastered_concepts": ["base_rate", "conditional_probability"],
+    "struggling_concepts": ["base_rate_neglect"],
+    "modality_preference": "reading",
+    "difficulty_level": 3,
+    "session_history": [
+      {"concept_id": "base_rate_neglect", "modality": "reading", "correct": false, "notes": "got the medical-test problem wrong", "timestamp": "2026-06-01T10:00:00"},
+      {"concept_id": "base_rate_neglect", "modality": "reading", "correct": false, "notes": "still missing the base rate", "timestamp": "2026-06-02T10:00:00"}
+    ]
+  },
+  "expected_target_concept": "base_rate_neglect",
+  "expected_modality": "socratic",
+  "expected_difficulty_band": [2, 3]
+}

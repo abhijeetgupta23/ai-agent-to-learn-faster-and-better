@@ -1,0 +1,20 @@
+{
+  "case_id": "case_05_interleave_confusables",
+  "domain_id": "cognitive_biases",
+  "description": "Learner has mastered base_rate_neglect and is now ready for representativeness_heuristic, which is marked as interleave_with base_rate_neglect — the workflow should reference both concepts (interleaving) and target representativeness_heuristic.",
+  "learner_model": {
+    "user_id": "test_interleave",
+    "domain_id": "cognitive_biases",
+    "mastered_concepts": ["base_rate", "conditional_probability", "base_rate_neglect"],
+    "struggling_concepts": [],
+    "modality_preference": "socratic",
+    "difficulty_level": 3,
+    "session_history": [
+      {"concept_id": "base_rate_neglect", "modality": "socratic", "correct": true, "timestamp": "2026-06-01T10:00:00"},
+      {"concept_id": "base_rate_neglect", "modality": "interactive", "correct": true, "timestamp": "2026-06-02T10:00:00"}
+    ]
+  },
+  "expected_target_concept": "representativeness_heuristic",
+  "expected_modality": "socratic",
+  "expected_difficulty_band": [3, 4]
+}

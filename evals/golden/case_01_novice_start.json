@@ -1,0 +1,17 @@
+{
+  "case_id": "case_01_novice_start",
+  "domain_id": "cognitive_biases",
+  "description": "Brand-new learner, empty history. Should target a foundational concept (base_rate or anchoring or availability — anything with no prerequisites) with READING modality and difficulty 1.",
+  "learner_model": {
+    "user_id": "test_novice",
+    "domain_id": "cognitive_biases",
+    "mastered_concepts": [],
+    "struggling_concepts": [],
+    "modality_preference": "reading",
+    "difficulty_level": 1,
+    "session_history": []
+  },
+  "expected_target_concept": "base_rate",
+  "expected_modality": "reading",
+  "expected_difficulty_band": [1, 2]
+}

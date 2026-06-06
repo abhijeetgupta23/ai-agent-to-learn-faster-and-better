@@ -1,0 +1,19 @@
+{
+  "case_id": "case_06_prereq_gap_blocks_advance",
+  "domain_id": "cognitive_biases",
+  "description": "Learner is trying to advance to bayesian_updating but hasn't mastered conditional_probability — agent must NOT teach bayesian_updating; it should backfill the prerequisite (conditional_probability).",
+  "learner_model": {
+    "user_id": "test_prereq_gap",
+    "domain_id": "cognitive_biases",
+    "mastered_concepts": ["base_rate"],
+    "struggling_concepts": [],
+    "modality_preference": "interactive",
+    "difficulty_level": 2,
+    "session_history": [
+      {"concept_id": "base_rate", "modality": "reading", "correct": true, "timestamp": "2026-06-01T10:00:00"}
+    ]
+  },
+  "expected_target_concept": "conditional_probability",
+  "expected_modality": "interactive",
+  "expected_difficulty_band": [2, 3]
+}

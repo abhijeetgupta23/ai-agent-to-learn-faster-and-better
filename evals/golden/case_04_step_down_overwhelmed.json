@@ -1,0 +1,21 @@
+{
+  "case_id": "case_04_step_down_overwhelmed",
+  "domain_id": "cognitive_biases",
+  "description": "Learner is at difficulty 4 attempting bayesian_updating but is struggling with multiple concepts at this level — the agent should step difficulty DOWN to consolidate rather than push harder.",
+  "learner_model": {
+    "user_id": "test_overwhelmed",
+    "domain_id": "cognitive_biases",
+    "mastered_concepts": ["base_rate"],
+    "struggling_concepts": ["conditional_probability", "bayesian_updating"],
+    "modality_preference": "interactive",
+    "difficulty_level": 4,
+    "session_history": [
+      {"concept_id": "bayesian_updating", "modality": "interactive", "correct": false, "timestamp": "2026-06-01T10:00:00"},
+      {"concept_id": "bayesian_updating", "modality": "interactive", "correct": false, "timestamp": "2026-06-02T10:00:00"},
+      {"concept_id": "conditional_probability", "modality": "interactive", "correct": false, "timestamp": "2026-06-03T10:00:00"}
+    ]
+  },
+  "expected_target_concept": "conditional_probability",
+  "expected_modality": "socratic",
+  "expected_difficulty_band": [2, 3]
+}
