@@ -21,18 +21,31 @@ This repo is a public reference implementation that demonstrates four hard thing
 
 ## Architecture
 
-```
-        ┌──────────────────────────────────────────────────────┐
-        │                                                        │
-        ▼                                                        │
-   [1 ASSESS] → [2 PLAN] → [3 GENERATE] → [4 OBSERVE] → [5 ADAPT]
-    diagnose      author       build the      capture       update
-    knowledge     workflow +   teaching       learner       learner
-    gap           pick         artifact in    response      model;
-                  modality     that modality                loop to PLAN
+The agent generates a workflow on the fly from learner state, executes it, observes, then regenerates. The workflow is the output of an agentic decision, not a fixed chain.
+
+```mermaid
+flowchart LR
+    L[(LearnerModel<br/>mastered, struggling,<br/>modality_pref, difficulty)]
+    G[(LearningGraph<br/>nodes + edges<br/>+ pedagogy metadata)]
+
+    L --> A[1 ASSESS<br/>diagnose_learner]
+    G --> A
+    A -- GapEstimate --> P[2 PLAN<br/>plan_workflow]
+    G --> P
+    L --> P
+    P -- Workflow<br/>3-5 steps + modality --> GEN[3 GENERATE<br/>generate_artifact]
+    GEN -- Artifact<br/>reading / interactive / socratic --> O[4 OBSERVE<br/>learner response]
+    O -- SessionTurn --> AD[5 ADAPT<br/>update_learner_model]
+    AD -- updated LearnerModel --> A
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style P fill:#fff3e0,stroke:#f57c00
+    style GEN fill:#e8f5e9,stroke:#388e3c
+    style O fill:#fce4ec,stroke:#c2185b
+    style AD fill:#f3e5f5,stroke:#7b1fa2
 ```
 
-The agent generates a workflow on the fly from learner state, executes it, observes, then regenerates. The workflow is the output of an agentic decision, not a fixed chain.
+**The agentic decision is concentrated in step 2 (PLAN).** The LLM authors the step sequence, picks the modality, and cites a pedagogy principle per step — all from learner state. Steps 1, 3, 5 are deterministic plumbing; step 4 is the human.
 
 ### Stack
 
@@ -51,6 +64,45 @@ Five tools, each returning a Pydantic model:
 3. `plan_workflow(gap, learner_model, graph) → Workflow` — author the multi-step teaching sequence + choose modality.
 4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic) in the chosen modality.
 5. `update_learner_model(response, learner_model) → LearnerModel` — persist the adaptation.
+
+### What a learning graph looks like
+
+Below is the eval graph (`evals/golden/graphs/cognitive_biases.json`) — 7 concepts, 5 edges, the same shape the extractor produces from raw source material. Nodes are colored by difficulty; solid arrows are prerequisites, dashed are *interleave_with* (concepts the agent will mix during practice because they're easily confused).
+
+```mermaid
+flowchart TD
+    base_rate["base_rate<br/>difficulty 1"]
+    cond_prob["conditional_probability<br/>difficulty 2"]
+    brn["base_rate_neglect<br/>difficulty 3"]
+    rep["representativeness_heuristic<br/>difficulty 3"]
+    anchor["anchoring<br/>difficulty 2"]
+    avail["availability_heuristic<br/>difficulty 2"]
+    bayes["bayesian_updating<br/>difficulty 4"]
+
+    base_rate --> cond_prob
+    cond_prob --> brn
+    base_rate --> rep
+    cond_prob --> bayes
+    brn -.interleave.-> rep
+    avail -.interleave.-> anchor
+
+    style base_rate fill:#c8e6c9
+    style cond_prob fill:#fff9c4
+    style anchor fill:#fff9c4
+    style avail fill:#fff9c4
+    style brn fill:#ffcc80
+    style rep fill:#ffcc80
+    style bayes fill:#ef9a9a
+```
+
+The agent uses this structure for two of its key decisions:
+
+- **Prerequisite-gated diagnosis** — it won't teach `bayesian_updating` to a learner who hasn't mastered `conditional_probability`; it backfills the missing prerequisite first (case_06).
+- **Interleaved practice** — once a learner masters `base_rate_neglect`, the agent introduces `representativeness_heuristic` *paired with it*, because the two are commonly confused (Rohrer & Taylor 2007).
+
+### Worked example
+
+[`docs/worked_example_case_02.md`](docs/worked_example_case_02.md) walks through one golden case end-to-end — input learner state, diagnosed gap, planned workflow, the actual Socratic dialogue the agent generated, and the per-judge scores. This is the clearest way to see "modality adaptation" working: the learner's *stated* preference is reading, but two failed reading attempts on the target concept made the agent override that and go Socratic.
 
 ### Learning-science citations
 
