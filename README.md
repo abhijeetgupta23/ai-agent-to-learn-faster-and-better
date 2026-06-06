@@ -118,6 +118,10 @@ The agent uses this structure for two of its key decisions:
 
 [`docs/worked_example_case_02.md`](docs/worked_example_case_02.md) walks through one golden case end-to-end — input learner state, diagnosed gap, planned workflow, the actual Socratic dialogue the agent generated, and the per-judge scores. This is the clearest way to see "modality adaptation" working: the learner's *stated* preference is reading, but two failed reading attempts on the target concept made the agent override that and go Socratic.
 
+### Use case: the seven Naval disciplines
+
+[`docs/naval_use_case.md`](docs/naval_use_case.md) traces the agent across two of Naval Ravikant's seven recommended fields (psychology, persuasion) on the same learner. Shows the agent producing two structurally different curricula from two LLM-extracted graphs, picking modality from learner state in each, and surfacing one cross-domain bridge (`loss_aversion` appears in both graphs) that points at the natural V2 extension. The other five domains ship as Markdown files in [`domains/`](domains/) — drop in any other source material to add a new one.
+
 ### Learning-science citations
 
 The graph extractor's pedagogy metadata is grounded in named principles, cited in the prompt and in code:

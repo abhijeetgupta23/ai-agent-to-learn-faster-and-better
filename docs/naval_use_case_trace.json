@@ -1,0 +1,214 @@
+{
+  "domains": {
+    "psychology": {
+      "n_nodes": 8,
+      "n_edges": 9,
+      "node_ids": [
+        "dual_process_model",
+        "cognitive_bias_concept",
+        "fundamental_attribution_error",
+        "confirmation_bias",
+        "cognitive_dissonance",
+        "hedonic_adaptation",
+        "loss_aversion",
+        "social_proof"
+      ],
+      "interleave_edges": [
+        {
+          "source": "confirmation_bias",
+          "target": "cognitive_dissonance"
+        },
+        {
+          "source": "loss_aversion",
+          "target": "hedonic_adaptation"
+        }
+      ]
+    },
+    "persuasion": {
+      "n_nodes": 10,
+      "n_edges": 18,
+      "node_ids": [
+        "persuasion_overview",
+        "reciprocity",
+        "commitment_consistency",
+        "social_proof",
+        "liking",
+        "authority",
+        "loss_aversion",
+        "scarcity",
+        "framing",
+        "ethical_line"
+      ],
+      "interleave_edges": [
+        {
+          "source": "social_proof",
+          "target": "authority"
+        },
+        {
+          "source": "reciprocity",
+          "target": "commitment_consistency"
+        },
+        {
+          "source": "scarcity",
+          "target": "framing"
+        }
+      ]
+    }
+  },
+  "sessions": [
+    {
+      "domain": "psychology",
+      "learner": {
+        "user_id": "alice",
+        "domain_id": "psychology",
+        "mastered_concepts": [
+          "dual_process_model"
+        ],
+        "struggling_concepts": [
+          "fundamental_attribution_error"
+        ],
+        "modality_preference": "reading",
+        "difficulty_level": 3,
+        "session_history": [
+          {
+            "concept_id": "fundamental_attribution_error",
+            "modality": "reading",
+            "correct": false,
+            "notes": "",
+            "timestamp": "2026-06-06T14:33:32.168383"
+          },
+          {
+            "concept_id": "fundamental_attribution_error",
+            "modality": "reading",
+            "correct": false,
+            "notes": "",
+            "timestamp": "2026-06-06T14:33:32.168389"
+          }
+        ]
+      },
+      "gap": {
+        "target_concept_id": "cognitive_bias_concept",
+        "rationale": "The learner is struggling with fundamental_attribution_error, but its prerequisite cognitive_bias_concept is not yet mastered. Per the rules, we must resolve the deepest unresolved prerequisite first. dual_process_model is mastered, so cognitive_bias_concept is the next gap to close before the struggling concept can be addressed.",
+        "confidence": 0.9,
+        "suggested_difficulty": 2,
+        "prerequisite_gaps": [
+          "cognitive_bias_concept"
+        ]
+      },
+      "workflow": {
+        "target_concept_id": "cognitive_bias_concept",
+        "modality": "reading",
+        "steps": [
+          {
+            "step_number": 1,
+            "concept_id": "dual_process_model",
+            "modality": "socratic",
+            "objective": "Reactivate the mastered System 1 / System 2 distinction and elicit why fast intuition can lead judgment astray.",
+            "pedagogy_principle": "spaced_repetition"
+          },
+          {
+            "step_number": 2,
+            "concept_id": "cognitive_bias_concept",
+            "modality": "reading",
+            "objective": "Introduce cognitive bias as a systematic, predictable deviation from rational judgment that arises when System 1 shortcuts answer questions needing System 2.",
+            "pedagogy_principle": "elaboration"
+          },
+          {
+            "step_number": 3,
+            "concept_id": "cognitive_bias_concept",
+            "modality": "reading",
+            "objective": "Walk through a worked example showing a concrete bias instance and labeling exactly which System 1 shortcut produced the systematic error.",
+            "pedagogy_principle": "worked_example"
+          },
+          {
+            "step_number": 4,
+            "concept_id": "cognitive_bias_concept",
+            "modality": "interactive",
+            "objective": "Have the learner classify scenarios as biased vs. rational and identify the source shortcut, retrieving the definition without re-reading.",
+            "pedagogy_principle": "desirable_difficulty"
+          }
+        ],
+        "rationale": "The target concept_id is a prerequisite the learner has not yet seen and is expository foundational material; the node's only modality hint is 'reading' and the learner's modality_preference is reading, so the KEY teaching steps (2 and 3) use reading. Although the downstream concept (FAE) is in struggling_concepts, the diagnosed gap is the un-introduced prerequisite, which is better served by clear exposition than by Socratic misconception-surfacing. Step 1 revisits the mastered dual_process_model via brief Socratic dialogue (spaced repetition) to anchor the new concept, and step 4 shifts to interactive retrieval practice to consolidate the definition at difficulty 2 before returning to the struggling FAE."
+      },
+      "key_step_number": 2,
+      "key_artifact": {
+        "type": "reading",
+        "title": "Cognitive Bias: When Mental Shortcuts Mislead Us",
+        "body": "Your brain handles thinking in two modes. System 1 is fast, automatic, and effortless\u2014it lets you read a word or sense a friend's mood without trying. System 2 is slow, deliberate, and effortful\u2014it kicks in when you multiply 17 \u00d7 24 or weigh a big decision. Most of the time, System 1 serves us well. But it gets us into trouble when it confidently answers a question that actually requires System 2.\n\nA cognitive bias is a systematic, predictable deviation from rational judgment. Two words deserve emphasis. 'Systematic' means the error isn't random noise\u2014it leans in a consistent direction, like a scale that always reads two pounds heavy. 'Predictable' means researchers can reliably reproduce the same mistake across many people. Because biases are patterned, we can anticipate and sometimes correct them.\n\nWhere do biases come from? Often, System 1 performs a quiet swap. When faced with a hard question, it substitutes an easier one it can answer instantly. Consider this puzzle:\n\nA bat and a ball cost $1.10 together. The bat costs $1.00 more than the ball. How much is the ball?\n\nMost people blurt out '10 cents.' That answer feels obvious\u2014System 1 grabs the tidy number that jumps to mind. But check it: if the ball were 10 cents, the bat would be $1.10, making the total $1.20, not $1.10. The correct answer is 5 cents. The error here isn't a sign of low intelligence; even very smart people fall for it. It's predictable because System 1 reliably offers a fluent, plausible-feeling answer while System 2 stays on the sidelines.\n\nThat is the essence of a cognitive bias: a shortcut that usually helps but produces a consistent error in certain situations. Think of it like an optical illusion. Even when you know two lines are the same length, one still looks longer. Knowing about the illusion doesn't make it disappear\u2014but it does tell you when to stop and measure.\n\nThis general idea is the foundation for studying specific biases you'll meet later\u2014anchoring, availability, confirmation bias, and more. Each is a particular flavor of the same underlying process: System 1 answering a question that really needed System 2's attention. Understanding the general pattern helps you recognize the family resemblance among many named biases, rather than memorizing each as an isolated quirk.",
+        "key_takeaways": [
+          "A cognitive bias is a systematic (consistently directed) and predictable (reproducible) departure from rational judgment.",
+          "Biases typically arise when fast System 1 answers a question that actually requires slow, effortful System 2.",
+          "System 1 often substitutes an easier question for a hard one, producing fluent answers that feel right but are wrong (e.g., the bat-and-ball puzzle).",
+          "Like optical illusions, knowing about a bias doesn't automatically prevent it\u2014but it signals when to slow down and check.",
+          "This general concept is the foundation for understanding specific named biases such as anchoring, availability, and confirmation bias."
+        ]
+      }
+    },
+    {
+      "domain": "persuasion",
+      "learner": {
+        "user_id": "alice",
+        "domain_id": "persuasion",
+        "mastered_concepts": [],
+        "struggling_concepts": [],
+        "modality_preference": "reading",
+        "difficulty_level": 1,
+        "session_history": []
+      },
+      "gap": {
+        "target_concept_id": "persuasion_overview",
+        "rationale": "The learner has no mastered concepts and no history. 'What Persuasion Is' is the only concept with no prerequisites and the lowest difficulty, serving as the root for all other concepts. It must be mastered first.",
+        "confidence": 1.0,
+        "suggested_difficulty": 1,
+        "prerequisite_gaps": []
+      },
+      "workflow": {
+        "target_concept_id": "persuasion_overview",
+        "modality": "reading",
+        "steps": [
+          {
+            "step_number": 1,
+            "concept_id": "persuasion_overview",
+            "modality": "reading",
+            "objective": "Read a short exposition defining persuasion as the use of psychological levers to influence beliefs and actions, and learn that Cialdini catalogued these as cognitive shortcuts.",
+            "pedagogy_principle": "elaboration"
+          },
+          {
+            "step_number": 2,
+            "concept_id": "persuasion_overview",
+            "modality": "reading",
+            "objective": "Connect the abstract idea of 'cognitive shortcuts' to everyday experiences (a free sample, a 'limited time' sign, deferring to a doctor) so the learner grounds the concept in prior knowledge.",
+            "pedagogy_principle": "elaboration"
+          },
+          {
+            "step_number": 3,
+            "concept_id": "persuasion_overview",
+            "modality": "interactive",
+            "objective": "Given short real-world scenarios, the learner identifies whether each is an instance of persuasion and articulates which belief or action is being influenced, retrieving the definition rather than re-reading it.",
+            "pedagogy_principle": "desirable_difficulty"
+          },
+          {
+            "step_number": 4,
+            "concept_id": "persuasion_overview",
+            "modality": "interactive",
+            "objective": "Self-explain in one or two sentences what persuasion is and why principles function as shortcuts, then check the answer against the definition to confirm mastery.",
+            "pedagogy_principle": "desirable_difficulty"
+          }
+        ],
+        "rationale": "The target is brand-new expository, root-level material the learner has never seen, and the learner's stated modality preference is reading. The concept's own modality hint is also 'reading'. There is no misconception to surface (so not socratic) and no procedural skill yet to practice for the KEY introduction step (so not interactive as the primary). Therefore the primary modality is reading: steps 1-2 introduce and elaborate the definition by connecting it to familiar experiences (elaboration). Because the learner has no mastered prerequisites, there is nothing to space-repeat, so the workflow instead moves to retrieval practice: steps 3-4 use lightweight interactive scenario classification and self-explanation as desirable difficulty to consolidate the new definition before any prerequisite-dependent concepts (reciprocity, social proof, etc.) are introduced."
+      },
+      "key_step_number": 1,
+      "key_artifact": {
+        "type": "reading",
+        "title": "What Persuasion Really Is",
+        "body": "Every day, people try to change your mind. A friend suggests a restaurant, an ad promises a better life, a coworker asks for a favor. Sometimes you say yes, sometimes no. Persuasion is the art and science behind those moments. Put simply, persuasion is the use of psychological levers to influence what people believe and what they do.\n\nThink of a lever the way you would in the physical world. A lever lets you move a heavy rock with a small push, as long as you place it in the right spot. Psychological levers work the same way. With a small, well-placed nudge, you can shift someone's beliefs or actions far more than you could by simply shouting your opinion louder. The trick is knowing where the levers are.\n\nWhy do these levers work at all? Because our brains are busy. We face hundreds of decisions a day, and we cannot carefully analyze every single one. So we rely on mental shortcuts, quick rules of thumb that usually steer us in the right direction. For example, if a lot of people are lined up outside a bakery, we tend to assume the bread must be good. We do not stop to investigate; the crowd is a shortcut for quality.\n\nA researcher named Robert Cialdini spent years studying these shortcuts. He watched salespeople, fundraisers, and advertisers to learn what actually made people say yes. Then he organized what he found into a short list of major principles, each one a reliable lever for influence. We will explore those principles one at a time later. For now, the key idea is this: persuasion is not magic or trickery. It is the skilled use of the mental shortcuts that people already use every day.\n\nUnderstanding persuasion has two benefits. First, it helps you communicate your ideas more effectively and ethically, whether you are asking for a raise or encouraging a friend to exercise. Second, it helps you notice when someone is pulling those levers on you, so you can make clearer, freer choices. In short, learning persuasion makes you both a better influencer and a wiser audience.\n\nAs you continue, keep the lever image in mind. Each principle you learn is one more lever you can recognize, understand, and use with care.",
+        "key_takeaways": [
+          "Persuasion is the use of psychological levers to influence what people believe and do.",
+          "These levers work because our busy brains rely on mental shortcuts to make quick decisions.",
+          "Robert Cialdini studied real-world influence and catalogued the major principles as reliable shortcuts.",
+          "Understanding persuasion helps you communicate better and also defend against manipulation."
+        ]
+      }
+    }
+  ]
+}
