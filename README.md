@@ -23,20 +23,25 @@ This repo is a public reference implementation that demonstrates four hard thing
 
 The agent generates a workflow on the fly from learner state, executes it, observes, then regenerates. The workflow is the output of an agentic decision, not a fixed chain.
 
+![Architecture: the 5-tool loop](docs/assets/architecture.png)
+
+<details>
+<summary>Mermaid source</summary>
+
 ```mermaid
 flowchart LR
-    L[(LearnerModel<br/>mastered, struggling,<br/>modality_pref, difficulty)]
-    G[(LearningGraph<br/>nodes + edges<br/>+ pedagogy metadata)]
+    L["LearnerModel<br/>(mastered, struggling,<br/>modality pref, difficulty)"]
+    G["LearningGraph<br/>(nodes + edges<br/>+ pedagogy metadata)"]
 
-    L --> A[1 ASSESS<br/>diagnose_learner]
+    L --> A["1 ASSESS<br/>diagnose_learner"]
     G --> A
-    A -- GapEstimate --> P[2 PLAN<br/>plan_workflow]
+    A -- GapEstimate --> P["2 PLAN<br/>plan_workflow"]
     G --> P
     L --> P
-    P -- Workflow<br/>3-5 steps + modality --> GEN[3 GENERATE<br/>generate_artifact]
-    GEN -- Artifact<br/>reading / interactive / socratic --> O[4 OBSERVE<br/>learner response]
-    O -- SessionTurn --> AD[5 ADAPT<br/>update_learner_model]
-    AD -- updated LearnerModel --> A
+    P -- "Workflow (3-5 steps + modality)" --> GEN["3 GENERATE<br/>generate_artifact"]
+    GEN -- "Artifact (reading / interactive / socratic)" --> O["4 OBSERVE<br/>learner response"]
+    O -- SessionTurn --> AD["5 ADAPT<br/>update_learner_model"]
+    AD -- "updated LearnerModel" --> A
 
     style A fill:#e3f2fd,stroke:#1976d2
     style P fill:#fff3e0,stroke:#f57c00
@@ -44,6 +49,8 @@ flowchart LR
     style O fill:#fce4ec,stroke:#c2185b
     style AD fill:#f3e5f5,stroke:#7b1fa2
 ```
+
+</details>
 
 **The agentic decision is concentrated in step 2 (PLAN).** The LLM authors the step sequence, picks the modality, and cites a pedagogy principle per step — all from learner state. Steps 1, 3, 5 are deterministic plumbing; step 4 is the human.
 
@@ -69,15 +76,20 @@ Five tools, each returning a Pydantic model:
 
 Below is the eval graph (`evals/golden/graphs/cognitive_biases.json`) — 7 concepts, 5 edges, the same shape the extractor produces from raw source material. Nodes are colored by difficulty; solid arrows are prerequisites, dashed are *interleave_with* (concepts the agent will mix during practice because they're easily confused).
 
+![Cognitive-biases learning graph](docs/assets/learning_graph.png)
+
+<details>
+<summary>Mermaid source</summary>
+
 ```mermaid
 flowchart TD
-    base_rate["base_rate<br/>difficulty 1"]
-    cond_prob["conditional_probability<br/>difficulty 2"]
-    brn["base_rate_neglect<br/>difficulty 3"]
-    rep["representativeness_heuristic<br/>difficulty 3"]
-    anchor["anchoring<br/>difficulty 2"]
-    avail["availability_heuristic<br/>difficulty 2"]
-    bayes["bayesian_updating<br/>difficulty 4"]
+    base_rate["base_rate<br/>(difficulty 1)"]
+    cond_prob["conditional_probability<br/>(difficulty 2)"]
+    brn["base_rate_neglect<br/>(difficulty 3)"]
+    rep["representativeness_heuristic<br/>(difficulty 3)"]
+    anchor["anchoring<br/>(difficulty 2)"]
+    avail["availability_heuristic<br/>(difficulty 2)"]
+    bayes["bayesian_updating<br/>(difficulty 4)"]
 
     base_rate --> cond_prob
     cond_prob --> brn
@@ -94,6 +106,8 @@ flowchart TD
     style rep fill:#ffcc80
     style bayes fill:#ef9a9a
 ```
+
+</details>
 
 The agent uses this structure for two of its key decisions:
 
