@@ -10,5 +10,6 @@ env/
 .mypy_cache/
 .ruff_cache/
 data/store/
+evals/run.log
 *.swp
 .DS_Store
