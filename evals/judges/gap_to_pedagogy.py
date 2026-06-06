@@ -44,6 +44,8 @@ def judge_gap_to_pedagogy(
         "Score the workflow on whether it targets the diagnosed gap. "
         f"Return a JudgeResult with judge_name='gap_to_pedagogy'."
     )
-    result = complete_json(SYSTEM, user, JudgeResult, max_tokens=1500)
+    result = complete_json(
+        SYSTEM, user, JudgeResult, label="judge:gap_to_pedagogy", max_tokens=3000
+    )
     result.judge_name = "gap_to_pedagogy"
     return result

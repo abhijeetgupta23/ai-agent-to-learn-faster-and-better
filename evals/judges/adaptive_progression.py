@@ -57,6 +57,8 @@ def judge_adaptive_progression(
         "Score the adaptive-progression decision. Return a JudgeResult with "
         "judge_name='adaptive_progression'."
     )
-    result = complete_json(SYSTEM, user, JudgeResult, max_tokens=1500)
+    result = complete_json(
+        SYSTEM, user, JudgeResult, label="judge:adaptive_progression", max_tokens=3000
+    )
     result.judge_name = "adaptive_progression"
     return result

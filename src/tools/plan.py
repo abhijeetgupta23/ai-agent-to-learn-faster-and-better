@@ -47,7 +47,7 @@ def plan_workflow(
         "Author a Workflow targeting this gap. Choose the primary modality "
         "with care — explain your choice in the rationale field."
     )
-    workflow = complete_json(PLAN_SYSTEM, user, Workflow, max_tokens=4000)
+    workflow = complete_json(PLAN_SYSTEM, user, Workflow, label="plan", max_tokens=8000)
     # Validate step concept ids exist
     node_ids = {n.concept_id for n in graph.nodes}
     for step in workflow.steps:

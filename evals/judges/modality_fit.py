@@ -61,6 +61,8 @@ def judge_modality_fit(
         "Score the modality choice. Return a JudgeResult with "
         "judge_name='modality_fit'."
     )
-    result = complete_json(SYSTEM, user, JudgeResult, max_tokens=1500)
+    result = complete_json(
+        SYSTEM, user, JudgeResult, label="judge:modality_fit", max_tokens=3000
+    )
     result.judge_name = "modality_fit"
     return result

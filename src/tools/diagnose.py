@@ -34,7 +34,7 @@ def diagnose_learner(learner: LearnerModel, graph: LearningGraph) -> GapEstimate
         f"Learner model:\n{learner.model_dump_json(indent=2)}\n\n"
         "Produce a GapEstimate."
     )
-    gap = complete_json(DIAGNOSE_SYSTEM, user, GapEstimate, max_tokens=2000)
+    gap = complete_json(DIAGNOSE_SYSTEM, user, GapEstimate, label="diagnose", max_tokens=5000)
     # Validate target exists in graph.
     if graph.node_by_id(gap.target_concept_id) is None:
         raise ValueError(

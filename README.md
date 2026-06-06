@@ -54,6 +54,8 @@ flowchart LR
 
 **The agentic decision is concentrated in step 2 (PLAN).** The LLM authors the step sequence, picks the modality, and cites a pedagogy principle per step — all from learner state. Steps 1, 3, 5 are deterministic plumbing; step 4 is the human.
 
+> **Not a black box.** Every LLM call records its prompt, the model's *summarized reasoning*, and the parsed output. Run `python run_evals.py --trace docs/traces` and read the generated `.md` files to watch the agent reason through each decision. [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) walks the whole pipeline call-by-call against a real captured trace.
+
 ### Stack
 
 - **Orchestration:** single-loop Programmatic Tool Calling — the five tools (§6 below) are functions in the execution namespace; the LLM authors the workflow that chains them.
@@ -164,6 +166,8 @@ python run_evals.py --verbose
 
 A case **passes** when all three judges score ≥ 0.6. Verbose mode prints the per-case rationale — strangers can read why each judge gave the score it did.
 
+Add `--trace docs/traces` to capture a full reasoning trace per case (prompt + the model's summarized thinking + parsed output), written as readable `.md` and machine-readable `.json`. Two example traces are checked in under [`docs/traces/`](docs/traces/).
+
 ---
 
 ## Running the server
@@ -199,6 +203,7 @@ A sample domain (cognitive biases) ships in `domains/cognitive_biases.md`. Drop 
 - **Difficulty ceiling/floor** — clamped to `[1, 5]` so the agent neither trivializes nor overwhelms.
 - **Prereq integrity** — the graph extractor rejects nodes that reference unknown prerequisites; the diagnoser rejects targets not in the graph.
 - **Context-budget posture** — the model uses adaptive thinking, so reasoning depth scales with task complexity. Stale learner-history turns can be evicted in a future iteration; the schema already carries timestamps.
+- **Observability** — every LLM call is traceable end-to-end (prompt → reasoning → validated output) via `src/trace.py`. The agent's decisions are auditable, not asserted. See [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 
 ---
 
@@ -212,7 +217,8 @@ adaptive-learning-agent/
 ├── run_server.py / run_evals.py
 ├── src/
 │   ├── schemas.py             # All Pydantic models (single source of truth)
-│   ├── llm.py                 # Anthropic SDK wrapper + JSON-schema parsing
+│   ├── llm.py                 # Anthropic SDK wrapper + JSON-schema parsing + tracing
+│   ├── trace.py               # Observability: capture prompt/reasoning/output per call
 │   ├── agent/loop.py          # ASSESS → PLAN → GENERATE → OBSERVE → ADAPT
 │   ├── tools/                 # The 5 tools (§6)
 │   ├── graph/extractor.py     # Domain → LearningGraph (LLM-extracted, cached)

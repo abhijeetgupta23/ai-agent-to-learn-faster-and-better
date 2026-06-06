@@ -25,6 +25,7 @@ from src.graph.extractor import extract_learning_graph
 from src.memory.store import MemoryStore
 from src.schemas import EvalCase, EvalResult, LearningGraph, WorkflowStep
 from src.tools import diagnose_learner, generate_artifact, plan_workflow
+from src.trace import trace
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
 DOMAINS_DIR = Path(__file__).parent.parent / "domains"
@@ -61,25 +62,32 @@ def _load_graph(domain_id: str, store: MemoryStore) -> LearningGraph:
     )
 
 
-def run_case(case: EvalCase, store: MemoryStore) -> EvalResult:
+def run_case(case: EvalCase, store: MemoryStore, trace_dir: Path | None = None) -> EvalResult:
     graph = _load_graph(case.domain_id, store)
 
-    gap = diagnose_learner(case.learner_model, graph)
-    workflow = plan_workflow(gap, case.learner_model, graph)
+    with trace(case.case_id) as tracer:
+        gap = diagnose_learner(case.learner_model, graph)
+        workflow = plan_workflow(gap, case.learner_model, graph)
 
-    # Generate the first step's artifact — enough to record the artifact type
-    # (the modality is what we score).
-    first_step: WorkflowStep = workflow.steps[0]
-    concept = graph.node_by_id(first_step.concept_id)
-    artifact = generate_artifact(first_step, concept, case.learner_model)
+        # Generate the first step's artifact — enough to record the artifact type
+        # (the modality is what we score).
+        first_step: WorkflowStep = workflow.steps[0]
+        concept = graph.node_by_id(first_step.concept_id)
+        artifact = generate_artifact(first_step, concept, case.learner_model)
 
-    judges = [
-        judge_gap_to_pedagogy(gap, workflow, graph),
-        judge_modality_fit(workflow, case.learner_model, gap.target_concept_id),
-        judge_adaptive_progression(
-            gap, case.learner_model, case.expected_difficulty_band
-        ),
-    ]
+        judges = [
+            judge_gap_to_pedagogy(gap, workflow, graph),
+            judge_modality_fit(workflow, case.learner_model, gap.target_concept_id),
+            judge_adaptive_progression(
+                gap, case.learner_model, case.expected_difficulty_band
+            ),
+        ]
+
+    if trace_dir is not None:
+        trace_dir.mkdir(parents=True, exist_ok=True)
+        tracer.save_json(trace_dir / f"{case.case_id}.json")
+        (trace_dir / f"{case.case_id}.md").write_text(tracer.render_markdown())
+
     return EvalResult(
         case_id=case.case_id,
         workflow=workflow,
@@ -128,6 +136,12 @@ def main() -> int:
     ap.add_argument(
         "--verbose", action="store_true", help="Print per-judge rationales."
     )
+    ap.add_argument(
+        "--trace",
+        type=Path,
+        help="Write a full per-case reasoning trace (prompt + thinking + output) "
+        "to this directory.",
+    )
     args = ap.parse_args()
 
     cases = load_cases()
@@ -141,7 +155,7 @@ def main() -> int:
     for case in cases:
         print(f"  [{case.case_id}] ...", file=sys.stderr)
         try:
-            results.append(run_case(case, store))
+            results.append(run_case(case, store, trace_dir=args.trace))
         except Exception as e:
             print(f"  [{case.case_id}] FAILED with {type(e).__name__}: {e}", file=sys.stderr)
             raise

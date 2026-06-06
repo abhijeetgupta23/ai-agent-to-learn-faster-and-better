@@ -71,7 +71,9 @@ def extract_learning_graph(
         f"derived from the title. Use source_hash='{source_hash}'."
     )
 
-    graph = complete_json(EXTRACTOR_SYSTEM, user, LearningGraph, max_tokens=12000)
+    graph = complete_json(
+        EXTRACTOR_SYSTEM, user, LearningGraph, label="extract_graph", max_tokens=16000
+    )
     # Force the hash to match what we computed (the LLM may hallucinate it).
     graph.source_hash = source_hash
     graph.domain_title = domain_title

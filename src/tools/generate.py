@@ -53,11 +53,18 @@ def generate_artifact(
     )
 
     if modality == Modality.READING:
-        return complete_json(READING_SYSTEM, user_context, ReadingArtifact, max_tokens=3000)
+        return complete_json(
+            READING_SYSTEM, user_context, ReadingArtifact,
+            label="generate:reading", max_tokens=5000,
+        )
     if modality == Modality.INTERACTIVE:
         return complete_json(
-            INTERACTIVE_SYSTEM, user_context, InteractiveArtifact, max_tokens=3000
+            INTERACTIVE_SYSTEM, user_context, InteractiveArtifact,
+            label="generate:interactive", max_tokens=5000,
         )
     if modality == Modality.SOCRATIC:
-        return complete_json(SOCRATIC_SYSTEM, user_context, SocraticArtifact, max_tokens=3000)
+        return complete_json(
+            SOCRATIC_SYSTEM, user_context, SocraticArtifact,
+            label="generate:socratic", max_tokens=5000,
+        )
     raise ValueError(f"Unknown modality: {modality}")
