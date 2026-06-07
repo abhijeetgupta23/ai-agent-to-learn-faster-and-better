@@ -11,5 +11,8 @@ env/
 .ruff_cache/
 data/store/
 evals/run.log
+node_modules/
+package.json
+package-lock.json
 *.swp
 .DS_Store

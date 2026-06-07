@@ -22,7 +22,8 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.graph.extractor import extract_learning_graph
@@ -44,6 +45,19 @@ from src.tools import (
 
 app = FastAPI(title="Adaptive Learning Agent", version="0.1.0")
 store = MemoryStore()
+
+# Visual demo — see docs/visual/index.html. Mount at /visual.
+_VISUAL_DIR = Path(__file__).resolve().parents[2] / "docs" / "visual"
+if _VISUAL_DIR.exists():
+    app.mount("/visual", StaticFiles(directory=str(_VISUAL_DIR), html=True), name="visual")
+
+
+@app.get("/")
+def root():
+    """Redirect to the visual demo."""
+    if (_VISUAL_DIR / "index.html").exists():
+        return FileResponse(str(_VISUAL_DIR / "index.html"))
+    return {"status": "ok", "see": "/docs"}
 
 # Sessions are kept in-process for the demo. Production would persist to the
 # memory store keyed by session_id alongside graphs and learners.

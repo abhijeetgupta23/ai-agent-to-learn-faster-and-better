@@ -56,6 +56,8 @@ flowchart LR
 
 > **Not a black box.** Every LLM call records its prompt, the model's *summarized reasoning*, and the parsed output. Run `python run_evals.py --trace docs/traces` and read the generated `.md` files to watch the agent reason through each decision. [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) walks the whole pipeline call-by-call against a real captured trace.
 
+> **See it run live.** [`docs/VISUAL_WALKTHROUGH.md`](docs/VISUAL_WALKTHROUGH.md) is a phase-by-phase visual: six screenshots from a real session, captured by Playwright driving the live SSE stream. The page that produced them is [`docs/visual/index.html`](docs/visual/index.html) — a single static file served by FastAPI at `/visual`, no build step.
+
 ### Stack
 
 - **Orchestration:** single-loop Programmatic Tool Calling — the five tools (§6 below) are functions in the execution namespace; the LLM authors the workflow that chains them.
