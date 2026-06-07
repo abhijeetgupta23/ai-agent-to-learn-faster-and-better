@@ -6,6 +6,22 @@
 
 ---
 
+## In a sentence
+
+| | |
+|---|---|
+| **Input** | A subject (file / URL / paper) + a learner (what they know, what they're stuck on, how hard things should be). |
+| **Output** | The right next lesson for that one person, right now — *what* topic, in *which* format (reading / interactive quiz / Socratic dialogue), at *what* difficulty — plus the actual lesson generated on the spot. |
+| **Proof it's right** | Three independent LLM judges score every decision against the rules above; six golden test cases catch regressions. Currently passing 6/6. |
+
+**Example.** Alice has been reading about cognitive biases. She knows *base rates* and *conditional probability*, but failed *base rate neglect* twice — both attempts were reading-based.
+
+Feed her in, and the agent decides: *teach* `base_rate_neglect` *as a* **Socratic dialogue** *at difficulty 2 — re-reading isn't working, dialogue surfaces the misconception.* It then writes the actual dialogue. Two of the three judges score this 1.0 with rationale citing the same evidence the agent used. ([Worked example.](docs/worked_example_case_02.md))
+
+**Same thing, on AI as the topic.** Feed it [`domains/ai.md`](domains/ai.md) (13 concepts: tokens, embeddings, attention, transformers, context window, …). For a learner who's mastered tokens/embeddings/attention/transformers and failed `tool_use` twice, the agent diagnoses the actual gap as `context_window` — a prerequisite of `tool_use` that was never taught — and writes a reading that explicitly bridges from the mastered `attention` concept to the new `context_window` one. ([Full AI walkthrough, with screenshots.](docs/ai_use_case.md))
+
+---
+
 ## 30-second "what this proves"
 
 In an era where AI does the heavy lifting (coding, analysis, content), the bottleneck shifts to **human learning speed**. The scarce skill is absorbing and adapting faster than the tooling changes.
