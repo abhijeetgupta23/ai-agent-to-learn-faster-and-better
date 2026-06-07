@@ -2,12 +2,12 @@
 
 _3 LLM call(s). Each block shows what the agent sent, how the model reasoned, and what came back._
 
-**Totals:** 10,400 input tokens, 2,062 output tokens, 28.9s wall.
+**Totals:** 10,845 input tokens, 2,168 output tokens, 34.1s wall.
 
 
 ## 1. `diagnose`  
 
-_2.1s · 4,593 in / 117 out_
+_2.4s · 4,815 in / 120 out_
 
 _(thinking not captured for this call)_
 
@@ -19,7 +19,7 @@ _(thinking not captured for this call)_
   "suggested_difficulty": 1,
   "confidence": 1.0,
   "prerequisite_gaps": [],
-  "rationale": "The learner has no mastered concepts and no history. Tokens is the only concept with no prerequisites and the lowest difficulty (1), making it the clear foundational starting point for the entire graph."
+  "rationale": "The learner has mastered nothing and has no session history. Tokens is the sole foundational concept with no prerequisites (difficulty 1) and underpins the entire graph, so it is the clear starting point."
 }
 ```
 
@@ -85,7 +85,7 @@ Learning graph:
     {
       "concept_id": "tokens",
       "name": "Tokens",
-      "description": "Subword units that LLMs actually process. They are the unit of cost, context window, and latency. Roughly 4 English characters per token.",
+      "description": "The subword units LLMs actually read and emit. Tokens are the unit of cost, context window, and latency; estimate ~4 characters of English per token.",
       "difficulty": 1,
       "prerequisites": [],
       "modality_hints": [
@@ -96,7 +96,7 @@ Learning graph:
     {
       "concept_id": "embeddings",
       "name": "Embeddings",
-      "description": "Learned dense vectors representing token/text meaning in high-dimensional space, enabling nearest-neighbor semantic search.",
+      "description": "Learned dense vectors representing token/text meaning in high-dimensional space, enabling nearest-neighbor semantic search over a corpus.",
       "difficulty": 2,
       "prerequisites": [
         "tokens"
@@ -110,8 +110,8 @@ Learning graph:
     {
       "concept_id": "attention",
       "name": "Attention",
-      "description": "The mechanism letting every token weigh every other token's relevance. Its memory cost grows with the square of sequence length.",
-      "difficulty": 3,
+      "description": "The mechanism letting every token weigh every other token's relevance. Explains coreference resolution and why context length cost grows quadratically.",
+      "difficulty": 4,
       "prerequisites": [
         "tokens"
       ],
@@ -119,23 +119,25 @@ Learning graph:
         "reading",
         "socratic"
       ],
-      "spaced_repetition_interval_days": null
+      "spaced_repetition_interval_days": 7
     },
     {
       "concept_id": "transformers",
       "name": "Transformers",
-      "description": "The architecture stack wrapping attention bl…
+      "description":…
 ```
 </details>
 
 
 ## 2. `plan`  
 
-_13.6s · 5,207 in / 1,051 out_
+_13.0s · 5,432 in / 1,046 out_
 
 **Model reasoning (summarized):**
 
-> I'm designing a learning sequence for tokens with 3-5 steps, starting with an elaboration that connects tokens to everyday text and characters, then moving into a worked example to demonstrate the concept in action.
+> I'm thinking through how to structure the learning path for tokens. Since the learner prefers reading and this is brand new material with no prerequisites, I should build a focused micro-curriculum around tokens themselves, maybe extending into context windows as an elaboration. I'll keep the steps grounded in the concept graph and avoid trying to do spaced repetition on prerequisites that don't exist.
+> 
+> The sequence I'm settling on: start with a reading introduction that connects tokens to familiar concepts like characters and words, move into a worked example showing how to estimate token counts, then shift to interactive practice where the learner can try counting and estimating themselves with appropriate difficulty, and finish with a check to see if they've grasped it.
 
 **Produced:**
 
@@ -143,7 +145,7 @@ _13.6s · 5,207 in / 1,051 out_
 {
   "target_concept_id": "tokens",
   "modality": "reading",
-  "rationale": "Tokens is a foundational, expository concept the learner has never seen, and their modality_preference is reading \u2014 both signals point to 'reading' as the primary modality for the key teaching step (Step 2's worked example). It is not in struggling_concepts, so socratic dialogue isn't warranted, and the concept is declarative knowledge rather than a procedural skill, so it shouldn't lead with interactive. Since tokens has no prerequisites, Step 1 activates prior everyday knowledge of text via elaboration instead of spaced repetition; Steps 2-3 model and motivate the concept; Step 4 shifts to a light interactive retrieval task for desirable difficulty to consolidate the rule of thumb.",
+  "rationale": "Tokens is brand-new, foundational, expository content and the learner explicitly prefers reading, so the KEY teaching steps (1-2) use the reading modality with elaboration to anchor tokens to familiar notions of words/characters and a worked example for the estimation rule. Socratic was rejected because tokens isn't in struggling_concepts and there's no entrenched misconception to surface; a clear exposition is more efficient. Since tokens has no prerequisites, spaced repetition of an earlier concept isn't possible, so the workflow instead moves from reading into interactive retrieval practice (steps 3-4) to cement the cost/context/latency implications through desirable difficulty rather than passive re-reading.",
   "steps": [
     {
       "step_number": 1,
@@ -160,8 +162,8 @@ _13.6s · 5,207 in / 1,051 out_
     {
       "step_number": 3,
       "concept_id": "tokens",
-      "modality": "reading",
-      "pedagogy_principle": "elaboration"
+      "modality": "interactive",
+      "pedagogy_principle": "desirable_difficulty"
     },
     {
       "step_number": 4,
@@ -209,7 +211,7 @@ Respond with valid JSON only, conforming to this…
 Diagnosed gap:
 {
   "target_concept_id": "tokens",
-  "rationale": "The learner has no mastered concepts and no history. Tokens is the only concept with no prerequisites and the lowest difficulty (1), making it the clear foundational starting point for the entire graph.",
+  "rationale": "The learner has mastered nothing and has no session history. Tokens is the sole foundational concept with no prerequisites (difficulty 1) and underpins the entire graph, so it is the clear starting point.",
   "confidence": 1.0,
   "suggested_difficulty": 1,
   "prerequisite_gaps": []
@@ -235,7 +237,7 @@ Learning graph (concepts and edges):
     {
       "concept_id": "tokens",
       "name": "Tokens",
-      "description": "Subword units that LLMs actually process. They are the unit of cost, context window, and latency. Roughly 4 English characters per token.",
+      "description": "The subword units LLMs actually read and emit. Tokens are the unit of cost, context window, and latency; estimate ~4 characters of English per token.",
       "difficulty": 1,
       "prerequisites": [],
       "modality_hints": [
@@ -246,23 +248,21 @@ Learning graph (concepts and edges):
     {
       "concept_id": "embeddings",
       "name": "Embeddings",
-      "description": "Learned dense vectors representing token/text meaning in high-dimensional space, enabling nearest-neighbor semantic search.",
+      "description": "Learned dense vectors representing token/text meaning in high-dimensional space, enabling nearest-neighbor semantic search over a corpus.",
       "difficulty": 2,
       "prerequisites": [
         "tokens"
       ],
       "modality_hints": [
         "reading",
-        "interactive"
-      ],
-      "spac…
+        "inter…
 ```
 </details>
 
 
 ## 3. `generate:reading`  
 
-_13.1s · 600 in / 894 out_
+_18.7s · 598 in / 1,002 out_
 
 _(thinking not captured for this call)_
 
@@ -271,7 +271,7 @@ _(thinking not captured for this call)_
 ```json
 {
   "type": "reading",
-  "title": "Tokens: How AI Reads in Chunks"
+  "title": "What Is a Token?"
 }
 ```
 
@@ -324,7 +324,7 @@ Concept to teach:
 {
   "concept_id": "tokens",
   "name": "Tokens",
-  "description": "Subword units that LLMs actually process. They are the unit of cost, context window, and latency. Roughly 4 English characters per token.",
+  "description": "The subword units LLMs actually read and emit. Tokens are the unit of cost, context window, and latency; estimate ~4 characters of English per token.",
   "difficulty": 1,
   "prerequisites": [],
   "modality_hints": [
@@ -333,7 +333,7 @@ Concept to teach:
   "spaced_repetition_interval_days": 3
 }
 
-Step objective: Activate everyday intuition: connect the familiar idea of words/characters in text to the new idea that models read in chunks, not whole words or letters.
+Step objective: Activate everyday intuition about words and characters, then introduce tokens as the subword units LLMs actually read and emit.
 Pedagogy principle: elaboration
 Learner difficulty level: 1
 Learner modality preference: reading
