@@ -27,6 +27,7 @@ class MemoryStore:
         self.root = Path(root)
         (self.root / "graphs").mkdir(parents=True, exist_ok=True)
         (self.root / "learners").mkdir(parents=True, exist_ok=True)
+        (self.root / "sources").mkdir(parents=True, exist_ok=True)
 
     # --- graphs -----------------------------------------------------------
 
@@ -53,6 +54,17 @@ class MemoryStore:
                 }
             )
         return out
+
+    # --- source material (for grounded generation) ------------------------
+
+    def save_source(self, source_hash: str, source_text: str) -> None:
+        """Persist the raw source a graph was extracted from, so generation can
+        later retrieve passages from it (grounded generation)."""
+        (self.root / "sources" / f"{source_hash}.txt").write_text(source_text)
+
+    def get_source(self, source_hash: str) -> str | None:
+        path = self.root / "sources" / f"{source_hash}.txt"
+        return path.read_text() if path.exists() else None
 
     # --- learners ---------------------------------------------------------
 
