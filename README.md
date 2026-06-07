@@ -13,6 +13,7 @@
 | **Input** | A subject (file / URL / paper) + a learner (what they know, what they're stuck on, how hard things should be). |
 | **Output** | The right next lesson for that one person, right now — *what* topic, in *which* format (reading / interactive quiz / Socratic dialogue), at *what* difficulty — plus the actual lesson generated on the spot. |
 | **Proof it's right** | Three independent LLM judges score every decision against the rules above; six golden test cases catch regressions. Currently passing 6/6. |
+| **What it costs** | ~**$0.17** per teaching session, ~**$0.86** per full eval run, ~**$0.11** one-time per domain ingested (then cached forever). [Full cost analysis.](docs/COST_ANALYSIS.md) |
 
 **Example.** Alice has been reading about cognitive biases. She knows *base rates* and *conditional probability*, but failed *base rate neglect* twice — both attempts were reading-based.
 
