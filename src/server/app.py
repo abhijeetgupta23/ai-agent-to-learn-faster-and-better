@@ -31,7 +31,6 @@ from src.graph.retriever import ground_context
 from src.harness import ExternalCallError
 from src.memory.store import MemoryStore
 from src.schemas import (
-    GapEstimate,
     LearnerModel,
     LearningGraph,
     Modality,
