@@ -4,6 +4,8 @@
 
 > Evaluation and reliability infrastructure for production AI agents, applied to adaptive pedagogy. The eval harness is the headline.
 
+> 👋 **Not an engineer?** Read the plain-English [User Guide](docs/USER_GUIDE.md) instead — what this is and how to use it, no jargon.
+
 ---
 
 ## In a sentence

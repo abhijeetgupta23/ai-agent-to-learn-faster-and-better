@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.graph.extractor import extract_learning_graph
+from src.graph.retriever import ground_context
 from src.memory.store import MemoryStore
 from src.schemas import (
     GapEstimate,
@@ -127,10 +128,12 @@ def start_session(req: StartSessionRequest):
     gap = diagnose_learner(learner, graph)
     workflow = plan_workflow(gap, learner, graph)
 
-    # 4. GENERATE the first artifact.
+    # 4. GENERATE the first artifact (grounded in retrieved source passages).
     step = workflow.steps[0]
     concept = graph.node_by_id(step.concept_id)
-    artifact = generate_artifact(step, concept, learner)
+    artifact = generate_artifact(
+        step, concept, learner, source_context=ground_context(concept, graph, store)
+    )
 
     session_id = uuid.uuid4().hex[:12]
     SESSIONS[session_id] = {
@@ -222,7 +225,9 @@ def start_session_stream(req: StartSessionRequest):
             yield _sse_event("phase", {"name": "generate"})
             step = workflow.steps[0]
             concept = graph.node_by_id(step.concept_id)
-            artifact = generate_artifact(step, concept, learner)
+            artifact = generate_artifact(
+                step, concept, learner, source_context=ground_context(concept, graph, store)
+            )
 
             session_id = uuid.uuid4().hex[:12]
             SESSIONS[session_id] = {
@@ -288,7 +293,9 @@ def respond(session_id: str, req: RespondRequest):
     state["current_step_index"] = next_idx
     next_step = workflow.steps[next_idx]
     concept = graph.node_by_id(next_step.concept_id)
-    artifact = generate_artifact(next_step, concept, learner)
+    artifact = generate_artifact(
+        next_step, concept, learner, source_context=ground_context(concept, graph, store)
+    )
     return JSONResponse(
         {
             "session_id": session_id,

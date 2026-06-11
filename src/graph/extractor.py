@@ -80,6 +80,9 @@ def extract_learning_graph(
 
     _validate_graph(graph)
     store.save_graph(graph)
+    # Persist the source so generation can retrieve passages from it later
+    # (grounded generation). Keyed by the same hash as the graph.
+    store.save_source(source_hash, source_text)
     return graph
 
 
