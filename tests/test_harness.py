@@ -163,10 +163,10 @@ def _fake_tools(monkeypatch, n_steps: int):
         generated_with_wrap_up.append(wrap_up)
         return ReadingArtifact(title="t", body="b", key_takeaways=["k"])
 
-    monkeypatch.setattr(loop_mod, "diagnose_learner", lambda l, g: gap)
-    monkeypatch.setattr(loop_mod, "plan_workflow", lambda g, l, gr: workflow)
+    monkeypatch.setattr(loop_mod, "diagnose_learner", lambda lrn, g: gap)
+    monkeypatch.setattr(loop_mod, "plan_workflow", lambda g, lrn, gr: workflow)
     monkeypatch.setattr(loop_mod, "generate_artifact", fake_generate)
-    monkeypatch.setattr(loop_mod, "update_learner_model", lambda l, t, s=None: l)
+    monkeypatch.setattr(loop_mod, "update_learner_model", lambda lrn, t, s=None: lrn)
     return learner, generated_with_wrap_up
 
 
@@ -204,7 +204,7 @@ def test_loop_handles_external_call_failure_gracefully(monkeypatch):
     learner, _ = _fake_tools(monkeypatch, n_steps=2)
     err = ExternalCallError("llm:plan", attempts=3, transient=True, cause=TimeoutError("t"))
 
-    def failing_plan(g, l, gr):
+    def failing_plan(g, lrn, gr):
         raise err
 
     monkeypatch.setattr(loop_mod, "plan_workflow", failing_plan)
