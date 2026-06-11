@@ -1,0 +1,58 @@
+[
+  {
+    "domain": "psychology",
+    "target_concept_id": "cognitive_bias_concept",
+    "modality": "reading",
+    "suggested_difficulty": 2,
+    "expected_band": [
+      2,
+      3
+    ],
+    "judges": [
+      {
+        "judge_name": "gap_to_pedagogy",
+        "score": 1.0,
+        "rationale": "Target_concept_id is 'cognitive_bias_concept', matching the diagnosed gap exactly. Step 1 reactivates the mastered prerequisite dual_process_model using spaced_repetition\u2014appropriate since this concept is already mastered and benefits from review-based anchoring. Steps 2-4 all address the target concept: step 2 (elaboration) for initial exposition, step 3 (worked_example) for concrete demonstration, and step 4 (desirable_difficulty) for retrieval consolidation. The progression from exposition to worked example to retrieval practice is pedagogically sound for a newly-introduced concept, and notably avoids spaced_repetition on the brand-new concept (correctly reserving it for the mastered prerequisite). Modality choices align with reading preference and node hints. All steps are on-topic with no drift to tangential biases."
+      },
+      {
+        "judge_name": "modality_fit",
+        "score": 1.0,
+        "rationale": "The target concept (cognitive_bias_concept) is a not-yet-seen prerequisite \u2014 learner is neither struggling with nor has mastered the target \u2014 making it new conceptual material. Combined with modality_preference='reading', reading is the textbook-correct choice. The rationale correctly distinguishes the un-introduced prerequisite from the downstream struggling FAE, and sensibly layers spaced Socratic review of the mastered dual_process_model plus interactive retrieval consolidation."
+      },
+      {
+        "judge_name": "adaptive_progression",
+        "score": 1.0,
+        "rationale": "difficulty_level is 3 with only 1 struggling concept (below the 2+ threshold that forces a step down) and 0/2 recent correct turns (no 3+ correct streak to justify a step up). The suggested_difficulty of 2 stays within 1 of the current level, falls in [1,5], matches the expected band (2,3), and appropriately eases down given poor recent performance and the focus on the unmastered prerequisite cognitive_bias_concept."
+      }
+    ],
+    "passed": true
+  },
+  {
+    "domain": "persuasion",
+    "target_concept_id": "persuasion_overview",
+    "modality": "reading",
+    "suggested_difficulty": 1,
+    "expected_band": [
+      1,
+      2
+    ],
+    "judges": [
+      {
+        "judge_name": "gap_to_pedagogy",
+        "score": 1.0,
+        "rationale": "Target_concept_id 'persuasion_overview' exactly matches the diagnosed gap. All four steps stay on the concept: steps 1-2 introduce/define persuasion and ground it in everyday examples (elaboration\u2014appropriate for brand-new expository material), steps 3-4 use scenario classification and self-explanation as retrieval practice (desirable_difficulty\u2014appropriate to consolidate a freshly-introduced definition). Crucially, the workflow correctly avoids spaced_repetition (no prior mastery to space) and avoids socratic (no misconception to surface), matching the rationale. No drift to tangential concepts like reciprocity or social proof. Modality (reading) matches the concept hint. Pedagogy principles are well-justified for a root-level, no-history learner."
+      },
+      {
+        "judge_name": "modality_fit",
+        "score": 1.0,
+        "rationale": "The target concept persuasion_overview is brand-new expository material (not in struggling_concepts, not mastered, no prerequisites mastered), and the learner's modality_preference is reading. Per the routing rules, reading is the textbook-correct choice for new conceptual material the learner hasn't seen, especially with a reading preference. The rationale correctly cites the learner state: no misconception to surface (rules out socratic) and no procedural skill yet established (rules out interactive as primary), with the concept's own hint also reading."
+      },
+      {
+        "judge_name": "adaptive_progression",
+        "score": 1.0,
+        "rationale": "Learner has no history, no struggling concepts, and difficulty_level is 1. With no recent correct turns, there's no basis for stepping up, so suggested_difficulty of 1 sits at the current level and within the expected band (1,2). Correctly stays in [1,5]."
+      }
+    ],
+    "passed": true
+  }
+]
