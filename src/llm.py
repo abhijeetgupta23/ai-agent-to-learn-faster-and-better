@@ -21,6 +21,7 @@ from typing import TypeVar
 import anthropic
 from pydantic import BaseModel, ValidationError
 
+from src.harness import cost
 from src.harness.retry import call_with_retries
 from src.trace import LLMCall, get_active_tracer
 
@@ -42,8 +43,31 @@ _client: anthropic.Anthropic | None = None
 def get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic()
+        _client = _maybe_wrap_langsmith(anthropic.Anthropic())
     return _client
+
+
+def _maybe_wrap_langsmith(client: anthropic.Anthropic) -> anthropic.Anthropic:
+    """
+    Opt-in LangSmith tracing — purely config-driven, so enabling it on a host
+    is setting env vars, not editing code. When LANGSMITH_TRACING (or the
+    legacy LANGCHAIN_TRACING_V2) is truthy AND the langsmith package is present,
+    wrap the Anthropic client so every call is traced; otherwise return it
+    untouched. A missing package never breaks the app — tracing just stays off.
+    """
+    enabled = (
+        os.environ.get("LANGSMITH_TRACING", "").lower() in ("1", "true", "yes")
+        or os.environ.get("LANGCHAIN_TRACING_V2", "").lower() in ("1", "true", "yes")
+    )
+    if not enabled:
+        return client
+    try:
+        from langsmith.wrappers import wrap_anthropic
+
+        return wrap_anthropic(client)
+    except Exception:
+        # langsmith not installed or wrap failed — degrade silently to no tracing.
+        return client
 
 
 def _extract_json(text: str) -> str:
@@ -113,6 +137,7 @@ def complete_json(
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000
     text, thinking = _split_blocks(response)
+    cost.record(model, _usage_dict(response))  # feeds per-session + daily budget caps
 
     parsed: T | None = None
     error: Exception | None = None
@@ -166,6 +191,7 @@ def complete_text(
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000
     text, thinking = _split_blocks(response)
+    cost.record(model, _usage_dict(response))  # feeds per-session + daily budget caps
 
     tracer = get_active_tracer()
     if tracer is not None:

@@ -14,6 +14,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.6"]
+# Opt-in observability: enable with LANGSMITH_TRACING=true (see src/llm.py).
+tracing = ["langsmith>=0.1"]
 
 [tool.ruff]
 line-length = 100
