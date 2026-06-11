@@ -1,0 +1,108 @@
+{
+  "domain_id": "cognitive_biases",
+  "domain_title": "Cognitive Biases in Decision-Making",
+  "source_hash": "golden_cognitive_biases",
+  "nodes": [
+    {
+      "concept_id": "base_rate",
+      "name": "Base Rates",
+      "description": "The underlying frequency of an event in a population, independent of any new evidence.",
+      "difficulty": 1,
+      "prerequisites": [],
+      "modality_hints": ["reading"],
+      "spaced_repetition_interval_days": 3
+    },
+    {
+      "concept_id": "conditional_probability",
+      "name": "Conditional Probability",
+      "description": "The probability of an event given that another event has occurred — P(A|B).",
+      "difficulty": 2,
+      "prerequisites": ["base_rate"],
+      "modality_hints": ["reading", "interactive"],
+      "spaced_repetition_interval_days": 7
+    },
+    {
+      "concept_id": "base_rate_neglect",
+      "name": "Base Rate Neglect",
+      "description": "The tendency to ignore base-rate information in favor of specific anecdotal evidence when judging probabilities.",
+      "difficulty": 3,
+      "prerequisites": ["base_rate", "conditional_probability"],
+      "modality_hints": ["socratic", "interactive"],
+      "spaced_repetition_interval_days": null
+    },
+    {
+      "concept_id": "representativeness_heuristic",
+      "name": "Representativeness Heuristic",
+      "description": "Judging probability by similarity to a mental prototype rather than by base rates.",
+      "difficulty": 3,
+      "prerequisites": ["base_rate"],
+      "modality_hints": ["socratic"],
+      "spaced_repetition_interval_days": null
+    },
+    {
+      "concept_id": "anchoring",
+      "name": "Anchoring",
+      "description": "The tendency to rely too heavily on the first piece of information offered (the 'anchor') when making decisions.",
+      "difficulty": 2,
+      "prerequisites": [],
+      "modality_hints": ["interactive", "reading"],
+      "spaced_repetition_interval_days": 7
+    },
+    {
+      "concept_id": "availability_heuristic",
+      "name": "Availability Heuristic",
+      "description": "Estimating likelihood by how easily examples come to mind, rather than by actual frequency.",
+      "difficulty": 2,
+      "prerequisites": [],
+      "modality_hints": ["reading", "socratic"],
+      "spaced_repetition_interval_days": 14
+    },
+    {
+      "concept_id": "bayesian_updating",
+      "name": "Bayesian Updating",
+      "description": "Revising a prior probability in light of new evidence using Bayes' rule.",
+      "difficulty": 4,
+      "prerequisites": ["conditional_probability"],
+      "modality_hints": ["interactive"],
+      "spaced_repetition_interval_days": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "base_rate",
+      "target": "conditional_probability",
+      "relationship_type": "prerequisite",
+      "pedagogy_metadata": {"desirable_difficulty": true},
+      "spacing_days": null
+    },
+    {
+      "source": "conditional_probability",
+      "target": "base_rate_neglect",
+      "relationship_type": "prerequisite",
+      "pedagogy_metadata": {"desirable_difficulty": true},
+      "spacing_days": null
+    },
+    {
+      "source": "base_rate_neglect",
+      "target": "representativeness_heuristic",
+      "relationship_type": "interleave_with",
+      "pedagogy_metadata": {"interleave": true, "rationale": "Commonly confused — both are about ignoring base rates but for different reasons."},
+      "spacing_days": null
+    },
+    {
+      "source": "availability_heuristic",
+      "target": "anchoring",
+      "relationship_type": "interleave_with",
+      "pedagogy_metadata": {"interleave": true, "rationale": "Both are System-1 shortcuts often confused."},
+      "spacing_days": null
+    },
+    {
+      "source": "conditional_probability",
+      "target": "bayesian_updating",
+      "relationship_type": "prerequisite",
+      "pedagogy_metadata": {"desirable_difficulty": true},
+      "spacing_days": null
+    }
+  ],
+  "created_at": "2026-06-06T00:00:00"
+}

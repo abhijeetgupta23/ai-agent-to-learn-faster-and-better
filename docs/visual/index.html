@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>adaptive-learning-agent · live trace</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --card: #ffffff;
+    --border: #e3e8ee;
+    --ink: #1a2330;
+    --muted: #5b6776;
+    --accent: #2563eb;
+    --assess: #1976d2;
+    --plan: #f57c00;
+    --generate: #388e3c;
+    --observe: #c2185b;
+    --adapt: #7b1fa2;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    margin: 0;
+    padding: 28px;
+    line-height: 1.5;
+  }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1200px; }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .learner-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 14px; }
+  .learner-row:last-child { border-bottom: none; }
+  .learner-row .k { color: var(--muted); }
+  .learner-row .v { font-weight: 500; }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #eef2f7;
+    color: var(--ink);
+    margin-right: 4px;
+  }
+  .tag.bad { background: #fdecec; color: #c0392b; }
+  .tag.good { background: #e6f4ea; color: #1e7e34; }
+  .stream-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    animation: slideIn 200ms ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .stream-card.phase-assess { border-left-color: var(--assess); background: #f3f8fd; }
+  .stream-card.phase-plan { border-left-color: var(--plan); background: #fef7ec; }
+  .stream-card.phase-generate { border-left-color: var(--generate); background: #f1f9f1; }
+  .stream-card.phase-observe { border-left-color: var(--observe); background: #fdf1f6; }
+  .stream-card.phase-adapt { border-left-color: var(--adapt); background: #f6f0fa; }
+  .stream-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .stream-card .title { font-weight: 600; margin-bottom: 8px; }
+  .stream-card .content { font-size: 14px; color: var(--ink); }
+  .stream-card pre {
+    background: #0f1724;
+    color: #d8e1f0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin: 8px 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .step-mini {
+    display: inline-block;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+  .step-mini b { color: var(--accent); }
+  .controls { margin-bottom: 16px; }
+  .controls input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; margin-right: 8px; }
+  #status { color: var(--muted); font-size: 13px; margin-left: 12px; }
+  .step-cards-row { display: flex; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<h1>adaptive-learning-agent</h1>
+<div class="sub">Live trace of one teaching session. Each card below is one event from the SSE stream.</div>
+
+<div class="controls">
+  <input id="user" value="alice" />
+  <input id="domain" value="cognitive_biases" />
+  <button id="start" onclick="startSession()">Start session</button>
+  <span id="status">idle</span>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="panel" id="learner-panel">
+      <h2>Learner state</h2>
+      <div id="learner-content">
+        <div class="sub" style="font-size:13px;">Click "Start session" to begin.</div>
+      </div>
+    </div>
+    <div class="panel" id="phase-panel" style="margin-top:16px;">
+      <h2>Current phase</h2>
+      <div id="phase-display" style="font-size:18px; font-weight:600;">—</div>
+      <div id="phase-tool" style="color: var(--muted); font-size: 13px; margin-top: 4px;">no tool active</div>
+    </div>
+  </div>
+  <div>
+    <div class="panel" id="stream-panel">
+      <h2>Event stream</h2>
+      <div id="stream"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PHASE_TOOLS = {
+  load_graph: { label: "load_graph", tool: "extract_learning_graph", color: "var(--assess)" },
+  assess:     { label: "ASSESS",     tool: "diagnose_learner",       color: "var(--assess)" },
+  plan:       { label: "PLAN",       tool: "plan_workflow",          color: "var(--plan)" },
+  generate:   { label: "GENERATE",   tool: "generate_artifact",      color: "var(--generate)" },
+  observe:    { label: "OBSERVE",    tool: "(awaiting learner)",     color: "var(--observe)" },
+  adapt:      { label: "ADAPT",      tool: "update_learner_model",   color: "var(--adapt)" },
+};
+
+function setStatus(s) { document.getElementById("status").textContent = s; }
+function setPhase(p) {
+  const info = PHASE_TOOLS[p] || { label: p, tool: "—", color: "#888" };
+  const disp = document.getElementById("phase-display");
+  disp.textContent = info.label;
+  disp.style.color = info.color;
+  document.getElementById("phase-tool").textContent = info.tool;
+}
+
+function renderLearner(learner) {
+  const c = document.getElementById("learner-content");
+  c.innerHTML = `
+    <div class="learner-row"><span class="k">user_id</span><span class="v">${learner.user_id}</span></div>
+    <div class="learner-row"><span class="k">domain</span><span class="v">${learner.domain_id}</span></div>
+    <div class="learner-row"><span class="k">difficulty</span><span class="v">${learner.difficulty_level} / 5</span></div>
+    <div class="learner-row"><span class="k">modality pref</span><span class="v">${learner.modality_preference}</span></div>
+    <div class="learner-row"><span class="k">mastered</span><span class="v">${(learner.mastered_concepts || []).map(c => `<span class="tag good">${c}</span>`).join("") || `<span class="k">none</span>`}</span></div>
+    <div class="learner-row"><span class="k">struggling</span><span class="v">${(learner.struggling_concepts || []).map(c => `<span class="tag bad">${c}</span>`).join("") || `<span class="k">none</span>`}</span></div>
+  `;
+}
+
+function appendCard(phaseClass, label, title, contentHTML) {
+  const stream = document.getElementById("stream");
+  const card = document.createElement("div");
+  card.className = "stream-card " + phaseClass;
+  card.innerHTML = `
+    <div class="label">${label}</div>
+    <div class="title">${title}</div>
+    <div class="content">${contentHTML}</div>
+  `;
+  stream.appendChild(card);
+  // Smooth-scroll to the new card
+  card.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function startSession() {
+  document.getElementById("start").disabled = true;
+  document.getElementById("stream").innerHTML = "";
+  setStatus("connecting…");
+
+  const user = document.getElementById("user").value;
+  const domain = document.getElementById("domain").value;
+  const body = JSON.stringify({ user_id: user, domain_id: domain });
+
+  // Use fetch with manual SSE parsing — POST not supported by EventSource
+  fetch("/sessions/start_stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  }).then(async (resp) => {
+    setStatus("streaming");
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+      for (const ev of events) handleSSE(ev);
+    }
+    setStatus("done");
+    document.getElementById("start").disabled = false;
+  }).catch((err) => {
+    setStatus("error: " + err.message);
+    document.getElementById("start").disabled = false;
+  });
+}
+
+function handleSSE(raw) {
+  const lines = raw.split("\n").filter(Boolean);
+  let event = "message", data = "";
+  for (const line of lines) {
+    if (line.startsWith("event: ")) event = line.slice(7);
+    else if (line.startsWith("data: ")) data += line.slice(6);
+  }
+  let payload = {};
+  try { payload = JSON.parse(data); } catch (e) { return; }
+  dispatchEvent(event, payload);
+}
+
+function dispatchEvent(event, p) {
+  const phaseClass = ({
+    phase: "phase-" + (p.name || ""),
+    graph: "phase-assess",
+    learner: "phase-assess",
+    gap: "phase-assess",
+    workflow: "phase-plan",
+    artifact: "phase-generate",
+    session_ready: "phase-generate",
+    error: "phase-observe",
+  })[event] || "";
+
+  if (event === "phase") {
+    setPhase(p.name);
+    appendCard(phaseClass, "phase change", PHASE_TOOLS[p.name]?.label || p.name, `calling <code>${PHASE_TOOLS[p.name]?.tool || "—"}</code>`);
+    return;
+  }
+  if (event === "graph") {
+    appendCard(phaseClass, "graph loaded", `${p.domain_id}`,
+      `<b>${p.n_nodes}</b> concepts loaded from the learning graph.`);
+    return;
+  }
+  if (event === "learner") {
+    renderLearner(p.learner);
+    appendCard(phaseClass, "learner loaded", p.learner.user_id,
+      `Initialized learner state. See the left panel for the full snapshot.`);
+    return;
+  }
+  if (event === "gap") {
+    const g = p.gap;
+    appendCard(phaseClass, "diagnose_learner →", "GapEstimate",
+      `<div><b>target:</b> <code>${g.target_concept_id}</code></div>
+       <div><b>suggested difficulty:</b> ${g.suggested_difficulty} / 5</div>
+       <div><b>confidence:</b> ${g.confidence}</div>
+       <div style="margin-top:8px;"><b>rationale:</b><br/>${g.rationale}</div>`);
+    return;
+  }
+  if (event === "workflow") {
+    const w = p.workflow;
+    const steps = w.steps.map(s => `
+      <div class="step-mini"><b>${s.step_number}.</b> ${s.concept_id} <span style="color:var(--muted);">·</span> ${s.modality} <span style="color:var(--muted);">·</span> ${s.pedagogy_principle}</div>
+    `).join("");
+    appendCard(phaseClass, "plan_workflow →", `Workflow (modality: ${w.modality})`,
+      `<div class="step-cards-row">${steps}</div>
+       <div style="margin-top:10px;"><b>rationale:</b><br/>${w.rationale}</div>`);
+    return;
+  }
+  if (event === "artifact") {
+    const a = p.artifact;
+    const s = p.step;
+    let preview = "";
+    if (a.type === "reading") {
+      preview = `<div><b>title:</b> ${a.title}</div><pre>${a.body.slice(0, 400)}…</pre>`;
+    } else if (a.type === "socratic") {
+      const firstTurn = (a.dialogue || [])[0]?.text || "";
+      preview = `<div><b>title:</b> ${a.title}</div>
+                 <div style="margin-top:6px;"><b>opening:</b> ${a.opening}</div>
+                 <div style="margin-top:6px;"><b>first agent turn:</b> ${firstTurn}</div>`;
+    } else if (a.type === "interactive") {
+      const first = (a.questions || [])[0];
+      preview = `<div><b>title:</b> ${a.title}</div>
+                 <div><b>intro:</b> ${a.intro}</div>
+                 ${first ? `<div style="margin-top:6px;"><b>Q1:</b> ${first.question}</div>` : ""}`;
+    }
+    appendCard(phaseClass, "generate_artifact →", `Artifact (${a.type}, step ${s.step_number})`, preview);
+    return;
+  }
+  if (event === "session_ready") {
+    appendCard("phase-generate", "session ready", p.session_id,
+      `Session id: <code>${p.session_id}</code>. The first artifact is rendered above. In a real client, the learner would now respond, OBSERVE captures the result, and ADAPT updates the learner model — that next-turn loop is wired into <code>POST /sessions/{id}/respond</code>.`);
+    setPhase("observe");
+    return;
+  }
+  if (event === "error") {
+    appendCard("phase-observe", "error", p.type || "Error", p.message || "(no message)");
+    return;
+  }
+}
+</script>
+</body>
+</html>

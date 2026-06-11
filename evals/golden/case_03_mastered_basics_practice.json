@@ -1,0 +1,21 @@
+{
+  "case_id": "case_03_mastered_basics_practice",
+  "domain_id": "cognitive_biases",
+  "description": "Learner has just seen base_rate and conditional_probability and gotten them right — should advance to interactive practice on a concept that builds on these (base_rate_neglect or bayesian_updating), with INTERACTIVE modality.",
+  "learner_model": {
+    "user_id": "test_practicing",
+    "domain_id": "cognitive_biases",
+    "mastered_concepts": ["base_rate", "conditional_probability"],
+    "struggling_concepts": [],
+    "modality_preference": "reading",
+    "difficulty_level": 2,
+    "session_history": [
+      {"concept_id": "base_rate", "modality": "reading", "correct": true, "timestamp": "2026-06-01T10:00:00"},
+      {"concept_id": "conditional_probability", "modality": "interactive", "correct": true, "timestamp": "2026-06-02T10:00:00"},
+      {"concept_id": "conditional_probability", "modality": "interactive", "correct": true, "timestamp": "2026-06-03T10:00:00"}
+    ]
+  },
+  "expected_target_concept": "base_rate_neglect",
+  "expected_modality": "interactive",
+  "expected_difficulty_band": [2, 4]
+}

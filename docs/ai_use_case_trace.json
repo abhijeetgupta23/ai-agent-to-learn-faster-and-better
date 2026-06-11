@@ -1,0 +1,206 @@
+{
+  "domain": "ai",
+  "sessions": [
+    {
+      "label": "fresh",
+      "learner": {
+        "user_id": "builder",
+        "domain_id": "ai_building_with_llms",
+        "mastered_concepts": [],
+        "struggling_concepts": [],
+        "modality_preference": "reading",
+        "difficulty_level": 1,
+        "session_history": []
+      },
+      "gap": {
+        "target_concept_id": "tokens",
+        "rationale": "The learner has no mastered concepts and no history. Tokens is the only concept with no prerequisites and the lowest difficulty (1), making it the clear foundational starting point for the entire graph.",
+        "confidence": 1.0,
+        "suggested_difficulty": 1,
+        "prerequisite_gaps": []
+      },
+      "workflow": {
+        "target_concept_id": "tokens",
+        "modality": "reading",
+        "steps": [
+          {
+            "step_number": 1,
+            "concept_id": "tokens",
+            "modality": "reading",
+            "objective": "Activate everyday intuition: connect the familiar idea of words/characters in text to the new idea that models read in chunks, not whole words or letters.",
+            "pedagogy_principle": "elaboration"
+          },
+          {
+            "step_number": 2,
+            "concept_id": "tokens",
+            "modality": "reading",
+            "objective": "Introduce tokens as subword units and walk through a worked example showing how a sentence splits into tokens, with the ~4-characters-per-token rule of thumb.",
+            "pedagogy_principle": "worked_example"
+          },
+          {
+            "step_number": 3,
+            "concept_id": "tokens",
+            "modality": "reading",
+            "objective": "Explain why tokens matter as the unit of cost, context window size, and latency, so the learner sees the practical stakes before practicing.",
+            "pedagogy_principle": "elaboration"
+          },
+          {
+            "step_number": 4,
+            "concept_id": "tokens",
+            "modality": "interactive",
+            "objective": "Practice by estimating token counts for several sample strings and predicting relative cost, retrieving the rule rather than re-reading it.",
+            "pedagogy_principle": "desirable_difficulty"
+          }
+        ],
+        "rationale": "Tokens is a foundational, expository concept the learner has never seen, and their modality_preference is reading \u2014 both signals point to 'reading' as the primary modality for the key teaching step (Step 2's worked example). It is not in struggling_concepts, so socratic dialogue isn't warranted, and the concept is declarative knowledge rather than a procedural skill, so it shouldn't lead with interactive. Since tokens has no prerequisites, Step 1 activates prior everyday knowledge of text via elaboration instead of spaced repetition; Steps 2-3 model and motivate the concept; Step 4 shifts to a light interactive retrieval task for desirable difficulty to consolidate the rule of thumb."
+      },
+      "key_step": {
+        "step_number": 1,
+        "concept_id": "tokens",
+        "modality": "reading",
+        "objective": "Activate everyday intuition: connect the familiar idea of words/characters in text to the new idea that models read in chunks, not whole words or letters.",
+        "pedagogy_principle": "elaboration"
+      },
+      "artifact": {
+        "type": "reading",
+        "title": "Tokens: How AI Reads in Chunks",
+        "body": "When you read a sentence, you probably see whole words, like \"reading\" or \"banana.\" You might even notice individual letters if you're spelling something out loud. But large language models (LLMs)\u2014the technology behind AI chatbots\u2014don't read the way you do. They break text into pieces called **tokens**.\n\nA token is a chunk of text. Sometimes a token is a whole word, like \"cat.\" But often a token is just part of a word. For example, the word \"reading\" might be split into two tokens: \"read\" and \"ing.\" Think of tokens like the puzzle pieces of language. The model snaps these pieces together to understand and create text.\n\nHere's a handy rule of thumb: in English, one token is roughly **4 characters**, or about three-quarters of a word. So a sentence with 20 words is usually around 26 tokens. You don't need to count exactly\u2014just remember that tokens are a bit smaller than words.\n\nWhy should you care about tokens? Because tokens are the model's basic \"unit\" for three important things:\n\n1. **Cost** \u2013 Using an AI model often costs money per token. More tokens means a bigger bill, like paying by the word for a telegram.\n2. **Context window** \u2013 This is the model's short-term memory, measured in tokens. It can only \"hold\" so many tokens at once. A longer conversation uses up more of this space.\n3. **Speed (latency)** \u2013 The model produces text one token at a time. More tokens means a longer wait for your answer.\n\nLet's try a quick example. Imagine you type: \"I love sunny days.\" That's 4 words. In tokens, it might look like: \"I\" / \" love\" / \" sunny\" / \" days\" / \".\"\u2014roughly 5 tokens. Notice how the spaces and punctuation get counted too! The model sees these little chunks, not the smooth sentence you read.\n\nSo the next time you chat with an AI, picture it quietly slicing your words into bite-sized tokens, processing each piece, then stitching its reply back together one token at a time. Words and letters are how *you* read; tokens are how the *machine* reads.",
+        "key_takeaways": [
+          "A token is a chunk of text\u2014sometimes a whole word, often just part of one.",
+          "A rough guide: 1 token \u2248 4 English characters, or about \u00be of a word.",
+          "Tokens are the unit for cost, the context window (the model's memory), and speed.",
+          "Spaces and punctuation count as part of tokens too.",
+          "Humans read in words and letters; LLMs read in tokens."
+        ]
+      }
+    },
+    {
+      "label": "struggling",
+      "learner": {
+        "user_id": "builder",
+        "domain_id": "ai_building_with_llms",
+        "mastered_concepts": [
+          "tokens",
+          "embeddings",
+          "attention",
+          "transformers"
+        ],
+        "struggling_concepts": [
+          "tool_use"
+        ],
+        "modality_preference": "reading",
+        "difficulty_level": 3,
+        "session_history": [
+          {
+            "concept_id": "tool_use",
+            "modality": "reading",
+            "correct": false,
+            "notes": "",
+            "timestamp": "2026-06-07T04:37:24.577954"
+          },
+          {
+            "concept_id": "tool_use",
+            "modality": "reading",
+            "correct": false,
+            "notes": "",
+            "timestamp": "2026-06-07T04:37:24.577961"
+          }
+        ]
+      },
+      "gap": {
+        "target_concept_id": "context_window",
+        "rationale": "The learner is struggling with tool_use, but its prerequisite chain (structured_outputs \u2190 prompt_engineering \u2190 context_window) is unmastered. Tracing back, context_window is the deepest unresolved prerequisite whose own prerequisites (tokens, attention) are both mastered. Resolve it before advancing toward tool_use.",
+        "confidence": 0.85,
+        "suggested_difficulty": 2,
+        "prerequisite_gaps": [
+          "context_window",
+          "prompt_engineering",
+          "structured_outputs"
+        ]
+      },
+      "workflow": {
+        "target_concept_id": "context_window",
+        "modality": "reading",
+        "steps": [
+          {
+            "step_number": 1,
+            "concept_id": "tokens",
+            "modality": "reading",
+            "objective": "Refresh that tokens are the unit of cost and the unit counted toward the model's working memory, priming the ceiling idea.",
+            "pedagogy_principle": "spaced_repetition"
+          },
+          {
+            "step_number": 2,
+            "concept_id": "attention",
+            "modality": "reading",
+            "objective": "Reconnect attention's quadratic memory cost with sequence length to explain WHY a hard token ceiling exists at all.",
+            "pedagogy_principle": "elaboration"
+          },
+          {
+            "step_number": 3,
+            "concept_id": "context_window",
+            "modality": "reading",
+            "objective": "Introduce the context window as the maximum tokens attendable in one request, with a worked example counting prompt + history + output against the ceiling.",
+            "pedagogy_principle": "worked_example"
+          },
+          {
+            "step_number": 4,
+            "concept_id": "context_window",
+            "modality": "interactive",
+            "objective": "Retrieve and apply: given token counts for a system prompt, documents, and expected reply, decide whether a request fits and what to trim.",
+            "pedagogy_principle": "desirable_difficulty"
+          }
+        ],
+        "rationale": "Context_window is new expository material (the learner has never been taught it; their failures were downstream on tool_use), and the learner's modality_preference is reading \u2014 so the KEY teaching step (3) uses reading, matching the concept's reading modality_hint. I deliberately avoided socratic: context_window isn't itself in struggling_concepts, and there's no entrenched misconception to surface; the gap is simply missing exposition. Steps 1\u20132 reactivate the two mastered prerequisites (tokens, attention) so the ceiling concept is grounded in cause (quadratic attention cost), and step 4 shifts to interactive retrieval practice to consolidate, since procedural budgeting of tokens is best learned by doing. This sequence resolves the deepest unmet prerequisite before re-attempting the prompt_engineering \u2192 structured_outputs \u2192 tool_use chain."
+      },
+      "key_step": {
+        "step_number": 3,
+        "concept_id": "context_window",
+        "modality": "reading",
+        "objective": "Introduce the context window as the maximum tokens attendable in one request, with a worked example counting prompt + history + output against the ceiling.",
+        "pedagogy_principle": "worked_example"
+      },
+      "artifact": {
+        "type": "reading",
+        "title": "The Context Window: A Model's Working Memory",
+        "body": "Imagine a desk that can only hold a fixed number of papers at once. To read a new page, you sometimes have to slide an old one off the edge. A language model works the same way. Its **context window** is the maximum number of tokens it can attend to in a single request \u2014 the hard ceiling on its working memory.\n\nRemember that tokens are the small chunks (roughly 3-4 characters, or about \u00be of a word) that text is broken into before the model processes it. The attention mechanism lets the model look at every token in the window and weigh how they relate. But it can only attend to tokens that fit inside the window. Anything beyond the ceiling is simply not seen.\n\nHere's the key insight: **everything counts against the ceiling** \u2014 your system instructions, the conversation history, the current prompt, AND the response the model generates. They all share the same budget.\n\n**Worked example**\n\nSuppose a model has a context window of 8,000 tokens. You send a request with:\n\n- System instructions: 500 tokens\n- Conversation history (earlier turns): 4,000 tokens\n- Your new question: 1,500 tokens\n\nInput total: 500 + 4,000 + 1,500 = **6,000 tokens**.\n\nThat leaves 8,000 \u2212 6,000 = **2,000 tokens** for the model's reply. If you ask for a 3,000-token essay, you'll hit the ceiling: the model either truncates its answer or refuses, because there is no room left.\n\nWhat happens as a conversation grows? Each turn you add more history. Eventually the oldest messages must be dropped or summarized to make space \u2014 which is why long chats can seem to 'forget' what you said earlier. It isn't forgetting in a human sense; those tokens have fallen off the desk.\n\n**Why this matters in practice**\n\nWhen you design a prompt, budget your tokens like money. If you need a long output, leave room for it. If history is eating your budget, trim or summarize it. Knowing the ceiling helps you predict failures before they happen, rather than being surprised when an answer cuts off mid-sentence.",
+        "key_takeaways": [
+          "The context window is the maximum number of tokens a model can attend to in one request \u2014 its working-memory ceiling.",
+          "Input (system instructions + history + prompt) AND output all share the same token budget.",
+          "Worked rule: usable output tokens = context window \u2212 input tokens.",
+          "When a conversation exceeds the window, older tokens must be dropped or summarized, causing apparent 'forgetting'.",
+          "Plan prompts by budgeting tokens so there's enough room left for the response you need."
+        ]
+      }
+    }
+  ],
+  "graph": {
+    "n_nodes": 13,
+    "n_edges": 21,
+    "node_ids": [
+      "tokens",
+      "embeddings",
+      "attention",
+      "transformers",
+      "context_window",
+      "prompt_engineering",
+      "structured_outputs",
+      "tool_use",
+      "agents",
+      "rag",
+      "evals",
+      "llm_as_judge",
+      "hallucination"
+    ],
+    "interleave_edges": [
+      {
+        "source": "structured_outputs",
+        "target": "tool_use"
+      },
+      {
+        "source": "embeddings",
+        "target": "attention"
+      }
+    ]
+  }
+}
