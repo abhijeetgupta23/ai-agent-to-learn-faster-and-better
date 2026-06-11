@@ -60,6 +60,8 @@ def generate_artifact(
     concept: ConceptNode,
     learner: LearnerModel,
     source_context: str | None = None,
+    *,
+    wrap_up: bool = False,
 ) -> Artifact:
     """
     Generate the teaching artifact for one step.
@@ -68,6 +70,10 @@ def generate_artifact(
     material), generation is *grounded*: the lesson is built from real source
     text rather than the model's parametric memory. When it's None, behaviour is
     unchanged (ungrounded generation from the concept description).
+
+    `wrap_up=True` is set by the agent loop when this is the last step the
+    session's iteration budget allows (src/harness/limits.py): the artifact
+    should consolidate and close out rather than open new threads.
     """
     modality = step.modality if isinstance(step.modality, Modality) else Modality(step.modality)
     user_context = (
@@ -77,6 +83,13 @@ def generate_artifact(
         f"Learner difficulty level: {learner.difficulty_level}\n"
         f"Learner modality preference: {learner.modality_preference.value}\n"
     )
+    if wrap_up:
+        user_context += (
+            "\nSESSION WRAP-UP: this is the final artifact of the session "
+            "(iteration budget reached). Consolidate what has been covered, "
+            "close with a brief summary, and do not open new threads or "
+            "tee up further exercises.\n"
+        )
     grounding = ""
     if source_context:
         user_context += f"\nSOURCE MATERIAL (ground the lesson in this):\n---\n{source_context}\n---\n"

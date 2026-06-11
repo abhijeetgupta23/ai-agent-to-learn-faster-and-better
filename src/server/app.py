@@ -28,6 +28,7 @@ from pydantic import BaseModel
 
 from src.graph.extractor import extract_learning_graph
 from src.graph.retriever import ground_context
+from src.harness import ExternalCallError
 from src.memory.store import MemoryStore
 from src.schemas import (
     GapEstimate,
@@ -46,6 +47,16 @@ from src.tools import (
 
 app = FastAPI(title="Adaptive Learning Agent", version="0.1.0")
 store = MemoryStore()
+
+
+@app.exception_handler(ExternalCallError)
+def external_call_error_handler(request, exc: ExternalCallError):
+    """
+    Upstream (Anthropic API) failure after retries — surface it as a structured
+    502 instead of an opaque 500. The SSE path handles this inline instead
+    (an error event mid-stream), since headers are already sent by then.
+    """
+    return JSONResponse(status_code=502, content=exc.to_payload())
 
 # Visual demo — see docs/visual/index.html. Mount at /visual.
 _VISUAL_DIR = Path(__file__).resolve().parents[2] / "docs" / "visual"
@@ -247,6 +258,8 @@ def start_session_stream(req: StartSessionRequest):
                 },
             )
             yield _sse_event("session_ready", {"session_id": session_id})
+        except ExternalCallError as e:
+            yield _sse_event("error", e.to_payload())
         except Exception as e:
             yield _sse_event(
                 "error", {"message": str(e), "type": type(e).__name__}

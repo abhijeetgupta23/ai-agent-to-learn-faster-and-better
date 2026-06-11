@@ -226,6 +226,16 @@ A sample domain (cognitive biases) ships in `domains/cognitive_biases.md`. Drop 
 - **Context-budget posture** — the model uses adaptive thinking, so reasoning depth scales with task complexity. Stale learner-history turns can be evicted in a future iteration; the schema already carries timestamps.
 - **Observability** — every LLM call is traceable end-to-end (prompt → reasoning → validated output) via `src/trace.py`. The agent's decisions are auditable, not asserted. See [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md).
 
+### Failure handling (`src/harness/`)
+
+The guardrails above are *correctness* guardrails. [`src/harness/`](src/harness/) adds the failure-handling layer — the code that must keep working when everything else is failing:
+
+- **Bounded retries on external calls** ([`src/harness/retry.py`](src/harness/retry.py)) — every Anthropic API call goes through `call_with_retries`: max 2 retries with linear backoff (1s, then 2s), and only for *transient* failures (timeouts, connection errors, 429, 5xx). Permanent failures (4xx, validation bugs) are never retried — they'd fail identically and just add latency and cost. Either way, callers get a structured `ExternalCallError` (label, attempts, transient flag, cause), never a raw SDK exception.
+- **Graceful degradation, not crashes** — the agent loop catches `ExternalCallError`, emits a structured `error` event, then ends the session with a `done` event carrying the current learner state. The JSON endpoints return a structured 502; the SSE stream emits an inline `error` event.
+- **Iteration cap on the loop** ([`src/harness/limits.py`](src/harness/limits.py)) — `IterationBudget` caps executed teaching steps (configurable via `max_steps` / `ADAPTIVE_LEARNING_MAX_STEPS`, default 10). The step that lands on the cap is generated with an injected wrap-up instruction (consolidate, don't open new threads); past it, the loop force-terminates with a summary built from state it already has — no extra LLM call to say goodbye.
+
+All of this is covered by offline tests ([`tests/test_harness.py`](tests/test_harness.py)) — simulated failures, injected sleeps, no API key needed — so CI exercises the failure paths on every push.
+
 ---
 
 ## Repo layout
@@ -233,13 +243,13 @@ A sample domain (cognitive biases) ships in `domains/cognitive_biases.md`. Drop 
 ```
 adaptive-learning-agent/
 ├── README.md
-├── HANDOFF.md                 # the V1 build spec
 ├── pyproject.toml / requirements.txt
 ├── run_server.py / run_evals.py
 ├── src/
 │   ├── schemas.py             # All Pydantic models (single source of truth)
 │   ├── llm.py                 # Anthropic SDK wrapper + JSON-schema parsing + tracing
 │   ├── trace.py               # Observability: capture prompt/reasoning/output per call
+│   ├── harness/               # Failure handling: retries, structured errors, iteration cap
 │   ├── agent/loop.py          # ASSESS → PLAN → GENERATE → OBSERVE → ADAPT
 │   ├── tools/                 # The 5 tools (§6)
 │   ├── graph/extractor.py     # Domain → LearningGraph (LLM-extracted, cached)
@@ -249,6 +259,7 @@ adaptive-learning-agent/
 │   ├── judges/                # The 3 judges
 │   ├── golden/                # 6 hand-authored cases + the eval graph
 │   └── runner.py              # Harness — emits the results table
+├── tests/                     # Offline tests (no API key): harness, retriever
 └── domains/
     └── cognitive_biases.md    # Sample domain (drop more files here)
 ```

@@ -21,6 +21,7 @@ from typing import TypeVar
 import anthropic
 from pydantic import BaseModel, ValidationError
 
+from src.harness.retry import call_with_retries
 from src.trace import LLMCall, get_active_tracer
 
 T = TypeVar("T", bound=BaseModel)
@@ -98,12 +99,17 @@ def complete_json(
     )
 
     t0 = time.perf_counter()
-    response = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        thinking=_THINKING,
-        system=system_full,
-        messages=[{"role": "user", "content": user}],
+    # Retries transient API failures (timeout/429/5xx) twice with linear
+    # backoff; wraps permanent ones in ExternalCallError. See src/harness/retry.py.
+    response = call_with_retries(
+        lambda: client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            thinking=_THINKING,
+            system=system_full,
+            messages=[{"role": "user", "content": user}],
+        ),
+        label=f"llm:{label}",
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000
     text, thinking = _split_blocks(response)
@@ -148,12 +154,15 @@ def complete_text(
 ) -> str:
     client = get_client()
     t0 = time.perf_counter()
-    response = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        thinking=_THINKING,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+    response = call_with_retries(
+        lambda: client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            thinking=_THINKING,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        ),
+        label=f"llm:{label}",
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000
     text, thinking = _split_blocks(response)
