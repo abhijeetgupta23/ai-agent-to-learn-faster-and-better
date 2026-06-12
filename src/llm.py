@@ -12,11 +12,13 @@ Centralizes:
 
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import re
 import time
-from typing import TypeVar
+from contextlib import contextmanager
+from typing import Callable, TypeVar
 
 import anthropic
 from pydantic import BaseModel, ValidationError
@@ -35,6 +37,25 @@ DEFAULT_MODEL = os.environ.get("ADAPTIVE_LEARNING_MODEL", "claude-opus-4-8")
 # ADAPTIVE_LEARNING_THINKING=off to disable (faster/cheaper, opaque).
 THINKING_ENABLED = os.environ.get("ADAPTIVE_LEARNING_THINKING", "on").lower() != "off"
 _THINKING = {"type": "adaptive", "display": "summarized"} if THINKING_ENABLED else {"type": "disabled"}
+
+
+# When set, summarized-thinking deltas are forwarded here as they stream in,
+# so a caller (e.g. the SSE endpoint) can surface the model's reasoning live
+# instead of after the call completes. Contextvar so concurrent requests don't
+# see each other's reasoning.
+_thinking_sink: contextvars.ContextVar[Callable[[str], None] | None] = contextvars.ContextVar(
+    "thinking_sink", default=None
+)
+
+
+@contextmanager
+def thinking_sink(callback: Callable[[str], None]):
+    """Forward summarized-thinking deltas from LLM calls in this context to `callback`."""
+    token = _thinking_sink.set(callback)
+    try:
+        yield
+    finally:
+        _thinking_sink.reset(token)
 
 
 _client: anthropic.Anthropic | None = None
@@ -68,6 +89,31 @@ def _maybe_wrap_langsmith(client: anthropic.Anthropic) -> anthropic.Anthropic:
     except Exception:
         # langsmith not installed or wrap failed — degrade silently to no tracing.
         return client
+
+
+def _create_message(client: anthropic.Anthropic, *, model: str, max_tokens: int, system: str, user: str):
+    """
+    One LLM round-trip, streamed. Streaming (vs create) avoids HTTP timeouts on
+    long generations and lets us forward thinking deltas to the active sink the
+    moment they arrive; the returned final message is identical to create()'s.
+    """
+    sink = _thinking_sink.get()
+    with client.messages.stream(
+        model=model,
+        max_tokens=max_tokens,
+        thinking=_THINKING,
+        system=system,
+        messages=[{"role": "user", "content": user}],
+    ) as stream:
+        for event in stream:
+            if (
+                sink is not None
+                and event.type == "content_block_delta"
+                and event.delta.type == "thinking_delta"
+                and event.delta.thinking
+            ):
+                sink(event.delta.thinking)
+        return stream.get_final_message()
 
 
 def _extract_json(text: str) -> str:
@@ -126,12 +172,8 @@ def complete_json(
     # Retries transient API failures (timeout/429/5xx) twice with linear
     # backoff; wraps permanent ones in ExternalCallError. See src/harness/retry.py.
     response = call_with_retries(
-        lambda: client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            thinking=_THINKING,
-            system=system_full,
-            messages=[{"role": "user", "content": user}],
+        lambda: _create_message(
+            client, model=model, max_tokens=max_tokens, system=system_full, user=user
         ),
         label=f"llm:{label}",
     )
@@ -180,12 +222,8 @@ def complete_text(
     client = get_client()
     t0 = time.perf_counter()
     response = call_with_retries(
-        lambda: client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            thinking=_THINKING,
-            system=system,
-            messages=[{"role": "user", "content": user}],
+        lambda: _create_message(
+            client, model=model, max_tokens=max_tokens, system=system, user=user
         ),
         label=f"llm:{label}",
     )

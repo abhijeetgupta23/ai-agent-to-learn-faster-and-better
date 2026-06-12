@@ -16,10 +16,13 @@ eval harness, which runs the same tools synchronously.
 
 from __future__ import annotations
 
+import contextvars
 import json
+import queue
+import threading
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
@@ -29,6 +32,7 @@ from pydantic import BaseModel
 from src.graph.extractor import extract_learning_graph
 from src.graph.retriever import ground_context
 from src.harness import ExternalCallError, cost
+from src.llm import thinking_sink
 from src.memory.store import MemoryStore
 from src.server.guards import (
     PER_SESSION_USD_CAP,
@@ -260,6 +264,38 @@ def _sse_event(event_type: str, data: dict) -> str:
     return f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
 
 
+def _thinking_events(phase: str, fn: Callable[[], Any]):
+    """
+    Run an LLM-backed phase in a worker thread, yielding an SSE 'thinking'
+    event for each summarized-thinking delta as the model produces it; the
+    phase's return value comes back via `yield from`. The thread runs in a
+    copy of the current context so the request's cost meter and tracer
+    contextvars still apply inside it.
+    """
+    q: queue.Queue[str | None] = queue.Queue()
+    out: dict[str, Any] = {}
+    ctx = contextvars.copy_context()
+
+    def worker():
+        try:
+            with thinking_sink(q.put):
+                out["value"] = fn()
+        except BaseException as e:  # re-raised on the generator side
+            out["error"] = e
+        finally:
+            q.put(None)
+
+    threading.Thread(target=lambda: ctx.run(worker), daemon=True).start()
+    while True:
+        delta = q.get()
+        if delta is None:
+            break
+        yield _sse_event("thinking", {"phase": phase, "delta": delta})
+    if "error" in out:
+        raise out["error"]
+    return out["value"]
+
+
 @app.post("/sessions/start_stream")
 def start_session_stream(req: StartSessionRequest, request: Request):
     """
@@ -285,14 +321,21 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                 yield _sse_event("phase", {"name": "load_graph"})
                 graph: LearningGraph | None = None
                 if req.source_text:
-                    graph = extract_learning_graph(
-                        req.source_text, req.domain_title or req.domain_id, store
+                    graph = yield from _thinking_events(
+                        "load_graph",
+                        lambda: extract_learning_graph(
+                            req.source_text, req.domain_title or req.domain_id, store
+                        ),
                     )
                 elif domain_path.exists():
-                    graph = extract_learning_graph(
-                        domain_path.read_text(),
-                        req.domain_title or req.domain_id.replace("_", " "),
-                        store,
+                    source = domain_path.read_text()
+                    graph = yield from _thinking_events(
+                        "load_graph",
+                        lambda: extract_learning_graph(
+                            source,
+                            req.domain_title or req.domain_id.replace("_", " "),
+                            store,
+                        ),
                     )
                 else:
                     for entry in store.list_graphs():
@@ -323,12 +366,16 @@ def start_session_stream(req: StartSessionRequest, request: Request):
 
                 # 3. ASSESS.
                 yield _sse_event("phase", {"name": "assess"})
-                gap = diagnose_learner(learner, graph)
+                gap = yield from _thinking_events(
+                    "assess", lambda: diagnose_learner(learner, graph)
+                )
                 yield _sse_event("gap", {"gap": gap.model_dump(mode="json")})
 
                 # 4. PLAN.
                 yield _sse_event("phase", {"name": "plan"})
-                workflow = plan_workflow(gap, learner, graph)
+                workflow = yield from _thinking_events(
+                    "plan", lambda: plan_workflow(gap, learner, graph)
+                )
                 yield _sse_event(
                     "workflow", {"workflow": workflow.model_dump(mode="json")}
                 )
@@ -337,8 +384,14 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                 yield _sse_event("phase", {"name": "generate"})
                 step = workflow.steps[0]
                 concept = graph.node_by_id(step.concept_id)
-                artifact = generate_artifact(
-                    step, concept, learner, source_context=ground_context(concept, graph, store)
+                artifact = yield from _thinking_events(
+                    "generate",
+                    lambda: generate_artifact(
+                        step,
+                        concept,
+                        learner,
+                        source_context=ground_context(concept, graph, store),
+                    ),
                 )
 
                 session_id = uuid.uuid4().hex[:12]

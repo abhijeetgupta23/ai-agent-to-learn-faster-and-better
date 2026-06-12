@@ -84,6 +84,11 @@
   @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8);} 50% { opacity: 1; transform: scale(1.15);} }
   .thinking .t { font-size: 14px; color: var(--muted); }
   .thinking .t b { color: var(--ink); font-weight: 600; }
+  /* Live model reasoning streamed under the phase label */
+  .thinking .t .reasoning {
+    display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.45;
+    color: var(--muted); opacity: .85; font-style: italic;
+  }
 
   /* Lesson card */
   .lesson {
@@ -592,11 +597,22 @@ function renderEvals(d) {
 applyTheme(document.getElementById("domain").value); // theme the initial view
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
+let thinkingLabel = "", thinkingBuf = "";
 function setThinking(text) {
   const t = document.getElementById("thinking");
   if (text === null) { t.classList.remove("show"); return; }
+  thinkingLabel = text; thinkingBuf = "";
   document.getElementById("thinking-text").innerHTML = text;
   t.classList.add("show");
+}
+// Live reasoning: append a streamed thinking delta under the phase label,
+// keeping only the tail so the pane stays a readable size.
+function appendThinking(delta) {
+  thinkingBuf += delta;
+  const tail = thinkingBuf.length > 360 ? "…" + thinkingBuf.slice(-360) : thinkingBuf;
+  document.getElementById("thinking-text").innerHTML =
+    thinkingLabel + '<span class="reasoning">' + esc(tail) + "</span>";
+  document.getElementById("thinking").classList.add("show");
 }
 
 const THINKING = {
@@ -924,6 +940,10 @@ function dispatch(event, p) {
     if (THINKING[p.name]) setThinking(THINKING[p.name]);
     trace("phase-" + p.name, "phase", p.name.toUpperCase(),
       `calling the <code>${p.name}</code> step`);
+    return;
+  }
+  if (event === "thinking") {
+    appendThinking(p.delta);
     return;
   }
   if (event === "graph") {
