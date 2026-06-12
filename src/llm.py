@@ -31,6 +31,12 @@ T = TypeVar("T", bound=BaseModel)
 
 DEFAULT_MODEL = os.environ.get("ADAPTIVE_LEARNING_MODEL", "claude-sonnet-4-6")
 
+# Eval judges stay pinned to a strong Claude model regardless of which model
+# the system under test runs on — otherwise a provider experiment (e.g.
+# ADAPTIVE_LEARNING_MODEL=deepseek-reasoner) would also swap the graders and
+# make scores incomparable across runs.
+JUDGE_MODEL = os.environ.get("ADAPTIVE_LEARNING_JUDGE_MODEL", "claude-sonnet-4-6")
+
 # Adaptive thinking with summarized display: the model decides how much to
 # think, and we get a readable summary of that reasoning back. This is the
 # single switch that makes the agent's "why" observable. Set
