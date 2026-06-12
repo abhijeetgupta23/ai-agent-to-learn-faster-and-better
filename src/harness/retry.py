@@ -89,6 +89,16 @@ def is_transient(exc: Exception) -> bool:
     # Stdlib networking.
     if isinstance(exc, (ConnectionError, TimeoutError)):
         return True
+    # OpenAI-compatible SDK (DeepSeek experiments) — optional dependency, so
+    # classify only when it's importable.
+    try:
+        import openai
+    except ImportError:
+        return False
+    if isinstance(exc, openai.APIConnectionError):
+        return True
+    if isinstance(exc, openai.APIStatusError):
+        return exc.status_code == 429 or exc.status_code >= 500
     return False
 
 
