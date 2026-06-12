@@ -2,32 +2,32 @@
 
 _3 LLM call(s). Each block shows what the agent sent, how the model reasoned, and what came back._
 
-**Totals:** 11,322 input tokens, 2,387 output tokens, 32.9s wall.
+**Totals:** 11,604 input tokens, 2,514 output tokens, 34.0s wall.
 
 
 ## 1. `diagnose`  
 
-_6.8s · 5,003 in / 528 out_
+_8.1s · 5,137 in / 659 out_
 
 **Model reasoning (summarized):**
 
-> I'm mapping out the dependency chain for tool_use—it needs structured_outputs, which depends on prompt_engineering, which depends on context_window. I've already mastered tokens, embeddings, attention, and transformers, but context_window is where the gap is. Since context_window only requires tokens and attention as prerequisites (both already solid), that's the deepest unresolved skill I need to focus on first.
+> The learner is struggling with tool_use because they haven't mastered its prerequisites. They've got tokens and attention down, but context_window, prompt_engineering, and structured_outputs are still gaps. Since context_window is the deepest unresolved prerequisite that's actually ready to learn (its own prerequisites are already mastered), that's where they should focus first—then prompt_engineering builds on that, and finally structured_outputs can follow.
 > 
-> Context_window has a difficulty of 2, and I'm at learner level 3, so I'll keep the difficulty steady at 3 since I'm only struggling with one concept there. The main gaps blocking progress are context_window, prompt_engineering, and structured_outputs.
+> For difficulty level, context_window itself is a 2, but the learner is at level 3 and struggling. Since they're only struggling with one concept, I'd normally keep them at their current level, but given that the prerequisite concept is inherently easier and they need to shore up foundations, I'll suggest difficulty 2 to give them a solid footing before moving back up.
 
 **Produced:**
 
 ```json
 {
   "target_concept_id": "context_window",
-  "suggested_difficulty": 3,
-  "confidence": 0.9,
+  "suggested_difficulty": 2,
+  "confidence": 0.85,
   "prerequisite_gaps": [
     "context_window",
     "prompt_engineering",
     "structured_outputs"
   ],
-  "rationale": "The learner is struggling with tool_use, but its prerequisite chain is unmet: tool_use needs structured_outputs, which needs prompt_engineering, which needs context_window. context_window is the deepest unresolved prerequisite whose own prerequisites (tokens, attention) are already mastered, so it should be resolved first before returning to tool_use."
+  "rationale": "The learner is struggling with tool_use, but its prerequisite chain (structured_outputs <- prompt_engineering <- context_window) is entirely unmastered. The deepest unresolved prerequisite whose own prerequisites (tokens, attention) are mastered is context_window, so it must be resolved before progressing toward tool_use."
 }
 ```
 
@@ -93,18 +93,18 @@ Learning graph:
     {
       "concept_id": "tokens",
       "name": "Tokens",
-      "description": "The subword units LLMs actually read and emit. Tokens are the unit of cost, context window, and latency; estimate ~4 characters of English per token.",
+      "description": "LLMs process text as tokens — subword units from a fixed vocabulary. Tokens are the unit of cost, context window, and latency. Roughly 4 English characters per token.",
       "difficulty": 1,
       "prerequisites": [],
       "modality_hints": [
         "reading"
       ],
-      "spaced_repetition_interval_days": 3
+      "spaced_repetition_interval_days": 1
     },
     {
       "concept_id": "embeddings",
       "name": "Embeddings",
-      "description": "Learned dense vectors representing token/text meaning in high-dimensional space, enabling nearest-neighbor semantic search over a corpus.",
+      "description": "Learned dense vectors representing token/text meaning in high-dimensional space. The basis of semantic search: embed a query and corpus, then nearest-neighbor search.",
       "difficulty": 2,
       "prerequisites": [
         "tokens"
@@ -113,13 +113,13 @@ Learning graph:
         "reading",
         "interactive"
       ],
-      "spaced_repetition_interval_days": 7
+      "spaced_repetition_interval_days": 3
     },
     {
       "concept_id": "attention",
       "name": "Attention",
-      "description": "The mechanism letting every token weigh every other token's relevance. Explains coreference resolution and why context length cost grows quadratically.",
-      "difficulty": 4,
+      "description": "The mechanism letting every token attend to every other token to resolve meaning and references. Its memory cost grows with the square of sequence length.",
+      "difficulty": 3,
       "prerequisites": [
         "tokens"
       ],
@@ -127,23 +127,23 @@ Learning graph:
         "reading",
         "socratic"
       ],
-      "spaced_repetition_interval_days": 7
+      "spaced_repetition_interval_days": null
     },
     {
-      "concept_id": "transformers",
-      "name": "Transformers",
-      "description":…
+      "concept_id": "transformers"…
 ```
 </details>
 
 
 ## 2. `plan`  
 
-_11.0s · 5,702 in / 930 out_
+_12.3s · 5,831 in / 1,002 out_
 
 **Model reasoning (summarized):**
 
-> I'm planning the learning sequence for context_window, starting with activating prior knowledge on tokens and attention through spaced repetition and reading. Then I'll connect the quadratic cost concept to build understanding, teach context_window itself using reading and worked examples, and finish with interactive practice that has appropriate difficulty.
+> I'm planning the learning sequence for context_window, which is new material that the learner should approach through reading. Since tokens and attention are already mastered prerequisites, I'll activate that prior knowledge first—using spaced repetition to reinforce that tokens form the basic units of a context window, then connecting attention concepts through elaboration to explain why context has quadratic computational costs.
+> 
+> For the core instruction, I'll use a worked example or elaboration to teach context_window itself, then follow with interactive practice that introduces desirable difficulty to solidify understanding.
 
 **Produced:**
 
@@ -151,7 +151,7 @@ _11.0s · 5,702 in / 930 out_
 {
   "target_concept_id": "context_window",
   "modality": "reading",
-  "rationale": "context_window is a new, expository concept (not yet in the learner's history) whose own prerequisites (tokens, attention) are already mastered, and the learner's modality_preference is reading \u2014 so the KEY teaching step (3) uses reading rather than socratic dialogue, which is reserved for surfacing misconceptions in already-seen material. Steps 1-2 reactivate the mastered prerequisites (spaced repetition + elaboration linking attention's quadratic cost to the window ceiling), step 3 delivers the concept via worked examples, and step 4 switches to interactive retrieval practice to consolidate before climbing back up the chain toward prompt_engineering and the struggling tool_use target.",
+  "rationale": "Context_window is unmastered, expository, and not in the learner's struggling set, and the learner's modality_preference is reading\u2014so reading is the right primary modality for the key teaching step (step 3), where the concept is first built on the already-mastered prerequisites tokens and attention. Steps 1-2 use reading to reactivate those exact prerequisites (tokens as the budget unit; attention's quadratic cost as the reason context is bounded), grounding the new concept in prior knowledge. Step 4 switches to interactive retrieval practice so the learner doesn't just recognize the definition but can apply token-budget reasoning\u2014desirable difficulty that prepares the path toward prompt_engineering, structured_outputs, and ultimately the struggling tool_use concept.",
   "steps": [
     {
       "step_number": 1,
@@ -217,9 +217,9 @@ Respond with valid JSON only, conforming to this…
 Diagnosed gap:
 {
   "target_concept_id": "context_window",
-  "rationale": "The learner is struggling with tool_use, but its prerequisite chain is unmet: tool_use needs structured_outputs, which needs prompt_engineering, which needs context_window. context_window is the deepest unresolved prerequisite whose own prerequisites (tokens, attention) are already mastered, so it should be resolved first before returning to tool_use.",
-  "confidence": 0.9,
-  "suggested_difficulty": 3,
+  "rationale": "The learner is struggling with tool_use, but its prerequisite chain (structured_outputs <- prompt_engineering <- context_window) is entirely unmastered. The deepest unresolved prerequisite whose own prerequisites (tokens, attention) are mastered is context_window, so it must be resolved before progressing toward tool_use.",
+  "confidence": 0.85,
+  "suggested_difficulty": 2,
   "prerequisite_gaps": [
     "context_window",
     "prompt_engineering",
@@ -248,14 +248,14 @@ Learner model:
       "modality": "reading",
       "correct": false,
       "notes": "",
-      "timestamp": "2026-06-07T10:11:16.372403"
+      "timestamp": "2026-06-08T03:35:54.548240"
     },
     {
       "concept_id": "tool_use",
       "modality": "reading",
       "correct": false,
       "notes": "",
-      "timestamp": "2026-06-07T10:11:16.372412"
+      "timestamp": "2026-06-08T03:35:54.548240"
     }
   ]
 }
@@ -269,14 +269,14 @@ Learning graph (concepts and edges):
     {
       "concept_id": "tokens",
       "name": "Tokens",
-      "description": "The subword un…
+      "description": "LLMs process text as tokens — subword units…
 ```
 </details>
 
 
 ## 3. `generate:reading`  
 
-_15.1s · 617 in / 929 out_
+_13.6s · 636 in / 853 out_
 
 _(thinking not captured for this call)_
 
@@ -338,7 +338,7 @@ Concept to teach:
 {
   "concept_id": "context_window",
   "name": "Context Window",
-  "description": "The maximum tokens a model can attend to in one request — its working memory and a hard ceiling on input size, with quality degrading near the limit.",
+  "description": "The maximum number of tokens a model can attend to in one request — its working memory and a hard ceiling. Quality degrades subtly as you approach it.",
   "difficulty": 2,
   "prerequisites": [
     "tokens",
@@ -347,10 +347,10 @@ Concept to teach:
   "modality_hints": [
     "reading"
   ],
-  "spaced_repetition_interval_days": 7
+  "spaced_repetition_interval_days": 3
 }
 
-Step objective: Introduce the context window as the model's working memory: a fixed token ceiling on input, with concrete examples showing quality degrading near the limit.
+Step objective: Introduce the context window as the model's hard working-memory ceiling in tokens, with a worked example showing how a prompt plus history plus output must all fit, and how quality degrades near the limit.
 Pedagogy principle: worked_example
 Learner difficulty level: 3
 Learner modality preference: reading

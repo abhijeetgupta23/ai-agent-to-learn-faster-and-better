@@ -3,219 +3,892 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>adaptive-learning-agent · live trace</title>
+<title>adaptive-learning-agent · your tutor</title>
 <style>
   :root {
-    --bg: #f7f8fa;
+    --bg1: #eef1fb;
+    --bg2: #f7f5fb;
     --card: #ffffff;
-    --border: #e3e8ee;
-    --ink: #1a2330;
-    --muted: #5b6776;
-    --accent: #2563eb;
-    --assess: #1976d2;
-    --plan: #f57c00;
-    --generate: #388e3c;
-    --observe: #c2185b;
-    --adapt: #7b1fa2;
+    --border: #e6e8f0;
+    --ink: #1b2333;
+    --muted: #6b7686;
+    --accent: #6366f1;
+    --accent-d: #4f46e5;
+    --good: #16a34a;
+    --good-bg: #e9f7ef;
+    --bad: #e11d72;
+    --bad-bg: #fdecf3;
+    --shadow: 0 10px 30px rgba(31, 41, 86, 0.08);
   }
+  * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: var(--bg);
+    background: radial-gradient(1200px 600px at 70% -10%, var(--bg2), var(--bg1));
     color: var(--ink);
     margin: 0;
-    padding: 28px;
-    line-height: 1.5;
+    padding: 0 16px 80px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
-  h1 { margin: 0 0 4px; font-size: 22px; }
-  .sub { color: var(--muted); margin-bottom: 24px; }
-  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; max-width: 1200px; }
-  .panel {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header { padding: 32px 4px 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 38px; height: 38px; border-radius: 11px; flex: none;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    display: grid; place-items: center; color: white; font-size: 20px;
+    box-shadow: 0 6px 16px rgba(99,102,241,.35);
   }
-  .panel h2 {
-    margin: 0 0 12px;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
+  h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
+
+  /* Setup */
+  .setup {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; box-shadow: var(--shadow); margin-top: 18px;
   }
-  .learner-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 14px; }
-  .learner-row:last-child { border-bottom: none; }
-  .learner-row .k { color: var(--muted); }
-  .learner-row .v { font-weight: 500; }
-  .tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-    background: #eef2f7;
-    color: var(--ink);
-    margin-right: 4px;
+  .setup h2 { margin: 0 0 4px; font-size: 16px; }
+  .setup p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip {
+    border: 1px solid var(--border); background: #fafbff; color: var(--ink);
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    transition: all .12s ease;
   }
-  .tag.bad { background: #fdecec; color: #c0392b; }
-  .tag.good { background: #e6f4ea; color: #1e7e34; }
-  .stream-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin-bottom: 12px;
-    animation: slideIn 200ms ease;
+  .chip:hover { border-color: var(--accent); }
+  .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  input[type=text], input.txt {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; background: #fff; min-width: 160px;
   }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  .stream-card.phase-assess { border-left-color: var(--assess); background: #f3f8fd; }
-  .stream-card.phase-plan { border-left-color: var(--plan); background: #fef7ec; }
-  .stream-card.phase-generate { border-left-color: var(--generate); background: #f1f9f1; }
-  .stream-card.phase-observe { border-left-color: var(--observe); background: #fdf1f6; }
-  .stream-card.phase-adapt { border-left-color: var(--adapt); background: #f6f0fa; }
-  .stream-card .label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 6px;
+  input:focus, .chip:focus { outline: 2px solid #c7d2fe; outline-offset: 1px; }
+  button.primary {
+    background: var(--accent); color: white; border: none; padding: 11px 22px;
+    border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(99,102,241,.30); transition: background .12s;
   }
-  .stream-card .title { font-weight: 600; margin-bottom: 8px; }
-  .stream-card .content { font-size: 14px; color: var(--ink); }
-  .stream-card pre {
-    background: #0f1724;
-    color: #d8e1f0;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    overflow-x: auto;
-    margin: 8px 0 0;
-    white-space: pre-wrap;
-    word-break: break-word;
+  button.primary:hover { background: var(--accent-d); }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+  /* Thinking banner */
+  .thinking {
+    display: none; align-items: center; gap: 12px; margin: 20px 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 18px; box-shadow: var(--shadow);
   }
-  button {
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 9px 18px;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    font-weight: 500;
+  .thinking.show { display: flex; }
+  .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none;
+    animation: pulse 1s infinite ease-in-out; }
+  @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8);} 50% { opacity: 1; transform: scale(1.15);} }
+  .thinking .t { font-size: 14px; color: var(--muted); }
+  .thinking .t b { color: var(--ink); font-weight: 600; }
+
+  /* Lesson card */
+  .lesson {
+    background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+    padding: 24px 26px; box-shadow: var(--shadow); margin: 18px 0;
+    animation: rise 260ms ease;
   }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .step-mini {
-    display: inline-block;
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 12px;
-    margin-right: 6px;
-    margin-bottom: 6px;
+  @keyframes rise { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none; } }
+  .lesson-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .pill { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; }
+  .pill.reading { background: #eef2ff; color: #4f46e5; }
+  .pill.socratic { background: #fdf2f8; color: #be185d; }
+  .pill.interactive { background: #ecfdf5; color: #047857; }
+  .progress { display: flex; gap: 5px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #dfe3ee; }
+  .dot.done { background: var(--accent); }
+  .dot.cur { background: var(--accent); box-shadow: 0 0 0 3px #e0e7ff; }
+  .lesson h3 { margin: 6px 0 14px; font-size: 22px; letter-spacing: -0.01em; }
+  .body { font-size: 15.5px; color: #283248; }
+  .body p { margin: 0 0 12px; }
+  .body h4 { margin: 18px 0 8px; font-size: 16px; }
+  .body code { background: #f1f3fb; padding: 1px 6px; border-radius: 5px; font-size: 13.5px; }
+  .body ul { margin: 8px 0 12px; padding-left: 22px; }
+  .takeaways { margin-top: 18px; background: #f7f8fe; border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .takeaways .h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 8px; }
+  .takeaways li { margin-bottom: 6px; }
+
+  /* Curriculum / table of contents */
+  .pill.plan { background: #f3e8ff; color: #7c3aed; }
+  .toc { list-style: none; margin: 8px 0 0; padding: 0; }
+  .toc li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 6px; border-bottom: 1px solid var(--border); transition: background .15s; border-radius: 8px; }
+  .toc li:last-child { border-bottom: none; }
+  .toc .num { width: 26px; height: 26px; flex: none; border-radius: 50%; background: #eef0f8; color: var(--muted);
+    display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+  .toc .c-title { font-weight: 600; font-size: 15.5px; }
+  .toc .c-meta { color: var(--muted); font-size: 13px; margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+  .toc .c-meta .pill { font-size: 10px; padding: 2px 8px; }
+  .toc li.done .num { background: var(--good); color: #fff; }
+  .toc li.done .c-title { color: var(--muted); }
+  .toc li.cur { background: #f5f3ff; }
+  .toc li.cur .num { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px #e0e7ff; }
+
+  /* Socratic */
+  .turn { display: flex; gap: 10px; margin-bottom: 12px; }
+  .turn .who { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); min-width: 64px; padding-top: 3px; }
+  .turn .bubble { background: #f5f6fc; border-radius: 12px; padding: 10px 14px; flex: 1; }
+  .turn.learner_prompt .bubble { background: #eef2ff; }
+
+  /* Quiz */
+  .q { margin-bottom: 18px; }
+  .q .qt { font-weight: 600; margin-bottom: 10px; }
+  .opt {
+    display: block; width: 100%; text-align: left; border: 1px solid var(--border);
+    background: #fff; border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
+    font-size: 14.5px; cursor: pointer; transition: all .1s;
   }
-  .step-mini b { color: var(--accent); }
-  .controls { margin-bottom: 16px; }
-  .controls input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; margin-right: 8px; }
-  #status { color: var(--muted); font-size: 13px; margin-left: 12px; }
-  .step-cards-row { display: flex; flex-wrap: wrap; }
+  .opt:hover:not(:disabled) { border-color: var(--accent); background: #fafbff; }
+  .opt:disabled { cursor: default; }
+  .opt.correct { border-color: var(--good); background: var(--good-bg); }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+  .explain { font-size: 13.5px; color: var(--muted); margin: 2px 0 4px; padding-left: 2px; }
+
+  /* Response control */
+  .respond { margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 18px; }
+  .respond .ask { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+  .respond .ask b { color: var(--ink); }
+  .respond input.txt { width: 100%; margin-bottom: 12px; }
+  .btns { display: flex; gap: 10px; }
+  button.good { background: var(--good); color: #fff; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+  button.bad { background: var(--bad); color: #fff; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+  button.ghost { background: #fff; color: var(--ink); border: 1px solid var(--border); padding: 11px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+
+  /* You-said + adapt notes */
+  .note-line { display: flex; align-items: center; gap: 10px; margin: 14px 2px; color: var(--muted); font-size: 13.5px; }
+  .note-line .tagk { background: #eef2ff; color: #4f46e5; border-radius: 999px; padding: 3px 10px; font-weight: 600; font-size: 12px; }
+  .note-line.adapt .tagk { background: #f3e8ff; color: #7c3aed; }
+
+  /* Done screen */
+  .done-card { text-align: center; padding: 34px 26px; }
+  .done-card .big { font-size: 40px; }
+  .done-card h3 { margin: 10px 0 6px; }
+
+  /* Under the hood */
+  details.internals {
+    margin: 26px 0 10px; background: #0f1626; color: #cdd6ea; border-radius: 14px;
+    border: 1px solid #1e2940; overflow: hidden;
+  }
+  details.internals > summary {
+    cursor: pointer; padding: 14px 18px; font-size: 13.5px; font-weight: 600; color: #aeb9d4;
+    list-style: none; display: flex; align-items: center; gap: 8px; user-select: none;
+  }
+  details.internals > summary::-webkit-details-marker { display: none; }
+  details.internals > summary:hover { color: #fff; }
+  details.internals[open] > summary { border-bottom: 1px solid #1e2940; }
+  .twirl { transition: transform .15s; }
+  details.internals[open] .twirl { transform: rotate(90deg); }
+  #trace { padding: 10px 14px 16px; }
+  .stream-card { border-left: 3px solid #2a3550; padding: 8px 12px; margin: 8px 0; background: #131c2f; border-radius: 8px; }
+  .stream-card.phase-assess { border-left-color: #60a5fa; }
+  .stream-card.phase-plan { border-left-color: #fbbf24; }
+  .stream-card.phase-generate { border-left-color: #34d399; }
+  .stream-card.phase-observe { border-left-color: #f472b6; }
+  .stream-card.phase-adapt { border-left-color: #c084fc; }
+  .stream-card .label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: #7d8aa8; margin-bottom: 3px; }
+  .stream-card .title { font-weight: 600; font-size: 13px; color: #e7edfb; margin-bottom: 4px; }
+  .stream-card .content { font-size: 12.5px; color: #aab6d2; }
+  .stream-card .content b { color: #dbe4f7; }
+  .stream-card code { background: #0c1322; color: #9ec5ff; padding: 1px 5px; border-radius: 4px; }
+  .stream-card pre { background: #0c1322; color: #c8d4ec; padding: 8px 10px; border-radius: 6px; font-size: 11.5px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
+  .step-mini { display: inline-block; background: #0c1322; border: 1px solid #233152; border-radius: 6px; padding: 4px 8px; font-size: 11.5px; margin: 0 5px 5px 0; color: #c2cef0; }
+  .step-mini b { color: #9ec5ff; }
+  #status { color: var(--muted); font-size: 12.5px; margin-left: 4px; }
+
+  /* ---- Responsive: tablet ---- */
+  @media (max-width: 820px) {
+    .wrap { max-width: 640px; }
+    .lesson, .setup { padding: 20px 20px; }
+  }
+  /* ---- Responsive: phone ---- */
+  @media (max-width: 560px) {
+    body { padding: 0 12px 56px; }
+    header { padding: 22px 2px 6px; }
+    .logo { width: 34px; height: 34px; font-size: 18px; }
+    h1 { font-size: 18px; }
+    .sub { font-size: 13px; }
+    .setup, .lesson { padding: 18px 15px; border-radius: 14px; }
+    .lesson h3 { font-size: 19px; }
+    .body { font-size: 15px; }
+    .row { flex-direction: column; align-items: stretch; }
+    .row > div, .row input.txt { width: 100%; }
+    input.txt, input[type=text] { width: 100%; min-width: 0; }
+    button.primary { width: 100%; }
+    .btns { flex-direction: column; }
+    .btns button { width: 100%; }
+    .lesson-top { flex-wrap: wrap; gap: 8px; }
+    .turn { flex-direction: column; gap: 4px; }
+    .turn .who { min-width: 0; }
+    details.internals > summary { font-size: 12.5px; }
+  }
+
+  /* ============================================================
+     AGENT-CHOSEN THEMES — the agent routes topic → visual register.
+     Each theme overrides the CSS variables the whole UI is built on,
+     plus a few structural rules (font, radius, background, logo).
+     ============================================================ */
+
+  /* TERMINAL — for AI / computers: dark, monospace, dev-native. */
+  body[data-theme="terminal"] {
+    --bg1: #0d1117; --bg2: #0d1117; --card: #161b22; --border: #30363d;
+    --ink: #c9d1d9; --muted: #8b949e; --accent: #3fb950; --accent-d: #2ea043;
+    --good: #3fb950; --good-bg: #12261a; --bad: #f85149; --bad-bg: #2a1517;
+    --shadow: none;
+    background: #0d1117;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  body[data-theme="terminal"] h1, body[data-theme="terminal"] .lesson h3,
+  body[data-theme="terminal"] .toc .c-title { font-family: inherit; letter-spacing: 0; }
+  body[data-theme="terminal"] .lesson, body[data-theme="terminal"] .setup,
+  body[data-theme="terminal"] .thinking, body[data-theme="terminal"] .takeaways,
+  body[data-theme="terminal"] .opt, body[data-theme="terminal"] input.txt,
+  body[data-theme="terminal"] input[type=text] { border-radius: 6px; }
+  body[data-theme="terminal"] .logo { background: #161b22; border: 1px solid #30363d; box-shadow: none; border-radius: 6px; }
+  body[data-theme="terminal"] button.primary, body[data-theme="terminal"] button.good,
+  body[data-theme="terminal"] button.bad, body[data-theme="terminal"] .chip { border-radius: 6px; box-shadow: none; }
+  body[data-theme="terminal"] .chip { background: #161b22; }
+  body[data-theme="terminal"] .pill { background: #1c2333; color: var(--accent); }
+  body[data-theme="terminal"] input.txt, body[data-theme="terminal"] input[type=text] { background: #0d1117; color: var(--ink); }
+
+  /* EDITORIAL — for math / game theory / micro: serif, hairlines, print. */
+  body[data-theme="editorial"] {
+    --bg1: #f3efe4; --bg2: #faf7f0; --card: #fffdf8; --border: #ddd6c6;
+    --ink: #1b1a17; --muted: #6c6456; --accent: #8f2419; --accent-d: #72180f;
+    --shadow: none;
+    background: #f4f0e6;
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  }
+  body[data-theme="editorial"] h1, body[data-theme="editorial"] .lesson h3,
+  body[data-theme="editorial"] .toc .c-title { font-family: inherit; font-weight: 600; letter-spacing: -0.01em; }
+  body[data-theme="editorial"] .lesson, body[data-theme="editorial"] .setup,
+  body[data-theme="editorial"] .thinking, body[data-theme="editorial"] .takeaways,
+  body[data-theme="editorial"] .opt { border-radius: 4px; box-shadow: none; }
+  body[data-theme="editorial"] .logo { border-radius: 4px; background: #1b1a17; box-shadow: none; }
+  body[data-theme="editorial"] button.primary, body[data-theme="editorial"] button.good,
+  body[data-theme="editorial"] button.bad { border-radius: 3px; box-shadow: none; }
+  body[data-theme="editorial"] .chip { border-radius: 3px; background: #fffdf8; }
+  body[data-theme="editorial"] .pill { border-radius: 3px; }
+
+  /* WARM — for psychology / ethics / persuasion: paper, soft, human. */
+  body[data-theme="warm"] {
+    --bg1: #f1e7d6; --bg2: #fbf5ea; --card: #fffaf2; --border: #ecdfcc;
+    --ink: #3a2e24; --muted: #8a7965; --accent: #c2683a; --accent-d: #a8552d;
+    --good: #2f8f5b; --good-bg: #e8f5ec; --bad: #c2683a; --bad-bg: #fbece2;
+    --shadow: 0 12px 30px rgba(120, 80, 40, 0.12);
+    background: radial-gradient(1100px 520px at 72% -10%, #fbf5ea, #f1e7d6);
+  }
+  body[data-theme="warm"] .logo { background: linear-gradient(135deg, #c2683a, #e09b5a); box-shadow: 0 6px 16px rgba(194,104,58,.32); }
+
+  /* Keep the selected chip readable in every theme (out-specify themed .chip bg). */
+  body[data-theme="terminal"] .chip.active,
+  body[data-theme="editorial"] .chip.active,
+  body[data-theme="warm"] .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Theme indicator — surfaces the agent's choice. */
+  .theme-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .theme-note b { color: var(--accent); }
+
+  /* Nav */
+  .nav { display: flex; gap: 8px; align-items: center; margin: 14px 4px 0; }
+  .nav button { background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 7px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .nav .grow { flex: 1; }
+  .nav .badge-pass { font-size: 11px; font-weight: 700; color: var(--good); background: var(--good-bg);
+    border-radius: 999px; padding: 3px 10px; }
+
+  /* Featured decision launcher */
+  .featured { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; padding: 16px 18px;
+    border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: var(--shadow);
+    cursor: pointer; transition: border-color .12s, transform .12s; }
+  .featured:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .featured .play { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--accent); color: #fff;
+    display: grid; place-items: center; font-size: 16px; }
+  .featured .fk { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+  .featured .ft { font-size: 14.5px; margin-top: 2px; }
+  .featured code { background: #00000010; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+
+  /* Evals view */
+  .ev-hero { margin: 6px 4px 18px; }
+  .ev-hero h2 { font-size: 22px; margin: 0 0 4px; }
+  .ev-hero .big-pass { display: inline-flex; align-items: baseline; gap: 8px; }
+  .ev-hero .pct { font-size: 30px; font-weight: 800; color: var(--good); }
+  .ev-case { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+  .ev-case > summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; align-items: center;
+    gap: 12px; flex-wrap: wrap; }
+  .ev-case > summary::-webkit-details-marker { display: none; }
+  .ev-case .cname { font-weight: 600; font-size: 15px; flex: 1; min-width: 180px; }
+  .ev-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+  .ev-badge.pass { color: var(--good); background: var(--good-bg); }
+  .ev-badge.fail { color: var(--bad); background: var(--bad-bg); }
+  .jchip { font-size: 11.5px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
+  .jchip b { color: var(--ink); }
+  .jchip.lo b { color: var(--bad); }
+  .ev-body { padding: 0 18px 16px; border-top: 1px solid var(--border); }
+  .jrow { padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .jrow:last-child { border-bottom: none; }
+  .jrow .jh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .jrow .jname { font-weight: 600; font-size: 13.5px; }
+  .jrow .jscore { font-size: 12px; font-weight: 700; color: var(--accent); }
+  .jrow .jr { font-size: 13.5px; color: var(--muted); }
+  .ev-wf { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .ev-wf b { color: var(--ink); }
+  .ev-scn { font-weight: 600; font-size: 15px; flex: 1; min-width: 200px; }
+  .ev-cid { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .ev-mini { font-size: 12px; color: var(--muted); }
+  .ev-hint { font-size: 12px; color: var(--muted); opacity: .8; }
+  .jtag { font-size: 11px; color: var(--muted); }
+  .jscore-pill { font-size: 11.5px; font-weight: 700; color: var(--accent); background: #eef0fb; border-radius: 999px; padding: 2px 9px; }
+  .jrow .jname { font-weight: 600; font-size: 14px; }
+  /* The eval view always reads clean & light, regardless of the topic theme. */
+  #evals-view { --card: #fff; --border: #e6e8f0; --ink: #1b2333; --muted: #6b7686;
+    --accent: #6366f1; --good: #16a34a; --good-bg: #e9f7ef; --bad: #e11d72; --bad-bg: #fdecf3;
+    --shadow: 0 8px 24px rgba(31,41,86,.07);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<h1>adaptive-learning-agent</h1>
-<div class="sub">Live trace of one teaching session. Each card below is one event from the SSE stream.</div>
-
-<div class="controls">
-  <input id="user" value="alice" />
-  <input id="domain" value="cognitive_biases" />
-  <button id="start" onclick="startSession()">Start session</button>
-  <span id="status">idle</span>
-</div>
-
-<div class="layout">
-  <div>
-    <div class="panel" id="learner-panel">
-      <h2>Learner state</h2>
-      <div id="learner-content">
-        <div class="sub" style="font-size:13px;">Click "Start session" to begin.</div>
-      </div>
-    </div>
-    <div class="panel" id="phase-panel" style="margin-top:16px;">
-      <h2>Current phase</h2>
-      <div id="phase-display" style="font-size:18px; font-weight:600;">—</div>
-      <div id="phase-tool" style="color: var(--muted); font-size: 13px; margin-top: 4px;">no tool active</div>
+<header>
+  <div class="brand">
+    <div class="logo">🎓</div>
+    <div>
+      <h1>Your adaptive tutor</h1>
+      <p class="sub">Tell it a subject — it figures out the right lesson, in the right format, for you.</p>
     </div>
   </div>
+</header>
+
+<div class="nav">
+  <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
+  <button id="nav-evals" onclick="showView('evals')">Eval harness</button>
+  <span class="grow"></span>
+  <span class="badge-pass" id="nav-pass">6/6 ✓</span>
+</div>
+
+<div id="learn-view">
+
+<div class="featured" id="featured" onclick="runFeatured()">
+  <div class="play">▶</div>
   <div>
-    <div class="panel" id="stream-panel">
-      <h2>Event stream</h2>
-      <div id="stream"></div>
-    </div>
+    <div class="fk">Featured decision</div>
+    <div class="ft">A learner failed <code>tool_use</code> twice. Watch the agent <b>refuse to re-teach it</b> — instead it traces the prerequisite chain and backfills the <b>deepest unmastered prerequisite</b> it was never taught, then bridges up from there.</div>
   </div>
 </div>
+
+<div class="setup" id="setup">
+  <h2>What do you want to learn?</h2>
+  <p>Pick a subject and we’ll start a session tailored to where you are.</p>
+  <div class="field-label">Subject</div>
+  <div class="chips" id="domain-chips"></div>
+  <div class="row">
+    <div>
+      <div class="field-label">Your name</div>
+      <input class="txt" type="text" id="user" value="alice" />
+    </div>
+    <input type="text" id="domain" value="ai" style="display:none;" />
+    <button class="primary" id="start" onclick="startSession()">Start learning →</button>
+    <span id="status">ready</span>
+  </div>
+  <div class="theme-note" id="theme-note"></div>
+</div>
+
+<div class="thinking" id="thinking">
+  <div class="pulse"></div>
+  <div class="t" id="thinking-text">Thinking…</div>
+</div>
+
+<div id="feed"></div>
+
+<details class="internals" id="internals">
+  <summary><span class="twirl">▸</span> Under the hood — watch the agent reason (prompt → decision → output)</summary>
+  <div id="trace"></div>
+</details>
+
+</div><!-- /learn-view -->
+
+<div id="evals-view" style="display:none;">
+  <div class="ev-hero">
+    <h2>Does the agent actually teach well?</h2>
+    <p style="color:var(--muted);font-size:15px;margin:0 0 6px;max-width:680px;">
+      After the agent decides what to teach, three independent AI judges check the call —
+      <b style="color:var(--ink);">right topic</b>, <b style="color:var(--ink);">right format</b>,
+      <b style="color:var(--ink);">right difficulty</b>. Here are six deliberately tricky situations.</p>
+    <div class="big-pass"><span class="pct" id="ev-pct">—</span>
+      <span style="color:var(--muted);font-size:14px;">handled correctly. Tap any case to read the judges’ reasoning.</span></div>
+  </div>
+  <div id="ev-cases"></div>
+</div>
+
+</div><!-- /wrap -->
 
 <script>
-const PHASE_TOOLS = {
-  load_graph: { label: "load_graph", tool: "extract_learning_graph", color: "var(--assess)" },
-  assess:     { label: "ASSESS",     tool: "diagnose_learner",       color: "var(--assess)" },
-  plan:       { label: "PLAN",       tool: "plan_workflow",          color: "var(--plan)" },
-  generate:   { label: "GENERATE",   tool: "generate_artifact",      color: "var(--generate)" },
-  observe:    { label: "OBSERVE",    tool: "(awaiting learner)",     color: "var(--observe)" },
-  adapt:      { label: "ADAPT",      tool: "update_learner_model",   color: "var(--adapt)" },
+const DOMAINS = [
+  { id: "ai", label: "🤖 AI & LLMs" },
+  { id: "cognitive_biases", label: "🧠 Cognitive biases" },
+  { id: "psychology", label: "💭 Psychology" },
+  { id: "persuasion", label: "🗣️ Persuasion" },
+  { id: "game_theory", label: "♟️ Game theory" },
+  { id: "microeconomics", label: "📈 Microeconomics" },
+  { id: "mathematics", label: "➗ Mathematics" },
+  { id: "ethics", label: "⚖️ Ethics" },
+];
+
+// --- session state ---
+let currentSessionId = null;
+let lastStep = null;
+let totalSteps = 0;
+let curriculumItems = {};
+
+function humanize(id) { return (id || "").replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase()); }
+function prettyPrinciple(p) { return (p || "").replace(/_/g, " "); }
+
+// The agent routes each subject to a curated visual register.
+const TOPIC_THEME = {
+  ai: "terminal", computers: "terminal",
+  mathematics: "editorial", game_theory: "editorial", microeconomics: "editorial",
+  psychology: "warm", ethics: "warm", persuasion: "warm", cognitive_biases: "warm",
 };
+const THEME_WHY = {
+  terminal: "dark & monospace — to match technical, code-adjacent material",
+  editorial: "serif & hairline — for the rigor of formal, theoretical subjects",
+  warm: "paper tones — for human, reflective subjects",
+};
+function applyTheme(domain) {
+  const theme = TOPIC_THEME[domain] || "warm";
+  document.body.dataset.theme = theme;
+  const note = document.getElementById("theme-note");
+  if (note) note.innerHTML = `Theme: <b>${theme}</b> — ${THEME_WHY[theme]}`;
+}
+
+// ---- view switching: Learn vs Eval harness ----
+function showView(name) {
+  const learn = name === "learn";
+  document.getElementById("learn-view").style.display = learn ? "" : "none";
+  document.getElementById("evals-view").style.display = learn ? "none" : "";
+  document.getElementById("nav-learn").classList.toggle("active", learn);
+  document.getElementById("nav-evals").classList.toggle("active", !learn);
+  if (learn) {
+    applyTheme(document.getElementById("domain").value); // restore topic theme
+  } else {
+    document.body.dataset.theme = ""; // eval view reads clean & light
+    loadEvals();
+  }
+}
+
+// ---- featured decision: seed a learner stuck on tool_use ----
+let pendingSeed = null;
+const FEATURED = {
+  user_id: "demo-prereq", domain_id: "ai",
+  learner: {
+    mastered_concepts: ["tokens", "embeddings", "attention", "transformers"],
+    struggling_concepts: ["tool_use"],
+    modality_preference: "reading",
+    difficulty_level: 2,
+    session_history: [
+      { concept_id: "tool_use", modality: "reading", correct: false },
+      { concept_id: "tool_use", modality: "reading", correct: false },
+    ],
+  },
+};
+function runFeatured() {
+  showView("learn");
+  document.getElementById("user").value = FEATURED.user_id;
+  document.getElementById("domain").value = FEATURED.domain_id;
+  document.querySelectorAll("#domain-chips .chip").forEach(c =>
+    c.classList.toggle("active", /AI & LLMs/.test(c.textContent)));
+  applyTheme(FEATURED.domain_id);
+  pendingSeed = FEATURED.learner;
+  startSession();
+}
+
+// ---- eval harness view ----
+let evalsLoaded = false;
+
+// Plain-English translations so non-experts aren't overwhelmed.
+const JUDGE_PLAIN = {
+  gap_to_pedagogy: "Right topic & method",
+  modality_fit: "Right format",
+  adaptive_progression: "Right difficulty",
+};
+const CASE_PLAIN = {
+  case_01_novice_start: "A total beginner → start from the basics, as a reading.",
+  case_02_struggling_use_socratic: "Keeps failing a concept → switch to back-and-forth dialogue, not more reading.",
+  case_03_mastered_basics_practice: "Mastered the basics → step up to hands-on practice.",
+  case_04_step_down_overwhelmed: "Overwhelmed at a hard level → ease the difficulty back down.",
+  case_05_interleave_confusables: "Learned an idea → mix in a look-alike one so they don’t get confused.",
+  case_06_prereq_gap_blocks_advance: "Wants an advanced topic but missing a prerequisite → teach that first.",
+};
+function caseTitle(id) {
+  const m = id.match(/^case_(\d+)_(.*)$/);
+  return m ? `Case ${m[1]} · ${m[2].replace(/_/g, " ")}` : id;
+}
+
+function loadEvals() {
+  if (evalsLoaded) return;
+  fetch("/evals").then(r => r.json()).then(renderEvals).catch(err => {
+    document.getElementById("ev-cases").innerHTML =
+      `<div class="ev-case" style="padding:16px;">Couldn’t load evals: ${esc(err.message)}</div>`;
+  });
+}
+function renderEvals(d) {
+  evalsLoaded = true;
+  document.getElementById("ev-pct").textContent = `${d.n_pass} of ${d.n_total}`;
+  document.getElementById("nav-pass").textContent = `${d.n_pass}/${d.n_total} ✓`;
+  const host = document.getElementById("ev-cases");
+  host.innerHTML = "";
+  d.cases.forEach(c => {
+    const det = document.createElement("details"); // all collapsed by default
+    det.className = "ev-case";
+    const nPass = c.judges.filter(j => j.score >= d.pass_threshold).length;
+    const scenario = CASE_PLAIN[c.case_id] || caseTitle(c.case_id);
+    const rationales = c.judges.map(j => `
+      <div class="jrow">
+        <div class="jh">
+          <span class="jname">${esc(JUDGE_PLAIN[j.judge_name] || j.judge_name)}</span>
+          <span class="jtag">(${esc(j.judge_name)})</span>
+          <span class="jscore-pill">${j.score.toFixed(2)}</span>
+        </div>
+        <div class="jr">${esc(j.rationale)}</div>
+      </div>`).join("");
+    det.innerHTML = `
+      <summary>
+        <span class="ev-badge ${c.passed ? "pass" : "fail"}">${c.passed ? "✓ Pass" : "✗ Fail"}</span>
+        <span class="ev-scn">${esc(scenario)}</span>
+        <span class="ev-mini">${nPass}/${c.judges.length} judges agree</span>
+        <span class="ev-hint">› details</span>
+      </summary>
+      <div class="ev-body">
+        ${rationales}
+        <div class="ev-wf"><b>What the agent planned:</b> ${(c.workflow.steps || []).length} steps,
+          ${esc(c.workflow.modality || "")}, targeting <code>${esc(c.workflow.target_concept_id || "")}</code>.
+          <div style="margin-top:6px;">${esc(c.workflow.rationale || "")}</div></div>
+      </div>`;
+    host.appendChild(det);
+  });
+}
+
+(function initChips() {
+  const wrap = document.getElementById("domain-chips");
+  DOMAINS.forEach((d, i) => {
+    const el = document.createElement("button");
+    el.className = "chip" + (i === 0 ? " active" : "");
+    el.textContent = d.label;
+    el.onclick = () => {
+      document.querySelectorAll("#domain-chips .chip").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+      document.getElementById("domain").value = d.id;
+      applyTheme(d.id);
+    };
+    wrap.appendChild(el);
+  });
+})();
+applyTheme(document.getElementById("domain").value); // theme the initial view
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
-function setPhase(p) {
-  const info = PHASE_TOOLS[p] || { label: p, tool: "—", color: "#888" };
-  const disp = document.getElementById("phase-display");
-  disp.textContent = info.label;
-  disp.style.color = info.color;
-  document.getElementById("phase-tool").textContent = info.tool;
+function setThinking(text) {
+  const t = document.getElementById("thinking");
+  if (text === null) { t.classList.remove("show"); return; }
+  document.getElementById("thinking-text").innerHTML = text;
+  t.classList.add("show");
 }
 
-function renderLearner(learner) {
-  const c = document.getElementById("learner-content");
-  c.innerHTML = `
-    <div class="learner-row"><span class="k">user_id</span><span class="v">${learner.user_id}</span></div>
-    <div class="learner-row"><span class="k">domain</span><span class="v">${learner.domain_id}</span></div>
-    <div class="learner-row"><span class="k">difficulty</span><span class="v">${learner.difficulty_level} / 5</span></div>
-    <div class="learner-row"><span class="k">modality pref</span><span class="v">${learner.modality_preference}</span></div>
-    <div class="learner-row"><span class="k">mastered</span><span class="v">${(learner.mastered_concepts || []).map(c => `<span class="tag good">${c}</span>`).join("") || `<span class="k">none</span>`}</span></div>
-    <div class="learner-row"><span class="k">struggling</span><span class="v">${(learner.struggling_concepts || []).map(c => `<span class="tag bad">${c}</span>`).join("") || `<span class="k">none</span>`}</span></div>
-  `;
+const THINKING = {
+  load_graph: "Loading the knowledge map for this subject…",
+  assess:     "Figuring out <b>what you need next</b>…",
+  plan:       "Designing <b>your lesson plan</b>…",
+  generate:   "Writing <b>your lesson</b>…",
+  adapt:      "Updating your profile from your answer…",
+};
+
+// ---- tiny markdown renderer (bold / italic / code / headings / lists / paras) ----
+function esc(s) { return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function inline(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+}
+function mdToHtml(md) {
+  const lines = (md || "").split("\n");
+  let html = "", list = false;
+  const closeList = () => { if (list) { html += "</ul>"; list = false; } };
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    if (line.startsWith("## ")) { closeList(); html += `<h4>${inline(line.slice(3))}</h4>`; }
+    else if (line.startsWith("# ")) { closeList(); html += `<h4>${inline(line.slice(2))}</h4>`; }
+    else if (/^[-*]\s+/.test(line)) { if (!list) { html += "<ul>"; list = true; } html += `<li>${inline(line.replace(/^[-*]\s+/, ""))}</li>`; }
+    else { closeList(); html += `<p>${inline(line)}</p>`; }
+  }
+  closeList();
+  return html;
 }
 
-function appendCard(phaseClass, label, title, contentHTML) {
-  const stream = document.getElementById("stream");
+// ---- progress dots ----
+function progressDots(current) {
+  if (!totalSteps) return "";
+  let d = "";
+  for (let i = 1; i <= totalSteps; i++) {
+    d += `<span class="dot ${i < current ? "done" : i === current ? "cur" : ""}"></span>`;
+  }
+  return `<div class="progress" title="step ${current} of ${totalSteps}">${d}</div>`;
+}
+
+// ---- render the curriculum / table of contents (user-facing plan) ----
+function renderCurriculum(w) {
+  setThinking(null);
+  curriculumItems = {};
+  const steps = w.steps || [];
+  const feed = document.getElementById("feed");
+  const card = document.createElement("div");
+  card.className = "lesson";
+  const items = steps.map(s => `
+    <li data-step="${s.step_number}">
+      <span class="num">${s.step_number}</span>
+      <div>
+        <div class="c-title">${esc(humanize(s.concept_id))}</div>
+        <div class="c-meta"><span class="pill ${s.modality}">${s.modality}</span> ${esc(prettyPrinciple(s.pedagogy_principle))}</div>
+      </div>
+    </li>`).join("");
+  card.innerHTML = `
+    <div class="lesson-top"><span class="pill plan">Your plan</span></div>
+    <h3>Your learning plan</h3>
+    <div class="body" style="color:var(--muted);font-size:14px;margin-bottom:4px;">
+      ${steps.length} steps, built for you from where you are. We’ll take them one at a time.</div>
+    <ul class="toc">${items}</ul>`;
+  feed.appendChild(card);
+  steps.forEach(s => { curriculumItems[s.step_number] = card.querySelector(`li[data-step="${s.step_number}"]`); });
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function markCurriculum(stepNo) {
+  Object.entries(curriculumItems).forEach(([n, el]) => {
+    if (!el) return;
+    el.classList.remove("cur", "done");
+    if (+n < stepNo) el.classList.add("done");
+    else if (+n === stepNo) el.classList.add("cur");
+  });
+}
+
+// ---- render a lesson (the user-facing artifact) ----
+function renderLesson(a, step) {
+  setThinking(null);
+  markCurriculum(step?.step_number || 1);
+  const feed = document.getElementById("feed");
+  const card = document.createElement("div");
+  card.className = "lesson";
+  const stepNo = step?.step_number || 1;
+
+  let inner = `
+    <div class="lesson-top">
+      <span class="pill ${a.type}">${a.type}</span>
+      ${progressDots(stepNo)}
+    </div>
+    <h3>${esc(a.title)}</h3>`;
+
+  if (a.type === "reading") {
+    inner += `<div class="body">${mdToHtml(a.body)}</div>`;
+    if ((a.key_takeaways || []).length) {
+      inner += `<div class="takeaways"><div class="h">Key takeaways</div><ul>` +
+        a.key_takeaways.map(k => `<li>${inline(k)}</li>`).join("") + `</ul></div>`;
+    }
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    addRespond(card, step, a);
+  } else if (a.type === "socratic") {
+    inner += `<div class="body"><p>${inline(a.opening || "")}</p></div>`;
+    inner += (a.dialogue || []).map(t =>
+      `<div class="turn ${t.role}"><div class="who">${t.role === "agent" ? "Tutor" : "You"}</div>
+       <div class="bubble">${inline(t.text)}</div></div>`).join("");
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    addRespond(card, step, a);
+  } else if (a.type === "interactive") {
+    inner += `<div class="body"><p>${inline(a.intro || "")}</p></div><div id="quiz-${stepNo}"></div>`;
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    renderQuiz(card, a, step, stepNo);
+  }
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ---- playable quiz: click options, get graded, then continue ----
+function renderQuiz(card, a, step, stepNo) {
+  const host = card.querySelector(`#quiz-${stepNo}`);
+  const qs = a.questions || [];
+  const state = qs.map(() => null); // true/false once answered
+
+  qs.forEach((q, qi) => {
+    const qEl = document.createElement("div");
+    qEl.className = "q";
+    qEl.innerHTML = `<div class="qt">${qi + 1}. ${inline(q.question)}</div>`;
+    if (q.options && q.options.length) {
+      q.options.forEach(opt => {
+        const b = document.createElement("button");
+        b.className = "opt";
+        b.textContent = opt;
+        b.onclick = () => {
+          if (state[qi] !== null) return;
+          const right = opt === q.correct_answer;
+          state[qi] = right;
+          qEl.querySelectorAll(".opt").forEach(o => {
+            o.disabled = true;
+            if (o.textContent === q.correct_answer) o.classList.add("correct");
+          });
+          if (!right) b.classList.add("wrong");
+          const ex = document.createElement("div");
+          ex.className = "explain";
+          ex.innerHTML = (right ? "✓ Correct. " : "✗ ") + inline(q.explanation || "");
+          qEl.appendChild(ex);
+          maybeFinishQuiz(card, step, state);
+        };
+        qEl.appendChild(b);
+      });
+    } else {
+      // free response → reveal + self-grade
+      const reveal = document.createElement("button");
+      reveal.className = "ghost"; reveal.textContent = "Show answer";
+      reveal.onclick = () => {
+        reveal.remove();
+        const ex = document.createElement("div");
+        ex.className = "explain";
+        ex.innerHTML = `<b>Answer:</b> ${inline(q.correct_answer)}<br/>${inline(q.explanation || "")}`;
+        qEl.appendChild(ex);
+        state[qi] = true; // counted as seen
+        maybeFinishQuiz(card, step, state);
+      };
+      qEl.appendChild(reveal);
+    }
+    host.appendChild(qEl);
+  });
+}
+
+function maybeFinishQuiz(card, step, state) {
+  if (state.some(s => s === null)) return;
+  const allRight = state.every(s => s === true);
+  const r = document.createElement("div");
+  r.className = "respond";
+  const score = state.filter(Boolean).length;
+  r.innerHTML = `<div class="ask">You got <b>${score}/${state.length}</b>. Ready for the next step?</div>`;
+  const cont = document.createElement("button");
+  cont.className = "primary";
+  cont.textContent = "Continue →";
+  cont.onclick = () => { r.remove(); submitResponse(allRight, `quiz ${score}/${state.length}`); };
+  r.appendChild(cont);
+  card.appendChild(r);
+  r.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+// ---- response control for reading / socratic ----
+function addRespond(card, step, artifact) {
+  const concept = step ? `<b>${esc(step.concept_id)}</b>` : "this";
+  const r = document.createElement("div");
+  r.className = "respond";
+  r.innerHTML = `
+    <div class="ask">How did that land? Be honest — it changes what you get next.</div>
+    <input class="txt" id="resp-notes" placeholder="optional: a note to the tutor (e.g. “the desk analogy clicked”)" />
+    <div class="btns">
+      <button class="good" onclick="this.closest('.respond').remove(); submitResponse(true, getNotes())">I’ve got it ✓</button>
+      <button class="bad"  onclick="this.closest('.respond').remove(); submitResponse(false, getNotes())">Still fuzzy ✗</button>
+    </div>`;
+  card.appendChild(r);
+  r.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+function getNotes() { const e = document.getElementById("resp-notes"); return e ? e.value.trim() : ""; }
+
+// ---- you answered + send to server ----
+function noteLine(cls, key, text) {
+  const feed = document.getElementById("feed");
+  const el = document.createElement("div");
+  el.className = "note-line " + cls;
+  el.innerHTML = `<span class="tagk">${key}</span> <span>${text}</span>`;
+  feed.appendChild(el);
+}
+
+function submitResponse(correct, notes) {
+  noteLine("", "you", (correct ? "Got it ✓" : "Still fuzzy ✗") + (notes ? ` — “${esc(notes)}”` : ""));
+  setThinking(THINKING.adapt);
+  trace("phase-observe", "OBSERVE", "learner response", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
+
+  fetch(`/sessions/${currentSessionId}/respond`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ correct, notes }),
+  }).then(r => r.json()).then(res => {
+    if (res.detail) { setThinking(null); noteLine("", "error", esc(res.detail)); return; }
+    if (res.learner) {
+      renderLearnerTrace(res.learner);
+      noteLine("adapt", "tutor", `Updated your profile — difficulty <b>${res.learner.difficulty_level}/5</b>, `
+        + `${(res.learner.mastered_concepts||[]).length} mastered, ${(res.learner.struggling_concepts||[]).length} to revisit.`);
+    }
+    if (res.status === "workflow_complete") { showDone(res); return; }
+    if (res.artifact && res.current_step) {
+      setThinking(THINKING.generate);
+      setTimeout(() => renderLesson(res.artifact, res.current_step), 250);
+    }
+  }).catch(err => { setThinking(null); noteLine("", "error", esc(err.message)); });
+}
+
+function showDone(res) {
+  setThinking(null);
+  setStatus("complete");
+  const feed = document.getElementById("feed");
+  const card = document.createElement("div");
+  card.className = "lesson done-card";
+  card.innerHTML = `
+    <div class="big">🎉</div>
+    <h3>Session complete</h3>
+    <div class="body"><p>${esc(res.note || "Nice work.")}</p>
+      <p style="color:var(--muted);font-size:14px;">Start again and the tutor will <b>re-diagnose</b> from everything you just did.</p></div>`;
+  const b = document.createElement("button");
+  b.className = "primary"; b.textContent = "Start a new session →";
+  b.onclick = () => { document.getElementById("setup").scrollIntoView({behavior:"smooth"}); startSession(); };
+  card.appendChild(b);
+  feed.appendChild(card);
+  currentSessionId = null;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ================= Under the hood (trace) =================
+function trace(phaseClass, label, title, contentHTML) {
+  const t = document.getElementById("trace");
   const card = document.createElement("div");
   card.className = "stream-card " + phaseClass;
-  card.innerHTML = `
-    <div class="label">${label}</div>
-    <div class="title">${title}</div>
-    <div class="content">${contentHTML}</div>
-  `;
-  stream.appendChild(card);
-  // Smooth-scroll to the new card
-  card.scrollIntoView({ behavior: "smooth", block: "end" });
+  card.innerHTML = `<div class="label">${label}</div><div class="title">${title}</div><div class="content">${contentHTML}</div>`;
+  t.appendChild(card);
+}
+function renderLearnerTrace(learner) {
+  trace("phase-adapt", "learner state", "LearnerModel",
+    `<pre>${esc(JSON.stringify(learner, null, 2))}</pre>`);
 }
 
+// ================= SSE start =================
 function startSession() {
   document.getElementById("start").disabled = true;
-  document.getElementById("stream").innerHTML = "";
+  document.getElementById("feed").innerHTML = "";
+  document.getElementById("trace").innerHTML = "";
+  currentSessionId = null; totalSteps = 0;
   setStatus("connecting…");
 
-  const user = document.getElementById("user").value;
-  const domain = document.getElementById("domain").value;
-  const body = JSON.stringify({ user_id: user, domain_id: domain });
+  const user = document.getElementById("user").value || "learner";
+  const domain = document.getElementById("domain").value || "ai";
+  applyTheme(domain);
+  setThinking(THINKING.load_graph);
 
-  // Use fetch with manual SSE parsing — POST not supported by EventSource
+  const payload = { user_id: user, domain_id: domain };
+  if (pendingSeed) { payload.learner = pendingSeed; pendingSeed = null; }
+
   fetch("/sessions/start_stream", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   }).then(async (resp) => {
-    setStatus("streaming");
+    setStatus("learning");
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -227,10 +900,9 @@ function startSession() {
       buffer = events.pop();
       for (const ev of events) handleSSE(ev);
     }
-    setStatus("done");
     document.getElementById("start").disabled = false;
   }).catch((err) => {
-    setStatus("error: " + err.message);
+    setThinking(null); setStatus("error: " + err.message);
     document.getElementById("start").disabled = false;
   });
 }
@@ -242,86 +914,56 @@ function handleSSE(raw) {
     if (line.startsWith("event: ")) event = line.slice(7);
     else if (line.startsWith("data: ")) data += line.slice(6);
   }
-  let payload = {};
-  try { payload = JSON.parse(data); } catch (e) { return; }
-  dispatchEvent(event, payload);
+  let p = {};
+  try { p = JSON.parse(data); } catch (e) { return; }
+  dispatch(event, p);
 }
 
-function dispatchEvent(event, p) {
-  const phaseClass = ({
-    phase: "phase-" + (p.name || ""),
-    graph: "phase-assess",
-    learner: "phase-assess",
-    gap: "phase-assess",
-    workflow: "phase-plan",
-    artifact: "phase-generate",
-    session_ready: "phase-generate",
-    error: "phase-observe",
-  })[event] || "";
-
+function dispatch(event, p) {
   if (event === "phase") {
-    setPhase(p.name);
-    appendCard(phaseClass, "phase change", PHASE_TOOLS[p.name]?.label || p.name, `calling <code>${PHASE_TOOLS[p.name]?.tool || "—"}</code>`);
+    if (THINKING[p.name]) setThinking(THINKING[p.name]);
+    trace("phase-" + p.name, "phase", p.name.toUpperCase(),
+      `calling the <code>${p.name}</code> step`);
     return;
   }
   if (event === "graph") {
-    appendCard(phaseClass, "graph loaded", `${p.domain_id}`,
-      `<b>${p.n_nodes}</b> concepts loaded from the learning graph.`);
+    trace("phase-assess", "graph loaded", esc(p.domain_id),
+      `<b>${p.n_nodes}</b> concepts mapped from the source material.`);
     return;
   }
-  if (event === "learner") {
-    renderLearner(p.learner);
-    appendCard(phaseClass, "learner loaded", p.learner.user_id,
-      `Initialized learner state. See the left panel for the full snapshot.`);
-    return;
-  }
+  if (event === "learner") { renderLearnerTrace(p.learner); return; }
   if (event === "gap") {
     const g = p.gap;
-    appendCard(phaseClass, "diagnose_learner →", "GapEstimate",
-      `<div><b>target:</b> <code>${g.target_concept_id}</code></div>
-       <div><b>suggested difficulty:</b> ${g.suggested_difficulty} / 5</div>
-       <div><b>confidence:</b> ${g.confidence}</div>
-       <div style="margin-top:8px;"><b>rationale:</b><br/>${g.rationale}</div>`);
+    trace("phase-assess", "diagnose_learner →", "GapEstimate",
+      `<b>target:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
+       <div style="margin-top:6px;">${esc(g.rationale)}</div>`);
     return;
   }
   if (event === "workflow") {
     const w = p.workflow;
-    const steps = w.steps.map(s => `
-      <div class="step-mini"><b>${s.step_number}.</b> ${s.concept_id} <span style="color:var(--muted);">·</span> ${s.modality} <span style="color:var(--muted);">·</span> ${s.pedagogy_principle}</div>
-    `).join("");
-    appendCard(phaseClass, "plan_workflow →", `Workflow (modality: ${w.modality})`,
-      `<div class="step-cards-row">${steps}</div>
-       <div style="margin-top:10px;"><b>rationale:</b><br/>${w.rationale}</div>`);
+    totalSteps = (w.steps || []).length;
+    const steps = w.steps.map(s => `<span class="step-mini"><b>${s.step_number}.</b> ${esc(s.concept_id)} · ${s.modality} · ${esc(s.pedagogy_principle)}</span>`).join("");
+    trace("phase-plan", "plan_workflow →", `Workflow (${esc(w.modality)})`,
+      `${steps}<div style="margin-top:6px;">${esc(w.rationale)}</div>`);
+    renderCurriculum(w);
     return;
   }
   if (event === "artifact") {
-    const a = p.artifact;
-    const s = p.step;
-    let preview = "";
-    if (a.type === "reading") {
-      preview = `<div><b>title:</b> ${a.title}</div><pre>${a.body.slice(0, 400)}…</pre>`;
-    } else if (a.type === "socratic") {
-      const firstTurn = (a.dialogue || [])[0]?.text || "";
-      preview = `<div><b>title:</b> ${a.title}</div>
-                 <div style="margin-top:6px;"><b>opening:</b> ${a.opening}</div>
-                 <div style="margin-top:6px;"><b>first agent turn:</b> ${firstTurn}</div>`;
-    } else if (a.type === "interactive") {
-      const first = (a.questions || [])[0];
-      preview = `<div><b>title:</b> ${a.title}</div>
-                 <div><b>intro:</b> ${a.intro}</div>
-                 ${first ? `<div style="margin-top:6px;"><b>Q1:</b> ${first.question}</div>` : ""}`;
-    }
-    appendCard(phaseClass, "generate_artifact →", `Artifact (${a.type}, step ${s.step_number})`, preview);
+    lastStep = p.step;
+    trace("phase-generate", "generate_artifact →", `Artifact (${p.artifact.type}, step ${p.step.step_number})`,
+      `Rendered above for the learner.`);
+    renderLesson(p.artifact, p.step);
     return;
   }
   if (event === "session_ready") {
-    appendCard("phase-generate", "session ready", p.session_id,
-      `Session id: <code>${p.session_id}</code>. The first artifact is rendered above. In a real client, the learner would now respond, OBSERVE captures the result, and ADAPT updates the learner model — that next-turn loop is wired into <code>POST /sessions/{id}/respond</code>.`);
-    setPhase("observe");
+    currentSessionId = p.session_id;
+    trace("phase-generate", "session ready", esc(p.session_id), `Awaiting learner response.`);
     return;
   }
   if (event === "error") {
-    appendCard("phase-observe", "error", p.type || "Error", p.message || "(no message)");
+    setThinking(null);
+    noteLine("", "error", esc(p.message || "error"));
+    trace("phase-observe", "error", esc(p.type || "Error"), esc(p.message || ""));
     return;
   }
 }
