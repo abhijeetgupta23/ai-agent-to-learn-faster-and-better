@@ -374,6 +374,9 @@
   .clamp:not(.open):hover { color: var(--ink); }
   .ev-wf { margin-top: 12px; font-size: 13px; color: var(--muted); }
   .ev-wf b { color: var(--ink); }
+  .ev-ctx { margin-bottom: 12px; padding: 10px 12px; font-size: 13px; color: var(--muted);
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; }
+  .ev-ctx b { color: var(--ink); }
   .ev-scn { font-weight: 600; font-size: 15px; flex: 1; min-width: 200px; }
   .ev-cid { color: var(--muted); font-weight: 400; font-size: 12px; }
   .ev-mini { font-size: 12px; color: var(--muted); }
@@ -469,9 +472,11 @@
   <div class="ev-hero">
     <h2>Does the agent actually teach well?</h2>
     <p style="color:var(--muted);font-size:15px;margin:0 0 6px;max-width:680px;">
-      After the agent decides what to teach, three independent AI judges check the call —
+      We test the tutor the way you'd test a person: hand it six deliberately tricky learner
+      situations, let it decide what to teach, and have three independent AI judges check each call —
       <b style="color:var(--ink);">right topic</b>, <b style="color:var(--ink);">right format</b>,
-      <b style="color:var(--ink);">right difficulty</b>. Here are six deliberately tricky situations.</p>
+      <b style="color:var(--ink);">right difficulty</b>. These re-run whenever the tutor changes;
+      everything below is from a real run, unedited.</p>
     <div class="big-pass"><span class="pct" id="ev-pct">—</span>
       <span style="color:var(--muted);font-size:14px;">handled correctly. Tap any case to read the judges’ reasoning.</span></div>
   </div>
@@ -612,6 +617,34 @@ const CASE_PLAIN = {
   case_05_interleave_confusables: "Learned an idea → mix in a look-alike one so they don’t get confused.",
   case_06_prereq_gap_blocks_advance: "Wants an advanced topic but missing a prerequisite → teach that first.",
 };
+// The setup each case hands the agent, and what good teaching looks like —
+// mirrors the golden fixtures in evals/golden/.
+const CASE_CONTEXT = {
+  case_01_novice_start: {
+    given: "A brand-new learner: nothing mastered, no history, no stated preference.",
+    expect: "Start at a foundational concept with no prerequisites, as an easy reading — don’t throw them into the deep end.",
+  },
+  case_02_struggling_use_socratic: {
+    given: "Says they learn best by reading. They’ve mastered the basics, but failed the same tricky concept twice — both times as a reading.",
+    expect: "Stop re-serving readings. Switch to a guided dialogue that surfaces the misconception — even though that overrides their stated preference.",
+  },
+  case_03_mastered_basics_practice: {
+    given: "A learner who has mastered the foundational concepts and answered everything correctly so far.",
+    expect: "Move them forward to the next concept and let them practice hands-on, instead of more passive explanation.",
+  },
+  case_04_step_down_overwhelmed: {
+    given: "Studying at difficulty 4 of 5 and failing every exercise across two concepts.",
+    expect: "Ease the difficulty down and consolidate — pushing forward at this level would just compound the failure.",
+  },
+  case_05_interleave_confusables: {
+    given: "A learner who just learned a concept that’s commonly mixed up with a similar-looking one.",
+    expect: "Teach the two side by side so the learner sees the difference — not one in isolation.",
+  },
+  case_06_prereq_gap_blocks_advance: {
+    given: "A learner asking for an advanced topic — but they were never taught one of its building blocks.",
+    expect: "Refuse to jump ahead. Teach the missing building block first, then bridge up to what they asked for.",
+  },
+};
 function caseTitle(id) {
   const m = id.match(/^case_(\d+)_(.*)$/);
   return m ? `Case ${m[1]} · ${m[2].replace(/_/g, " ")}` : id;
@@ -663,6 +696,11 @@ function renderEvals(d) {
         <span class="ev-hint">› details</span>
       </summary>
       <div class="ev-body">
+        ${CASE_CONTEXT[c.case_id] ? `
+        <div class="ev-ctx">
+          <div><b>The situation we gave the agent:</b> ${esc(CASE_CONTEXT[c.case_id].given)}</div>
+          <div style="margin-top:4px;"><b>What a good tutor should do:</b> ${esc(CASE_CONTEXT[c.case_id].expect)}</div>
+        </div>` : ""}
         ${rationales}
         <div class="ev-wf"><b>What the agent decided:</b> teach
           “${esc(humanizeConcept(c.workflow.target_concept_id))}” over ${(c.workflow.steps || []).length} short steps,
