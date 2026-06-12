@@ -498,18 +498,20 @@ function prettyPrinciple(p) { return (p || "").replace(/_/g, " "); }
 
 // The agent routes each subject to a curated visual register.
 const TOPIC_THEME = {
-  ai: "terminal", computers: "terminal",
+  ai: "default", computers: "default",
   mathematics: "editorial", game_theory: "editorial", microeconomics: "editorial",
   psychology: "warm", ethics: "warm", persuasion: "warm", cognitive_biases: "warm",
 };
 const THEME_WHY = {
+  default: "clean & light — crisp indigo for technical material",
   terminal: "dark & monospace — to match technical, code-adjacent material",
   editorial: "serif & hairline — for the rigor of formal, theoretical subjects",
   warm: "paper tones — for human, reflective subjects",
 };
 function applyTheme(domain) {
   const theme = TOPIC_THEME[domain] || "warm";
-  document.body.dataset.theme = theme;
+  // "default" = the base light-indigo skin (no data-theme override).
+  document.body.dataset.theme = theme === "default" ? "" : theme;
   const note = document.getElementById("theme-note");
   if (note) note.innerHTML = `Theme: <b>${theme}</b> — ${THEME_WHY[theme]}`;
 }
