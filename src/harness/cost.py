@@ -68,14 +68,27 @@ _active_meters: contextvars.ContextVar[tuple[CostMeter, ...]] = contextvars.Cont
 
 
 @contextmanager
-def meter():
-    """Accumulate the cost of LLM calls made inside this block."""
-    m = CostMeter()
+def use_meter(m: CostMeter):
+    """
+    Accumulate LLM-call costs inside this block into an existing meter.
+
+    For code running where the request's context isn't ambient — e.g. worker
+    threads behind an SSE generator (Starlette runs each next() of a sync
+    generator in a fresh context copy, so a contextvar set in the generator
+    body does not survive across iterations).
+    """
     token = _active_meters.set(_active_meters.get() + (m,))
     try:
         yield m
     finally:
         _active_meters.reset(token)
+
+
+@contextmanager
+def meter():
+    """Accumulate the cost of LLM calls made inside this block."""
+    with use_meter(CostMeter()) as m:
+        yield m
 
 
 class DailySpend:
