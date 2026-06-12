@@ -571,6 +571,7 @@
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
   <div class="theme-note" id="theme-note"></div>
+  <div class="theme-note">Orchestration: <b id="mode-label"></b> · <a id="mode-switch" href=""></a></div>
 </div>
 
 <!-- Slim bar shown while a session runs (the launcher collapses away). -->
@@ -885,6 +886,16 @@ function renderEvals(d) {
 })();
 applyTheme(document.getElementById("domain").value); // theme the initial view
 
+(function initMode() {
+  const lbl = document.getElementById("mode-label"), sw = document.getElementById("mode-switch");
+  if (!lbl) return;
+  lbl.textContent = MODE === "agent" ? "autonomous agent 🤖" : "workflow (fixed pipeline)";
+  const qs = new URLSearchParams(location.search);
+  if (MODE === "agent") qs.delete("mode"); else qs.set("mode", "agent");
+  sw.href = location.pathname + (qs.toString() ? "?" + qs.toString() : "");
+  sw.textContent = MODE === "agent" ? "switch to workflow mode" : "try autonomous mode →";
+})();
+
 // Demo token for the gated deployment: read once from ?token=… in the page
 // URL (then remembered in localStorage) and sent as X-Demo-Token on session
 // calls. Locally, with no DEMO_TOKEN configured, everything stays open.
@@ -896,6 +907,10 @@ const DEMO_TOKEN = (() => {
   } catch (e) { return fromUrl || ""; }
 })();
 function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN } : h; }
+
+// Orchestration mode: "workflow" (fixed pipeline) or "agent" (?mode=agent —
+// the model owns the loop and decides each tool call itself).
+const MODE = new URLSearchParams(location.search).get("mode") === "agent" ? "agent" : "workflow";
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
 function resetToSetup() {
@@ -1329,6 +1344,12 @@ function submitResponse(correct, notes) {
   setThinking(THINKING.adapt);
   trace("phase-observe", "observe", "Your answer", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
 
+  if (MODE === "agent") {
+    agentLabelSet = false;
+    streamSSE(`/agent/sessions/${currentSessionId}/respond_stream`, { correct, notes }, null);
+    return;
+  }
+
   fetch(`/sessions/${currentSessionId}/respond`, {
     method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ correct, notes }),
@@ -1373,6 +1394,25 @@ function showDone(res) {
 }
 
 // ================= Under the hood (trace) =================
+// Agent-mode tool → flowchart node / labels
+const TOOL_FLOW = { diagnose: "assess", plan_lessons: "plan", teach: "teach",
+                    record_observation: "adapt", view_learner: "adapt" };
+const TOOL_TITLES = {
+  diagnose: "Agent chose: diagnose the learner",
+  plan_lessons: "Agent chose: plan the lessons",
+  teach: "Agent chose: teach a lesson",
+  record_observation: "Agent chose: update your profile",
+  view_learner: "Agent chose: review your profile",
+};
+const TOOL_RUN = {
+  diagnose: "diagnosing what you need",
+  plan_lessons: "planning your lessons",
+  teach: "writing your lesson",
+  record_observation: "updating your profile",
+  view_learner: "reviewing your profile",
+};
+let agentLabelSet = false;
+
 const TRACE_ICONS = {
   "phase-assess": "🔍", "phase-plan": "📋", "phase-generate": "✍️",
   "phase-observe": "👀", "phase-adapt": "🔄",
@@ -1438,9 +1478,21 @@ function startSession() {
   document.getElementById("setup").style.display = "none";
   document.getElementById("session-bar").style.display = "flex";
   const dd = DOMAINS.find(x => x.id === domain);
-  document.getElementById("bar-domain").textContent = dd ? dd.label : domain;
+  document.getElementById("bar-domain").textContent =
+    (dd ? dd.label : domain) + (MODE === "agent" ? " · 🤖 autonomous" : "");
   document.getElementById("brain-empty").style.display = "none";
-  showJourney();
+  if (MODE === "agent") {
+    agentLabelSet = false;
+    const card = document.createElement("div");
+    card.className = "lesson journey";
+    card.innerHTML = "<h3>🤖 Autonomous mode</h3>" +
+      '<div class="body"><p>No fixed pipeline here — the agent decides each move itself ' +
+      "(diagnose, plan, teach, adapt) and can change course based on your answers. " +
+      "Every decision it makes appears in its brain on the right.</p></div>";
+    document.getElementById("feed").appendChild(card);
+  } else {
+    showJourney();
+  }
 
   applyTheme(domain);
   setThinking(THINKING.load_graph);
@@ -1448,7 +1500,16 @@ function startSession() {
   const payload = { user_id: user, domain_id: domain };
   if (pendingSeed) { payload.learner = pendingSeed; pendingSeed = null; }
 
-  fetch("/sessions/start_stream", {
+  streamSSE(
+    MODE === "agent" ? "/agent/sessions/start_stream" : "/sessions/start_stream",
+    payload,
+    () => { document.getElementById("start").disabled = false; }
+  );
+}
+
+// Shared SSE POST-and-stream reader (session start in both modes; agent respond).
+function streamSSE(url, payload, onDone) {
+  fetch(url, {
     method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   }).then(async (resp) => {
@@ -1458,7 +1519,7 @@ function startSession() {
       noteLine("", "error", esc(err.message || err.detail ||
         `Request failed (${resp.status}).`) +
         (resp.status === 401 ? " Append <code>?token=&lt;demo token&gt;</code> to this page's URL and retry." : ""));
-      document.getElementById("start").disabled = false;
+      if (onDone) onDone();
       return;
     }
     setStatus("learning");
@@ -1473,10 +1534,10 @@ function startSession() {
       buffer = events.pop();
       for (const ev of events) handleSSE(ev);
     }
-    document.getElementById("start").disabled = false;
+    if (onDone) onDone();
   }).catch((err) => {
     setThinking(null); setStatus("error: " + err.message);
-    document.getElementById("start").disabled = false;
+    if (onDone) onDone();
   });
 }
 
@@ -1516,7 +1577,46 @@ function dispatch(event, p) {
     return;
   }
   if (event === "thinking") {
+    if (p.phase === "agent" && !agentLabelSet) {
+      setThinking("🤖 Deciding the next move…");
+      agentLabelSet = true;
+    }
     appendThinking(p.delta);
+    return;
+  }
+  if (event === "tool_call") {
+    flushReasoning(); // archive the deliberation that led to this decision
+    const node = TOOL_FLOW[p.tool];
+    if (node) { currentPhase = node; flowActive(node); }
+    if (p.tool === "teach" && p.args && p.args.concept_id) gvTarget(p.args.concept_id);
+    setThinking("🤖 " + (TOOL_RUN[p.tool] || "running " + p.tool) + "…");
+    agentLabelSet = true;
+    const args = p.args && Object.keys(p.args).length
+      ? `<code>${esc(JSON.stringify(p.args)).slice(0, 260)}</code>` : "(no arguments)";
+    trace("phase-" + (node || "assess"), p.tool + "()", TOOL_TITLES[p.tool] || p.tool, args);
+    return;
+  }
+  if (event === "tool_result") {
+    const node = TOOL_FLOW[p.tool];
+    if (p.ok && node) flowDone(node);
+    if (!p.ok) trace("phase-observe", p.tool + "()", "Tool error — the agent will adapt", esc(p.error || ""));
+    agentLabelSet = false; // next deliberation gets a fresh label
+    return;
+  }
+  if (event === "agent_text") {
+    flushReasoning();
+    setThinking(null);
+    noteLine("adapt", "tutor", inline(p.text));
+    return;
+  }
+  if (event === "turn_done") {
+    setThinking(null);
+    orbState("");
+    if (p.status === "session_budget_reached") {
+      noteLine("", "error", "This session reached its budget cap — start a new one to continue.");
+    } else {
+      flowActive("observe");
+    }
     return;
   }
   if (event === "progress") {

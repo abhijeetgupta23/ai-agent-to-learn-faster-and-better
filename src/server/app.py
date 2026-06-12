@@ -32,6 +32,7 @@ from pydantic import BaseModel
 from src.graph.extractor import extract_learning_graph
 from src.graph.retriever import ground_context
 from src.harness import ExternalCallError, cost
+from src.agent.autonomous import kickoff_message, observation_message, run_agent_turn
 from src.llm import thinking_sink
 from src.memory.store import MemoryStore
 from src.server.guards import (
@@ -530,3 +531,198 @@ def respond(session_id: str, req: RespondRequest):
             "cost": _cost_summary(state["cost_usd"]),
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# Autonomous orchestration mode (/agent/...): same tools, same guards, same
+# meter — but the MODEL owns the loop. See src/agent/autonomous.py.
+# ---------------------------------------------------------------------------
+
+
+def _agent_events(state: dict, message: str, meter: cost.CostMeter):
+    """Run one autonomous turn in a worker thread, yielding SSE events for the
+    agent's tool activity, decisions, and streamed reasoning."""
+    q: queue.Queue = queue.Queue()
+    out: dict[str, Any] = {}
+    ctx = contextvars.copy_context()
+
+    def worker():
+        try:
+            with cost.use_meter(meter), thinking_sink(
+                lambda kind, delta: q.put(("delta", kind, delta))
+            ):
+                out["value"] = run_agent_turn(
+                    state, message, lambda t, p: q.put(("event", t, p))
+                )
+        except BaseException as e:  # re-raised on the generator side
+            out["error"] = e
+        finally:
+            q.put(None)
+
+    threading.Thread(target=lambda: ctx.run(worker), daemon=True).start()
+    chars = 0
+    last_progress = 0
+    while True:
+        item = q.get()
+        if item is None:
+            break
+        if item[0] == "delta":
+            _, kind, delta = item
+            if kind == "thinking":
+                yield _sse_event("thinking", {"phase": "agent", "delta": delta})
+            else:
+                chars += len(delta)
+                if chars - last_progress >= 120:
+                    last_progress = chars
+                    yield _sse_event("progress", {"phase": "agent", "chars": chars})
+        else:
+            _, t, p = item
+            yield _sse_event(t, p)
+    if "error" in out:
+        raise out["error"]
+    return out.get("value")
+
+
+@app.post("/agent/sessions/start_stream")
+def agent_start_session_stream(req: StartSessionRequest, request: Request):
+    """Autonomous-mode session start: the model decides each move."""
+    if daily_budget_exhausted():
+        return budget_exhausted_response()
+    if not rate_limiter.check(client_ip(request)):
+        return rate_limited_response()
+
+    def event_stream():
+        session_meter = cost.CostMeter()
+        try:
+            # Graph resolution — mirrors workflow mode.
+            domain_path = Path("domains") / f"{req.domain_id}.md"
+            yield _sse_event("phase", {"name": "load_graph"})
+            graph: LearningGraph | None = None
+            if req.source_text:
+                graph = yield from _thinking_events(
+                    "load_graph",
+                    lambda: extract_learning_graph(
+                        req.source_text, req.domain_title or req.domain_id, store
+                    ),
+                    session_meter,
+                )
+            elif domain_path.exists():
+                source = domain_path.read_text(encoding="utf-8")
+                graph = yield from _thinking_events(
+                    "load_graph",
+                    lambda: extract_learning_graph(
+                        source,
+                        req.domain_title or req.domain_id.replace("_", " "),
+                        store,
+                    ),
+                    session_meter,
+                )
+            else:
+                for entry in store.list_graphs():
+                    if entry["domain_id"] == req.domain_id:
+                        graph = store.get_graph_by_source_hash(entry["source_hash"])
+                        break
+            if graph is None:
+                yield _sse_event(
+                    "error", {"message": f"No graph for domain {req.domain_id!r}."}
+                )
+                return
+            yield _sse_event(
+                "graph",
+                {
+                    "domain_id": graph.domain_id,
+                    "n_nodes": len(graph.nodes),
+                    "nodes": [
+                        {
+                            "id": n.concept_id,
+                            "name": n.name,
+                            "difficulty": n.difficulty,
+                            "prerequisites": n.prerequisites,
+                        }
+                        for n in graph.nodes
+                    ],
+                },
+            )
+
+            learner = _seeded_learner(req)
+            if learner is not None:
+                store.save_learner(learner)
+            else:
+                learner = store.get_learner(req.user_id, req.domain_id)
+                if learner is None:
+                    learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
+                    store.save_learner(learner)
+            yield _sse_event("learner", {"learner": learner.model_dump(mode="json")})
+
+            agent_state: dict[str, Any] = {
+                "learner": learner,
+                "graph": graph,
+                "store": store,
+                "messages": [],
+                "steps_taught": 0,
+            }
+            session_id = uuid.uuid4().hex[:12]
+            SESSIONS[session_id] = {
+                "mode": "agent",
+                "user_id": req.user_id,
+                "domain_id": req.domain_id,
+                "state": agent_state,
+                "cost_usd": 0.0,
+            }
+
+            yield from _agent_events(
+                agent_state, kickoff_message(learner, graph), session_meter
+            )
+
+            SESSIONS[session_id]["cost_usd"] = session_meter.total_usd
+            yield _sse_event(
+                "session_ready",
+                {
+                    "session_id": session_id,
+                    "mode": "agent",
+                    "cost": _cost_summary(session_meter.total_usd),
+                },
+            )
+        except ExternalCallError as e:
+            yield _sse_event("error", e.to_payload())
+        except Exception as e:
+            yield _sse_event("error", {"message": str(e), "type": type(e).__name__})
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.post("/agent/sessions/{session_id}/respond_stream")
+def agent_respond_stream(session_id: str, req: RespondRequest):
+    """Autonomous-mode learner answer: the model decides what happens next."""
+    sess = SESSIONS.get(session_id)
+    if sess is None or sess.get("mode") != "agent":
+        raise HTTPException(status_code=404, detail="Agent session not found")
+    if daily_budget_exhausted():
+        return budget_exhausted_response()
+
+    def event_stream():
+        meter = cost.CostMeter()
+        try:
+            if sess.get("cost_usd", 0.0) >= PER_SESSION_USD_CAP:
+                yield _sse_event(
+                    "turn_done",
+                    {
+                        "status": "session_budget_reached",
+                        "cost": _cost_summary(sess["cost_usd"]),
+                    },
+                )
+                return
+            yield from _agent_events(
+                sess["state"], observation_message(req.correct, req.notes), meter
+            )
+            sess["cost_usd"] = sess.get("cost_usd", 0.0) + meter.total_usd
+            yield _sse_event(
+                "turn_done",
+                {"status": "awaiting_learner", "cost": _cost_summary(sess["cost_usd"])},
+            )
+        except ExternalCallError as e:
+            yield _sse_event("error", e.to_payload())
+        except Exception as e:
+            yield _sse_event("error", {"message": str(e), "type": type(e).__name__})
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
