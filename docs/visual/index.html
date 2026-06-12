@@ -124,7 +124,7 @@
   .dot.done { background: var(--accent); }
   .dot.cur { background: var(--accent); box-shadow: 0 0 0 3px #e0e7ff; }
   .lesson h3 { margin: 6px 0 14px; font-size: 22px; letter-spacing: -0.01em; }
-  .body { font-size: 15.5px; color: #283248; }
+  .body { font-size: 15.5px; color: var(--ink); }
   .body p { margin: 0 0 12px; }
   .body h4 { margin: 18px 0 8px; font-size: 16px; }
   .body code { background: #f1f3fb; padding: 1px 6px; border-radius: 5px; font-size: 13.5px; }
@@ -274,6 +274,14 @@
   body[data-theme="terminal"] .chip { background: #161b22; }
   body[data-theme="terminal"] .pill { background: #1c2333; color: var(--accent); }
   body[data-theme="terminal"] input.txt, body[data-theme="terminal"] input[type=text] { background: #0d1117; color: var(--ink); }
+  /* Lesson internals carry light-theme hardcoded colors — re-skin for dark. */
+  body[data-theme="terminal"] .body code { background: #0c1322; color: #9ec5ff; }
+  body[data-theme="terminal"] .takeaways { background: #11161f; }
+  body[data-theme="terminal"] .pill.reading { background: #1c2333; color: #79b8ff; }
+  body[data-theme="terminal"] .pill.socratic { background: #2a1a24; color: #f88fb9; }
+  body[data-theme="terminal"] .pill.interactive { background: #12261a; color: #3fb950; }
+  body[data-theme="terminal"] .dot { background: #30363d; }
+  body[data-theme="terminal"] .dot.cur { box-shadow: 0 0 0 3px #12261a; }
 
   /* EDITORIAL — for math / game theory / micro: serif, hairlines, print. */
   body[data-theme="editorial"] {
