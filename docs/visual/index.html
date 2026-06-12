@@ -321,6 +321,30 @@
   .theme-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
   .theme-note b { color: var(--accent); }
 
+  /* Split layout: lesson flow left, tutor's brain right (sticky). */
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 18px; align-items: start; }
+  .main-col { min-width: 0; }
+  .brain { background: #0f1626; border: 1px solid #1e2940; border-radius: 14px; padding: 12px 14px;
+    position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  .brain-h { font-size: 13px; font-weight: 700; color: #aeb9d4; letter-spacing: .03em;
+    display: flex; align-items: center; gap: 6px; padding: 2px 2px 10px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block;
+    animation: pulse 1.4s infinite ease-in-out; }
+  .brain .thinking { background: #131c2f; border: 1px solid #1e2940; box-shadow: none;
+    margin: 0 0 10px; padding: 12px 14px; }
+  .brain .thinking .t { color: #aab6d2; }
+  .brain .thinking .t b { color: #e7edfb; }
+  .brain .thinking .t .reasoning { color: #adbac7; font-style: normal; }
+  .brain #trace { padding: 0; }
+  .brain-empty { font-size: 13px; color: #7d8aa8; line-height: 1.55; padding: 6px 4px 10px; }
+  .session-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding: 10px 16px;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--card); font-size: 14px; }
+  .session-bar #status { color: var(--muted); font-size: 12.5px; margin-left: auto; }
+  @media (max-width: 1080px) {
+    .split { grid-template-columns: 1fr; }
+    .brain { position: static; max-height: none; }
+  }
+
   /* Nav */
   .nav { display: flex; gap: 8px; align-items: center; margin: 14px 4px 0; }
   .nav button { background: transparent; border: 1px solid var(--border); color: var(--muted);
@@ -449,22 +473,34 @@
     </div>
     <input type="text" id="domain" value="ai" style="display:none;" />
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
-    <span id="status">ready</span>
   </div>
   <div class="theme-note" id="theme-note"></div>
 </div>
 
-<div class="thinking" id="thinking">
-  <div class="pulse"></div>
-  <div class="t" id="thinking-text">Thinking…</div>
+<!-- Slim bar shown while a session runs (the launcher collapses away). -->
+<div class="session-bar" id="session-bar" style="display:none;">
+  <span>Learning <b id="bar-domain"></b></span>
+  <span id="status">ready</span>
+  <button class="chip" onclick="resetToSetup()">⟲ change topic</button>
 </div>
 
-<div id="feed"></div>
-
-<details class="internals" id="internals">
-  <summary><span class="twirl">▸</span> Under the hood — watch the agent reason (prompt → decision → output)</summary>
-  <div id="trace"></div>
-</details>
+<!-- Split: the learner's experience on the left, the tutor's brain on the
+     right — reasoning streams live in the rail and the receipts accumulate
+     there, always in view. -->
+<div class="split">
+  <div class="main-col">
+    <div id="feed"></div>
+  </div>
+  <aside class="brain" id="brain">
+    <div class="brain-h">🧠 Tutor’s brain — <span class="live-dot"></span> live</div>
+    <div class="thinking" id="thinking">
+      <div class="pulse"></div>
+      <div class="t" id="thinking-text">Thinking…</div>
+    </div>
+    <div id="trace"></div>
+    <div class="brain-empty" id="brain-empty">Start a session and watch every decision happen here — the model’s reasoning, in real time, with receipts.</div>
+  </aside>
+</div>
 
 </div><!-- /learn-view -->
 
@@ -742,6 +778,12 @@ const DEMO_TOKEN = (() => {
 function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN } : h; }
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
+function resetToSetup() {
+  document.querySelector(".featured-row").style.display = "";
+  document.getElementById("setup").style.display = "";
+  document.getElementById("session-bar").style.display = "none";
+  document.getElementById("setup").scrollIntoView({ behavior: "smooth" });
+}
 let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
@@ -1043,10 +1085,14 @@ function showDone(res) {
 // ================= Under the hood (trace) =================
 function trace(phaseClass, label, title, contentHTML) {
   const t = document.getElementById("trace");
+  const brain = document.getElementById("brain");
+  // Follow the newest card only if the user hasn't scrolled up to read.
+  const follow = brain.scrollHeight - brain.scrollTop - brain.clientHeight < 120;
   const card = document.createElement("div");
   card.className = "stream-card " + phaseClass;
   card.innerHTML = `<div class="label">${label}</div><div class="title">${title}</div><div class="content">${contentHTML}</div>`;
   t.appendChild(card);
+  if (follow) brain.scrollTop = brain.scrollHeight;
 }
 function renderLearnerTrace(learner) {
   trace("phase-adapt", "learner state → LearnerModel", "What the tutor knows about you",
@@ -1063,6 +1109,15 @@ function startSession() {
 
   const user = document.getElementById("user").value || "learner";
   const domain = document.getElementById("domain").value || "ai";
+
+  // Collapse the launcher into the slim session bar; wake the brain rail.
+  document.querySelector(".featured-row").style.display = "none";
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("session-bar").style.display = "flex";
+  const dd = DOMAINS.find(x => x.id === domain);
+  document.getElementById("bar-domain").textContent = dd ? dd.label : domain;
+  document.getElementById("brain-empty").style.display = "none";
+
   applyTheme(domain);
   setThinking(THINKING.load_graph);
 
