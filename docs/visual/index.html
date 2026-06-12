@@ -340,6 +340,27 @@
   .session-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding: 10px 16px;
     border: 1px solid var(--border); border-radius: 12px; background: var(--card); font-size: 14px; }
   .session-bar #status { color: var(--muted); font-size: 12.5px; margin-left: auto; }
+
+  /* Journey card — keeps the left column alive while the session builds. */
+  .journey h3 { font-size: 17px; margin: 0 0 10px; }
+  .jstep { display: flex; align-items: center; gap: 10px; padding: 10px 4px;
+    border-bottom: 1px dashed var(--border); font-size: 14.5px; color: var(--muted); }
+  .jstep:last-child { border-bottom: none; }
+  .jstep .jicon { filter: grayscale(1); opacity: .45; transition: all .2s; }
+  .jstep.active, .jstep.done { color: var(--ink); }
+  .jstep.active .jicon, .jstep.done .jicon { filter: none; opacity: 1; }
+  .jstep .jspin { display: none; width: 13px; height: 13px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; margin-left: auto;
+    animation: spin .8s linear infinite; }
+  .jstep.active .jspin { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .jstep .jstate { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+  .jstep.active .jstate { display: none; }
+  .jstep.done .jstate::before { content: "✓ "; color: var(--good); font-weight: 700; }
+
+  /* Rail cards slide in instead of popping. */
+  .stream-card { animation: rise 240ms ease; }
+
   @media (max-width: 1080px) {
     .split { grid-template-columns: 1fr; }
     .brain { position: static; max-height: none; }
@@ -784,6 +805,38 @@ function resetToSetup() {
   document.getElementById("session-bar").style.display = "none";
   document.getElementById("setup").scrollIntoView({ behavior: "smooth" });
 }
+
+// ---- journey card: live progress on the left while the session builds ----
+const JOURNEY_STEPS = [
+  { key: "load_graph", icon: "🗺️", label: "Map the subject" },
+  { key: "assess", icon: "🔍", label: "Work out what you need" },
+  { key: "plan", icon: "📋", label: "Design your lesson plan" },
+  { key: "generate", icon: "✍️", label: "Write your lesson" },
+];
+function showJourney() {
+  const card = document.createElement("div");
+  card.className = "lesson journey";
+  card.id = "journey";
+  card.innerHTML = "<h3>Building your session</h3>" + JOURNEY_STEPS.map(s =>
+    `<div class="jstep" id="jstep-${s.key}">
+       <span class="jicon">${s.icon}</span>
+       <span class="jlabel">${s.label}</span>
+       <span class="jspin"></span>
+       <span class="jstate"></span>
+     </div>`).join("");
+  document.getElementById("feed").appendChild(card);
+}
+function journeyPhase(name) {
+  const el = document.getElementById("jstep-" + name);
+  if (el) el.classList.add("active");
+}
+function journeyDone(name, summary) {
+  const el = document.getElementById("jstep-" + name);
+  if (!el) return;
+  el.classList.remove("active");
+  el.classList.add("done");
+  if (summary) el.querySelector(".jstate").textContent = summary;
+}
 let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
@@ -1117,6 +1170,7 @@ function startSession() {
   const dd = DOMAINS.find(x => x.id === domain);
   document.getElementById("bar-domain").textContent = dd ? dd.label : domain;
   document.getElementById("brain-empty").style.display = "none";
+  showJourney();
 
   applyTheme(domain);
   setThinking(THINKING.load_graph);
@@ -1174,11 +1228,12 @@ function dispatch(event, p) {
     currentPhase = p.name;
     if (THINKING[p.name]) setThinking(THINKING[p.name]);
     const PHASE_TITLES = {
-      load_graph: "Reading the subject map",
-      assess: "Working out what you need",
-      plan: "Designing your lesson plan",
-      generate: "Writing your lesson",
+      load_graph: "🗺️ Reading the subject map",
+      assess: "🔍 Working out what you need",
+      plan: "📋 Designing your lesson plan",
+      generate: "✍️ Writing your lesson",
     };
+    journeyPhase(p.name);
     trace("phase-" + p.name, "phase", PHASE_TITLES[p.name] || p.name.toUpperCase(),
       `running the <code>${p.name}</code> step`);
     return;
@@ -1192,6 +1247,7 @@ function dispatch(event, p) {
     return;
   }
   if (event === "graph") {
+    journeyDone("load_graph", `${p.n_nodes} concepts`);
     trace("phase-assess", "subject map", `${p.n_nodes} concepts, connected`,
       `Built from the source material for <code>${esc(p.domain_id)}</code> — every concept linked to the ones you need first.`);
     return;
@@ -1199,6 +1255,7 @@ function dispatch(event, p) {
   if (event === "learner") { renderLearnerTrace(p.learner); return; }
   if (event === "gap") {
     const g = p.gap;
+    journeyDone("assess", `next: ${humanizeConcept(g.target_concept_id)}`);
     trace("phase-assess", "diagnose_learner → GapEstimate", "What you need next",
       `<b>topic:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
        <div style="margin-top:6px;">${esc(g.rationale)}</div>`);
@@ -1208,6 +1265,7 @@ function dispatch(event, p) {
     const w = p.workflow;
     totalSteps = (w.steps || []).length;
     const steps = w.steps.map(s => `<span class="step-mini"><b>${s.step_number}.</b> ${esc(s.concept_id)} · ${s.modality} · ${esc(s.pedagogy_principle)}</span>`).join("");
+    journeyDone("plan", `${(w.steps || []).length} steps · ${w.modality}`);
     trace("phase-plan", "plan_workflow → Workflow", `Your lesson plan (${esc(w.modality)})`,
       `${steps}<div style="margin-top:6px;">${esc(w.rationale)}</div>`);
     renderCurriculum(w);
@@ -1215,6 +1273,7 @@ function dispatch(event, p) {
   }
   if (event === "artifact") {
     lastStep = p.step;
+    journeyDone("generate", "ready");
     trace("phase-generate", "generate_artifact → Artifact", `Lesson ready (${p.artifact.type}, step ${p.step.step_number})`,
       `Shown above.`);
     renderLesson(p.artifact, p.step);
