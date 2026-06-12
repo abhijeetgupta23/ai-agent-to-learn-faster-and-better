@@ -361,6 +361,40 @@
   /* Rail cards slide in instead of popping. */
   .stream-card { animation: rise 240ms ease; }
 
+  /* The agent orb — its state mirrors what the model is doing. */
+  .orb { width: 16px; height: 16px; border-radius: 50%; flex: none; display: inline-block;
+    background: radial-gradient(circle at 30% 30%, #9ec5ff, #4f46e5 62%, #14204a);
+    animation: orb-idle 3.2s ease-in-out infinite; }
+  .orb.big { width: 34px; height: 34px; margin-bottom: 8px; }
+  .orb.think { animation: orb-think .9s ease-in-out infinite; box-shadow: 0 0 14px #60a5fa99; }
+  .orb.write { animation: orb-write .55s ease-in-out infinite; box-shadow: 0 0 12px #3fb95088;
+    background: radial-gradient(circle at 30% 30%, #7ee2a8, #2ea043 62%, #0c2818); }
+  @keyframes orb-idle { 50% { transform: scale(1.07); } }
+  @keyframes orb-think { 50% { transform: scale(1.3); filter: hue-rotate(35deg) brightness(1.2); } }
+  @keyframes orb-write { 50% { transform: scale(1.15); } }
+  .caret { display: inline-block; width: 7px; color: #9ec5ff; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Live concept-graph visualization */
+  #graph-viz { margin-bottom: 10px; }
+  #graph-viz svg { width: 100%; display: block; background: #0c1322; border: 1px solid #1e2940;
+    border-radius: 10px; }
+  #graph-viz .gv-h { font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: #7d8aa8; margin: 0 0 4px 2px; }
+  .gedge { stroke: #233152; stroke-width: 1.2; fill: none; transition: stroke .3s; }
+  .gedge.path { stroke: #60a5fa; stroke-width: 1.8; }
+  .gnode circle { fill: #1c2742; stroke: #3b4a6e; stroke-width: 1.4; transition: all .3s; }
+  .gnode text { fill: #8fa0c4; font-size: 8.5px; }
+  .gnode.mastered circle { fill: #12361f; stroke: #2ea043; }
+  .gnode.mastered text { fill: #7ee2a8; }
+  .gnode.planned circle { stroke: #fbbf24; stroke-dasharray: 3 2; }
+  .gnode.target circle { fill: #1d4ed8; stroke: #60a5fa; stroke-width: 2;
+    animation: target-pulse 1.6s ease-in-out infinite; }
+  .gnode.target text { fill: #cfe1ff; font-weight: 700; }
+  @keyframes target-pulse { 50% { stroke-width: 5; stroke-opacity: .4; } }
+  .brain-empty { text-align: center; }
+  .brain-empty .orb { margin: 4px auto 10px; display: block; }
+
   @media (max-width: 1080px) {
     .split { grid-template-columns: 1fr; }
     .brain { position: static; max-height: none; }
@@ -513,13 +547,17 @@
     <div id="feed"></div>
   </div>
   <aside class="brain" id="brain">
-    <div class="brain-h">🧠 Tutor’s brain — <span class="live-dot"></span> live</div>
+    <div class="brain-h"><span class="orb" id="orb"></span> Tutor’s brain — <span class="live-dot"></span> live</div>
     <div class="thinking" id="thinking">
       <div class="pulse"></div>
       <div class="t" id="thinking-text">Thinking…</div>
     </div>
+    <div id="graph-viz"></div>
     <div id="trace"></div>
-    <div class="brain-empty" id="brain-empty">Start a session and watch every decision happen here — the model’s reasoning, in real time, with receipts.</div>
+    <div class="brain-empty" id="brain-empty">
+      <span class="orb big"></span>
+      <div>Start a session and watch every decision happen here — the subject map lights up as the agent picks what to teach you, with its reasoning streaming live.</div>
+    </div>
   </aside>
 </div>
 
@@ -837,23 +875,104 @@ function journeyDone(name, summary) {
   el.classList.add("done");
   if (summary) el.querySelector(".jstate").textContent = summary;
 }
+
+// ---- live concept graph: the agent's actual data structure, animated ----
+let GV_NODES = null;
+function renderGraphViz(nodes) {
+  GV_NODES = nodes;
+  const byId = {};
+  nodes.forEach(n => byId[n.id] = n);
+  const depth = {};
+  function calcDepth(id, seen) {
+    if (depth[id] != null) return depth[id];
+    const n = byId[id];
+    if (!n) return 0;
+    seen = seen || {};
+    if (seen[id]) return 0; // cycle guard — extractor validates, belt & braces
+    seen[id] = 1;
+    const ps = (n.prerequisites || []).filter(p => byId[p]);
+    depth[id] = ps.length ? 1 + Math.max(...ps.map(p => calcDepth(p, seen))) : 0;
+    return depth[id];
+  }
+  nodes.forEach(n => calcDepth(n.id));
+  const maxD = Math.max(...nodes.map(n => depth[n.id]), 0);
+  const cols = [];
+  nodes.forEach(n => { (cols[depth[n.id]] = cols[depth[n.id]] || []).push(n); });
+  const W = 352, PADX = 34, rowH = 32, PADY = 22;
+  const maxRows = Math.max(...cols.map(c => c ? c.length : 0));
+  const H = Math.max(PADY * 2 + (maxRows - 1) * rowH + 16, 96);
+  const pos = {};
+  cols.forEach((col, ci) => {
+    if (!col) return;
+    const x = maxD ? PADX + ci * ((W - PADX * 2) / maxD) : W / 2;
+    col.forEach((n, ri) => {
+      pos[n.id] = { x, y: PADY + ri * rowH + (ci % 2 ? rowH / 2 : 0) };
+    });
+  });
+  let edges = "", dots = "";
+  nodes.forEach(n => (n.prerequisites || []).forEach(p => {
+    const a = pos[p], b = pos[n.id];
+    if (!a || !b) return;
+    const mx = (a.x + b.x) / 2;
+    edges += `<path class="gedge" id="ge-${p}--${n.id}" d="M${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}"/>`;
+  }));
+  nodes.forEach(n => {
+    const q = pos[n.id];
+    const name = n.name || n.id;
+    const label = name.length > 15 ? name.slice(0, 14) + "…" : name;
+    dots += `<g class="gnode" id="gn-${n.id}"><circle cx="${q.x}" cy="${q.y}" r="6"/>` +
+            `<text x="${q.x}" y="${q.y - 10}" text-anchor="middle">${esc(label)}</text></g>`;
+  });
+  document.getElementById("graph-viz").innerHTML =
+    `<div class="gv-h">Subject map — what the agent sees</div>` +
+    `<svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg>`;
+}
+function gvClass(id, cls) {
+  const el = document.getElementById("gn-" + id);
+  if (el) el.classList.add(cls);
+}
+function gvTarget(id) {
+  if (!GV_NODES) return;
+  document.querySelectorAll(".gnode.target").forEach(e => e.classList.remove("target"));
+  gvClass(id, "target");
+  const byId = {};
+  GV_NODES.forEach(n => byId[n.id] = n);
+  (function walk(cid) {
+    ((byId[cid] || {}).prerequisites || []).forEach(p => {
+      const e = document.getElementById(`ge-${p}--${cid}`);
+      if (e) e.classList.add("path");
+      walk(p);
+    });
+  })(id);
+}
+
+// ---- the agent orb: its animation state mirrors the model's activity ----
+function orbState(s) {
+  document.querySelectorAll(".orb").forEach(o => {
+    o.className = "orb" + (o.classList.contains("big") ? " big" : "") + (s ? " " + s : "");
+  });
+}
 let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
-  if (text === null) { t.classList.remove("show"); return; }
+  if (text === null) { t.classList.remove("show"); orbState(""); return; }
   thinkingLabel = text; thinkingBuf = ""; writingChars = 0;
   document.getElementById("thinking-text").innerHTML = text;
   t.classList.add("show");
+  orbState("think");
 }
 // Live progress: reasoning deltas stream into a tail under the phase label;
 // while the model writes its answer (reasoning goes quiet), a character
 // counter keeps the pane moving instead of freezing for tens of seconds.
 function renderThinking() {
   let html = thinkingLabel;
-  if (thinkingBuf) html += '<span class="reasoning" id="live-reason">' + esc(thinkingBuf) + "</span>";
+  if (thinkingBuf) {
+    html += '<span class="reasoning" id="live-reason">' + esc(thinkingBuf) +
+      '<span class="caret">▍</span></span>';
+  }
   if (writingChars > 0) {
     const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
-    html += '<span class="reasoning">✍ writing… ' + k + " characters</span>";
+    html += '<span class="reasoning">✍ writing… ' + k + ' characters<span class="caret">▍</span></span>';
   }
   document.getElementById("thinking-text").innerHTML = html;
   document.getElementById("thinking").classList.add("show");
@@ -863,10 +982,12 @@ function renderThinking() {
 function appendThinking(delta) {
   thinkingBuf += delta;
   writingChars = 0; // back to reasoning — clear the writing counter
+  orbState("think");
   renderThinking();
 }
 function showProgress(chars) {
   writingChars = chars;
+  orbState("write");
   renderThinking();
 }
 // Archive the finished phase's full reasoning into the trace timeline, so it
@@ -1103,10 +1224,12 @@ function submitResponse(correct, notes) {
   }).then(r => r.json()).then(res => {
     if (res.detail) { setThinking(null); noteLine("", "error", esc(res.detail)); return; }
     if (res.learner) {
+      (res.learner.mastered_concepts || []).forEach(id => gvClass(id, "mastered"));
       renderLearnerTrace(res.learner);
       noteLine("adapt", "tutor", `Updated your profile — difficulty <b>${res.learner.difficulty_level}/5</b>, `
         + `${(res.learner.mastered_concepts||[]).length} mastered, ${(res.learner.struggling_concepts||[]).length} to revisit.`);
     }
+    if (res.current_step && res.current_step.concept_id) gvTarget(res.current_step.concept_id);
     if (res.status === "workflow_complete") { showDone(res); return; }
     if (res.artifact && res.current_step) {
       setThinking(THINKING.generate);
@@ -1157,6 +1280,8 @@ function startSession() {
   document.getElementById("start").disabled = true;
   document.getElementById("feed").innerHTML = "";
   document.getElementById("trace").innerHTML = "";
+  document.getElementById("graph-viz").innerHTML = "";
+  GV_NODES = null;
   currentSessionId = null; totalSteps = 0;
   setStatus("connecting…");
 
@@ -1248,14 +1373,20 @@ function dispatch(event, p) {
   }
   if (event === "graph") {
     journeyDone("load_graph", `${p.n_nodes} concepts`);
+    if (p.nodes) renderGraphViz(p.nodes);
     trace("phase-assess", "subject map", `${p.n_nodes} concepts, connected`,
-      `Built from the source material for <code>${esc(p.domain_id)}</code> — every concept linked to the ones you need first.`);
+      `Built from the source material for <code>${esc(p.domain_id)}</code> — every concept linked to the ones you need first. Drawn live above.`);
     return;
   }
-  if (event === "learner") { renderLearnerTrace(p.learner); return; }
+  if (event === "learner") {
+    (p.learner.mastered_concepts || []).forEach(id => gvClass(id, "mastered"));
+    renderLearnerTrace(p.learner);
+    return;
+  }
   if (event === "gap") {
     const g = p.gap;
     journeyDone("assess", `next: ${humanizeConcept(g.target_concept_id)}`);
+    gvTarget(g.target_concept_id);
     trace("phase-assess", "diagnose_learner → GapEstimate", "What you need next",
       `<b>topic:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
        <div style="margin-top:6px;">${esc(g.rationale)}</div>`);
@@ -1266,6 +1397,7 @@ function dispatch(event, p) {
     totalSteps = (w.steps || []).length;
     const steps = w.steps.map(s => `<span class="step-mini"><b>${s.step_number}.</b> ${esc(s.concept_id)} · ${s.modality} · ${esc(s.pedagogy_principle)}</span>`).join("");
     journeyDone("plan", `${(w.steps || []).length} steps · ${w.modality}`);
+    (w.steps || []).forEach(s => gvClass(s.concept_id, "planned"));
     trace("phase-plan", "plan_workflow → Workflow", `Your lesson plan (${esc(w.modality)})`,
       `${steps}<div style="margin-top:6px;">${esc(w.rationale)}</div>`);
     renderCurriculum(w);
@@ -1281,6 +1413,7 @@ function dispatch(event, p) {
   }
   if (event === "session_ready") {
     flushReasoning(); // archive the generate phase's reasoning too
+    orbState("");
     currentSessionId = p.session_id;
     trace("phase-generate", "session ready", "Waiting for your answer",
       `session <code>${esc(p.session_id)}</code>`);
@@ -1288,6 +1421,7 @@ function dispatch(event, p) {
   }
   if (event === "error") {
     setThinking(null);
+    orbState("");
     noteLine("", "error", esc(p.message || "error"));
     trace("phase-observe", "error", esc(p.type || "Error"), esc(p.message || ""));
     return;
