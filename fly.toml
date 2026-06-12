@@ -1,0 +1,35 @@
+# fly.toml — adaptive-learning 2.0 demo (ai-agent-to-learn-faster-and-better).
+# Mirrors the 1.0 app's working Fly config; see DEPLOY.md for the checklist.
+#
+# See https://fly.io/docs/reference/configuration/ for option reference.
+
+app = 'adaptive-learning-2'
+primary_region = 'ord'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+# The store dir already defaults to /data/store in the image; the mount below
+# makes it survive restarts and deploys.
+[mounts]
+  source = 'data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512
