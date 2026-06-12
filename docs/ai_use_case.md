@@ -10,7 +10,7 @@ A 13-concept source file covering tokens, embeddings, attention, transformers, c
 
 ## What comes out (step 1 — the graph)
 
-After one LLM call, the extracted graph has **13 nodes** (one per concept) and **21 edges** — mostly prerequisites the agent inferred from the text itself.
+After one LLM call, the extracted graph has **13 nodes** (one per concept) and **22 edges** — mostly prerequisites the agent inferred from the text itself.
 
 Notable: it identified two *interleave-with* pairs — concepts the agent will deliberately mix during practice because they're commonly conflated:
 
@@ -90,7 +90,7 @@ The bolded "Remember that tokens are…" and "The attention mechanism lets…" s
 
 ## What this proves on a topic you understand
 
-1. **The graph is real.** Thirteen concepts, twenty-one prerequisite edges, two interleave-with pairs — none of which were seeded. The structure came from the text.
+1. **The graph is real.** Thirteen concepts, twenty-two prerequisite edges, two interleave-with pairs — none of which were seeded. The structure came from the text.
 2. **The agent's decisions are inspectable.** Every cell in the tables above came from a captured LLM call you can re-read with its prompt, the model's reasoning, and the parsed output.
 3. **The adaptation rules generalize.** The same prerequisite-backfill behavior that the cognitive-biases eval suite tests for (`case_06`) shows up on the AI domain too, without code changes.
 4. **The output is usable.** The generated reading isn't filler — it cites mastered concepts by name to scaffold the new one, which is *exactly* what the pedagogy principle attached to that step (`elaboration`) is supposed to do.

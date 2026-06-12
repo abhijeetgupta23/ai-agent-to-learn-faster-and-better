@@ -1,7 +1,7 @@
 """
 Single-loop agent: ASSESS → PLAN → GENERATE → OBSERVE → ADAPT.
 
-The five tools (§6 of HANDOFF.md) are wired here as native Python functions
+The five tools (§6 of the README) are wired here as native Python functions
 called directly from the loop — Programmatic Tool Calling in spirit: the tools
 are functions in the execution namespace, the LLM authors the workflow that
 chains them. The LLM is the workflow author; this loop is the executor.
@@ -17,6 +17,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Iterator
 
+from src.harness import ExternalCallError, IterationBudget
+from src.harness.limits import DEFAULT_MAX_STEPS
 from src.memory.store import MemoryStore
 from src.schemas import (
     Artifact,
@@ -56,6 +58,7 @@ def run_session(
     on_learner_response: LearnerResponseFn,
     store: MemoryStore | None = None,
     max_workflow_iterations: int = 1,
+    max_steps: int = DEFAULT_MAX_STEPS,
 ) -> Iterator[AgentEvent]:
     """
     Run one full teaching session and yield events for streaming.
@@ -68,9 +71,21 @@ def run_session(
          OBSERVE    — on_learner_response captures the learner turn.
          ADAPT      — update_learner_model persists the change.
       4. (Optionally loop back to PLAN with the new learner state.)
+
+    Failure handling (src/harness/):
+      - `max_steps` caps total executed teaching steps across workflow
+        iterations. The step that lands on the cap is generated with a
+        wrap-up instruction; past it, the loop terminates with a summary
+        built from existing state — no extra LLM call.
+      - A failed external call (retries already exhausted inside src/llm.py)
+        ends the session gracefully: a structured `error` event, then `done`
+        with the current learner state. The session never crashes mid-stream.
     """
+    budget = IterationBudget(max_steps)
     try:
         for _ in range(max_workflow_iterations):
+            if budget.exhausted:
+                break
             yield AgentEvent("phase", {"name": "assess"})
             gap: GapEstimate = diagnose_learner(learner, graph)
             yield AgentEvent("gap", {"gap": gap.model_dump(mode="json")})
@@ -80,6 +95,13 @@ def run_session(
             yield AgentEvent("workflow", {"workflow": workflow.model_dump(mode="json")})
 
             for step in workflow.steps:
+                if budget.exhausted:
+                    yield AgentEvent(
+                        "budget_exhausted",
+                        {**budget.summary(), "remaining_planned_steps": len(workflow.steps) - budget.steps_executed},
+                    )
+                    break
+
                 concept = graph.node_by_id(step.concept_id)
                 if concept is None:
                     yield AgentEvent(
@@ -91,7 +113,9 @@ def run_session(
                 yield AgentEvent(
                     "phase", {"name": "generate", "step": step.step_number}
                 )
-                artifact = generate_artifact(step, concept, learner)
+                artifact = generate_artifact(
+                    step, concept, learner, wrap_up=budget.on_final_step
+                )
                 yield AgentEvent(
                     "artifact",
                     {
@@ -112,7 +136,23 @@ def run_session(
                     "learner_update",
                     {"learner": learner.model_dump(mode="json")},
                 )
+                budget.record_step()
 
-        yield AgentEvent("done", {"learner": learner.model_dump(mode="json")})
+        yield AgentEvent(
+            "done",
+            {"learner": learner.model_dump(mode="json"), "budget": budget.summary()},
+        )
+    except ExternalCallError as e:
+        # Retries already happened inside the call; end the session gracefully
+        # with whatever state we have rather than crashing the stream.
+        yield AgentEvent("error", e.to_payload())
+        yield AgentEvent(
+            "done",
+            {
+                "learner": learner.model_dump(mode="json"),
+                "budget": budget.summary(),
+                "terminated_by": "external_call_failure",
+            },
+        )
     except Exception as e:
         yield AgentEvent("error", {"message": str(e), "type": type(e).__name__})

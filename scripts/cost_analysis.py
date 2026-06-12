@@ -122,7 +122,7 @@ def main() -> None:
       f"**not** part of per-session cost after the first learner.\n")
 
     p("## Cost of one eval run\n")
-    p(f"An eval case = diagnose + plan + 1 generate + 3 judges:\n")
+    p("An eval case = diagnose + plan + 1 generate + 3 judges:\n")
     p(f"- **${case_cost:.3f} per case**")
     p(f"- **${eval_run_cost:.2f} for the full 6-case suite**\n")
     p("The judges roughly double the cost of a case vs. a bare session — they "
@@ -195,8 +195,8 @@ def main() -> None:
     gen_savings = N_STEPS * (gen_opus - gen_sonnet)
     opt_session_cost = session_cost - cache_saving_per_session - gen_savings
     opt = opt_session_cost * 10_000
-    p(f"| Configuration | $/session | $/10k sessions |")
-    p(f"|---|--:|--:|")
+    p("| Configuration | $/session | $/10k sessions |")
+    p("|---|--:|--:|")
     p(f"| All-Opus, no caching (today) | ${session_cost:.3f} | ${base:,.0f} |")
     p(f"| + graph cache + Sonnet generate | ${opt_session_cost:.3f} | ${opt:,.0f} |")
     p(f"\nRoughly a **{(1 - opt / base) * 100:.0f}% reduction** on learner-"

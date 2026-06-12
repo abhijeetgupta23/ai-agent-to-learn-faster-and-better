@@ -152,6 +152,27 @@ The first takeaway: *"Persuasion is the use of psychological levers to influence
 
 ---
 
+## Scored verdict
+
+The two sessions above aren't just asserted to be correct — they're run through
+the same three judges as the golden eval suite (`scripts/evaluate_naval.py`,
+full output in [`naval_eval_results.md`](naval_eval_results.md)):
+
+| Session | gap_to_pedagogy | modality_fit | adaptive_progression | Pass |
+|---------|-----------------|--------------|----------------------|------|
+| psychology | 1.00 | 1.00 | 1.00 | OK |
+| persuasion | 1.00 | 1.00 | 1.00 | OK |
+
+Both score 1.00 on every judge. The judges independently confirmed the claims
+this trace makes by prose: the psychology session correctly backfills the
+un-introduced prerequisite (rather than swapping FAE's modality), reserves
+`spaced_repetition` for the *mastered* prior while using `elaboration` /
+`worked_example` for the new concept, and steps difficulty down to 2 for a
+struggling learner; the persuasion session opens a novice on the root concept
+with reading + retrieval practice at difficulty 1, with no unwarranted Socratic.
+
+---
+
 ## What's still missing (the honest scope note)
 
 `loss_aversion` appears as a node in **both** the psychology graph and the persuasion graph. The natural next step is cross-domain interleaving — when Alice masters `loss_aversion` in psychology, the persuasion session for `scarcity` should automatically reference it as a prior, even though they live in separate graphs.
