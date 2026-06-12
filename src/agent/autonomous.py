@@ -204,6 +204,13 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
             "step": step.model_dump(mode="json"),
             "artifact": artifact.model_dump(mode="json"),
         })
+        # Teaching chart (true PTC), emitted after the lesson — never blocks it.
+        if artifact.type == "reading":
+            from src.tools.charts import chart_data_url
+
+            durl = chart_data_url(concept, artifact.title, step.objective)
+            if durl:
+                emit("chart", {"step_number": step.step_number, "chart": durl})
         return {
             "status": "delivered_to_learner",
             "artifact_type": artifact.type,
