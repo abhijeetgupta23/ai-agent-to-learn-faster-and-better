@@ -322,16 +322,18 @@
   .nav .badge-pass { font-size: 11px; font-weight: 700; color: var(--good); background: var(--good-bg);
     border-radius: 999px; padding: 3px 10px; }
 
-  /* Featured decision launcher */
-  .featured { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; padding: 16px 18px;
+  /* Featured decision launchers — one card per signature adaptive behavior */
+  .featured-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .featured { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px;
     border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: var(--shadow);
     cursor: pointer; transition: border-color .12s, transform .12s; }
   .featured:hover { border-color: var(--accent); transform: translateY(-1px); }
-  .featured .play { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--accent); color: #fff;
-    display: grid; place-items: center; font-size: 16px; }
-  .featured .fk { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
-  .featured .ft { font-size: 14.5px; margin-top: 2px; }
-  .featured code { background: #00000010; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+  .featured .play { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: #fff;
+    display: grid; place-items: center; font-size: 13px; }
+  .featured .fk { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+  .featured .ft { font-size: 13px; margin-top: 3px; line-height: 1.45; }
+  .featured code { background: #00000010; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+  @media (max-width: 900px) { .featured-row { grid-template-columns: 1fr; } }
 
   /* Evals view */
   .ev-hero { margin: 6px 4px 18px; }
@@ -395,11 +397,27 @@
 
 <div id="learn-view">
 
-<div class="featured" id="featured" onclick="runFeatured()">
-  <div class="play">▶</div>
-  <div>
-    <div class="fk">Featured decision</div>
-    <div class="ft">A learner failed <code>tool_use</code> twice. Watch the agent <b>refuse to re-teach it</b> — instead it traces the prerequisite chain and backfills the <b>deepest unmastered prerequisite</b> it was never taught, then bridges up from there.</div>
+<div class="featured-row">
+  <div class="featured" onclick="runFeatured(0)">
+    <div class="play">▶</div>
+    <div>
+      <div class="fk">Featured · AI &amp; LLMs</div>
+      <div class="ft">Failed <code>tool_use</code> twice. The agent <b>refuses to re-teach it</b> — it backfills the deepest unmastered prerequisite, then bridges up.</div>
+    </div>
+  </div>
+  <div class="featured" onclick="runFeatured(1)">
+    <div class="play">▶</div>
+    <div>
+      <div class="fk">Featured · Cognitive biases</div>
+      <div class="ft">Prefers reading — but failed <code>base_rate_neglect</code> twice. The agent <b>overrides the stated preference</b> and switches to Socratic dialogue.</div>
+    </div>
+  </div>
+  <div class="featured" onclick="runFeatured(2)">
+    <div class="play">▶</div>
+    <div>
+      <div class="fk">Featured · Cognitive biases</div>
+      <div class="ft">Overwhelmed at difficulty 4/5, failing everything interactive. The agent <b>steps the difficulty down</b> instead of pushing forward.</div>
+    </div>
   </div>
 </div>
 
@@ -503,29 +521,62 @@ function showView(name) {
   }
 }
 
-// ---- featured decision: seed a learner stuck on tool_use ----
+// ---- featured decisions: seeded learners reproducing signature adaptive
+// behaviors. Seeds 1 and 2 are the eval harness's golden cases (case_02 /
+// case_04) verbatim, so the live demo shows the same decisions the judges
+// score 6/6.
 let pendingSeed = null;
-const FEATURED = {
-  user_id: "demo-prereq", domain_id: "ai",
-  learner: {
-    mastered_concepts: ["tokens", "embeddings", "attention", "transformers"],
-    struggling_concepts: ["tool_use"],
-    modality_preference: "reading",
-    difficulty_level: 2,
-    session_history: [
-      { concept_id: "tool_use", modality: "reading", correct: false },
-      { concept_id: "tool_use", modality: "reading", correct: false },
-    ],
+const FEATURED = [
+  { // prerequisite backfill (AI)
+    user_id: "demo-prereq", domain_id: "ai",
+    learner: {
+      mastered_concepts: ["tokens", "embeddings", "attention", "transformers"],
+      struggling_concepts: ["tool_use"],
+      modality_preference: "reading",
+      difficulty_level: 2,
+      session_history: [
+        { concept_id: "tool_use", modality: "reading", correct: false },
+        { concept_id: "tool_use", modality: "reading", correct: false },
+      ],
+    },
   },
-};
-function runFeatured() {
+  { // preference override → socratic (eval golden case_02)
+    user_id: "demo-override", domain_id: "cognitive_biases",
+    learner: {
+      mastered_concepts: ["base_rate", "conditional_probability"],
+      struggling_concepts: ["base_rate_neglect"],
+      modality_preference: "reading",
+      difficulty_level: 3,
+      session_history: [
+        { concept_id: "base_rate_neglect", modality: "reading", correct: false, notes: "got the medical-test problem wrong" },
+        { concept_id: "base_rate_neglect", modality: "reading", correct: false, notes: "still missing the base rate" },
+      ],
+    },
+  },
+  { // difficulty step-down (eval golden case_04)
+    user_id: "demo-stepdown", domain_id: "cognitive_biases",
+    learner: {
+      mastered_concepts: ["base_rate"],
+      struggling_concepts: ["conditional_probability", "bayesian_updating"],
+      modality_preference: "interactive",
+      difficulty_level: 4,
+      session_history: [
+        { concept_id: "bayesian_updating", modality: "interactive", correct: false },
+        { concept_id: "bayesian_updating", modality: "interactive", correct: false },
+        { concept_id: "conditional_probability", modality: "interactive", correct: false },
+      ],
+    },
+  },
+];
+function runFeatured(i) {
+  const f = FEATURED[i];
   showView("learn");
-  document.getElementById("user").value = FEATURED.user_id;
-  document.getElementById("domain").value = FEATURED.domain_id;
+  document.getElementById("user").value = f.user_id;
+  document.getElementById("domain").value = f.domain_id;
   document.querySelectorAll("#domain-chips .chip").forEach(c =>
-    c.classList.toggle("active", /AI & LLMs/.test(c.textContent)));
-  applyTheme(FEATURED.domain_id);
-  pendingSeed = FEATURED.learner;
+    c.classList.toggle("active", c.dataset.domain === f.domain_id));
+  applyTheme(f.domain_id);
+  pendingSeed = f.learner;
   startSession();
 }
 
@@ -601,6 +652,7 @@ function renderEvals(d) {
     const el = document.createElement("button");
     el.className = "chip" + (i === 0 ? " active" : "");
     el.textContent = d.label;
+    el.dataset.domain = d.id;
     el.onclick = () => {
       document.querySelectorAll("#domain-chips .chip").forEach(c => c.classList.remove("active"));
       el.classList.add("active");
