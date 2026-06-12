@@ -367,6 +367,11 @@
   .jrow .jname { font-weight: 600; font-size: 13.5px; }
   .jrow .jscore { font-size: 12px; font-weight: 700; color: var(--accent); }
   .jrow .jr { font-size: 13.5px; color: var(--muted); }
+  /* Verbatim rationales are dense by nature — clamp to 2 lines, expand on click. */
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; cursor: pointer; }
+  .clamp.open { -webkit-line-clamp: unset; display: block; }
+  .clamp:not(.open):hover { color: var(--ink); }
   .ev-wf { margin-top: 12px; font-size: 13px; color: var(--muted); }
   .ev-wf b { color: var(--ink); }
   .ev-scn { font-weight: 600; font-size: 15px; flex: 1; min-width: 200px; }
@@ -618,6 +623,12 @@ const MODALITY_PLAIN = {
 };
 function humanizeConcept(id) { return (id || "").replace(/_/g, " "); }
 
+// Clamped rationales expand/collapse on click (delegated — cards re-render).
+document.addEventListener("click", (e) => {
+  const el = e.target.closest(".clamp");
+  if (el) el.classList.toggle("open");
+});
+
 function loadEvals() {
   if (evalsLoaded) return;
   fetch("/evals").then(r => r.json()).then(renderEvals).catch(err => {
@@ -639,11 +650,10 @@ function renderEvals(d) {
     const rationales = c.judges.map(j => `
       <div class="jrow">
         <div class="jh">
-          <span class="jname">${esc(JUDGE_PLAIN[j.judge_name] || j.judge_name)}</span>
-          <span class="jtag">(${esc(j.judge_name)})</span>
+          <span class="jname" title="${esc(j.judge_name)}">${esc(JUDGE_PLAIN[j.judge_name] || j.judge_name)}</span>
           <span class="jscore-pill">${j.score.toFixed(2)}</span>
         </div>
-        <div class="jr">“${esc(j.rationale)}”</div>
+        <div class="jr clamp" title="click to expand">“${esc(j.rationale)}”</div>
       </div>`).join("");
     det.innerHTML = `
       <summary>
@@ -657,7 +667,7 @@ function renderEvals(d) {
         <div class="ev-wf"><b>What the agent decided:</b> teach
           “${esc(humanizeConcept(c.workflow.target_concept_id))}” over ${(c.workflow.steps || []).length} short steps,
           as ${MODALITY_PLAIN[c.workflow.modality] || esc(c.workflow.modality || "")}.
-          <div style="margin-top:6px;"><i>Its reasoning, verbatim:</i> ${esc(c.workflow.rationale || "")}</div></div>
+          <div class="clamp" style="margin-top:6px;" title="click to expand"><i>Its reasoning, verbatim:</i> ${esc(c.workflow.rationale || "")}</div></div>
       </div>`;
     host.appendChild(det);
   });
