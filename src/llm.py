@@ -45,18 +45,20 @@ THINKING_ENABLED = os.environ.get("ADAPTIVE_LEARNING_THINKING", "on").lower() !=
 _THINKING = {"type": "adaptive", "display": "summarized"} if THINKING_ENABLED else {"type": "disabled"}
 
 
-# When set, summarized-thinking deltas are forwarded here as they stream in,
-# so a caller (e.g. the SSE endpoint) can surface the model's reasoning live
-# instead of after the call completes. Contextvar so concurrent requests don't
-# see each other's reasoning.
-_thinking_sink: contextvars.ContextVar[Callable[[str], None] | None] = contextvars.ContextVar(
+# When set, streaming deltas are forwarded here as they arrive, so a caller
+# (e.g. the SSE endpoint) can surface live progress instead of waiting for the
+# call to complete. The callback receives (kind, delta) where kind is
+# "thinking" (summarized reasoning prose) or "text" (the model writing its
+# answer — useful as a progress signal while JSON output is generated).
+# Contextvar so concurrent requests don't see each other's stream.
+_thinking_sink: contextvars.ContextVar[Callable[[str, str], None] | None] = contextvars.ContextVar(
     "thinking_sink", default=None
 )
 
 
 @contextmanager
-def thinking_sink(callback: Callable[[str], None]):
-    """Forward summarized-thinking deltas from LLM calls in this context to `callback`."""
+def thinking_sink(callback: Callable[[str, str], None]):
+    """Forward (kind, delta) streaming deltas from LLM calls in this context to `callback`."""
     token = _thinking_sink.set(callback)
     try:
         yield
@@ -120,13 +122,12 @@ def _generate_anthropic(*, model: str, max_tokens: int, system: str, user: str) 
         messages=[{"role": "user", "content": user}],
     ) as stream:
         for event in stream:
-            if (
-                sink is not None
-                and event.type == "content_block_delta"
-                and event.delta.type == "thinking_delta"
-                and event.delta.thinking
-            ):
-                sink(event.delta.thinking)
+            if sink is None or event.type != "content_block_delta":
+                continue
+            if event.delta.type == "thinking_delta" and event.delta.thinking:
+                sink("thinking", event.delta.thinking)
+            elif event.delta.type == "text_delta" and event.delta.text:
+                sink("text", event.delta.text)
         response = stream.get_final_message()
     text, thinking = _split_blocks(response)
     return text, thinking, _usage_dict(response)
@@ -175,9 +176,11 @@ def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -
             if reasoning:
                 thinking_parts.append(reasoning)
                 if sink is not None:
-                    sink(reasoning)
+                    sink("thinking", reasoning)
             if delta.content:
                 text_parts.append(delta.content)
+                if sink is not None:
+                    sink("text", delta.content)
         if chunk.usage:
             details = getattr(chunk.usage, "prompt_tokens_details", None)
             usage = {

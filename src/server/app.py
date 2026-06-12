@@ -266,19 +266,26 @@ def _sse_event(event_type: str, data: dict) -> str:
 
 def _thinking_events(phase: str, fn: Callable[[], Any], meter: cost.CostMeter):
     """
-    Run an LLM-backed phase in a worker thread, yielding an SSE 'thinking'
-    event for each summarized-thinking delta as the model produces it; the
-    phase's return value comes back via `yield from`. The session's cost
-    meter is adopted explicitly inside the thread — the generator's own
-    context can't be relied on (each next() runs in a fresh context copy).
+    Run an LLM-backed phase in a worker thread, streaming its progress as SSE
+    events; the phase's return value comes back via `yield from`.
+
+      - 'thinking' events carry summarized-reasoning deltas as the model
+        produces them.
+      - 'progress' events carry a running character count while the model
+        writes its (JSON) answer — reasoning summaries go quiet during that
+        stretch, and without this the UI sits frozen for tens of seconds.
+
+    The session's cost meter is adopted explicitly inside the thread — the
+    generator's own context can't be relied on (each next() runs in a fresh
+    context copy).
     """
-    q: queue.Queue[str | None] = queue.Queue()
+    q: queue.Queue[tuple[str, str] | None] = queue.Queue()
     out: dict[str, Any] = {}
     ctx = contextvars.copy_context()
 
     def worker():
         try:
-            with cost.use_meter(meter), thinking_sink(q.put):
+            with cost.use_meter(meter), thinking_sink(lambda kind, delta: q.put((kind, delta))):
                 out["value"] = fn()
         except BaseException as e:  # re-raised on the generator side
             out["error"] = e
@@ -286,11 +293,20 @@ def _thinking_events(phase: str, fn: Callable[[], Any], meter: cost.CostMeter):
             q.put(None)
 
     threading.Thread(target=lambda: ctx.run(worker), daemon=True).start()
+    chars = 0
+    last_progress = 0
     while True:
-        delta = q.get()
-        if delta is None:
+        item = q.get()
+        if item is None:
             break
-        yield _sse_event("thinking", {"phase": phase, "delta": delta})
+        kind, delta = item
+        if kind == "thinking":
+            yield _sse_event("thinking", {"phase": phase, "delta": delta})
+        else:  # "text" — throttle to one progress event per ~120 chars
+            chars += len(delta)
+            if chars - last_progress >= 120:
+                last_progress = chars
+                yield _sse_event("progress", {"phase": phase, "chars": chars})
     if "error" in out:
         raise out["error"]
     return out["value"]
