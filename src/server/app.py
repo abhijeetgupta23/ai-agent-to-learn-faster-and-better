@@ -369,7 +369,22 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                 )
                 return
             yield _sse_event(
-                "graph", {"domain_id": graph.domain_id, "n_nodes": len(graph.nodes)}
+                "graph",
+                {
+                    "domain_id": graph.domain_id,
+                    "n_nodes": len(graph.nodes),
+                    # Compact node list so the UI can draw the live concept
+                    # graph and animate the agent's decisions onto it.
+                    "nodes": [
+                        {
+                            "id": n.concept_id,
+                            "name": n.name,
+                            "difficulty": n.difficulty,
+                            "prerequisites": n.prerequisites,
+                        }
+                        for n in graph.nodes
+                    ],
+                },
             )
 
             # 2. Learner (or an explicit seed, for reproducible demo decisions).
