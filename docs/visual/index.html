@@ -643,6 +643,9 @@
 </div><!-- /wrap -->
 
 <script>
+// Orchestration mode: "workflow" (fixed pipeline) or "agent" (?mode=agent —
+// the model owns the loop and decides each tool call itself).
+const MODE = new URLSearchParams(location.search).get("mode") === "agent" ? "agent" : "workflow";
 const DOMAINS = [
   { id: "ai", label: "🤖 AI & LLMs" },
   { id: "cognitive_biases", label: "🧠 Cognitive biases" },
@@ -908,9 +911,6 @@ const DEMO_TOKEN = (() => {
 })();
 function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN } : h; }
 
-// Orchestration mode: "workflow" (fixed pipeline) or "agent" (?mode=agent —
-// the model owns the loop and decides each tool call itself).
-const MODE = new URLSearchParams(location.search).get("mode") === "agent" ? "agent" : "workflow";
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
 function resetToSetup() {
