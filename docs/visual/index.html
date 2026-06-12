@@ -375,16 +375,19 @@
   .caret { display: inline-block; width: 7px; color: #9ec5ff; animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
 
-  /* Live concept-graph visualization */
-  #graph-viz { margin-bottom: 10px; }
+  /* Live concept-graph card — full width in the lesson column. The dark
+     canvas is deliberate: this is the agent's view, embedded in your page. */
+  #graph-viz .gv-h { font-size: 14px; font-weight: 700; margin: 0 0 10px; }
   #graph-viz svg { width: 100%; display: block; background: #0c1322; border: 1px solid #1e2940;
-    border-radius: 10px; }
-  #graph-viz .gv-h { font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
-    color: #7d8aa8; margin: 0 0 4px 2px; }
-  .gedge { stroke: #233152; stroke-width: 1.2; fill: none; transition: stroke .3s; }
-  .gedge.path { stroke: #60a5fa; stroke-width: 1.8; }
-  .gnode circle { fill: #1c2742; stroke: #3b4a6e; stroke-width: 1.4; transition: all .3s; }
-  .gnode text { fill: #8fa0c4; font-size: 8.5px; }
+    border-radius: 12px; }
+  .gv-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;
+    font-size: 12px; color: var(--muted); }
+  .gv-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 5px; vertical-align: -1px; }
+  .gedge { stroke: #233152; stroke-width: 1.4; fill: none; transition: stroke .3s; }
+  .gedge.path { stroke: #60a5fa; stroke-width: 2.2; }
+  .gnode circle { fill: #1c2742; stroke: #3b4a6e; stroke-width: 1.6; transition: all .3s; }
+  .gnode text { fill: #93a4c8; font-size: 11px; }
   .gnode.mastered circle { fill: #12361f; stroke: #2ea043; }
   .gnode.mastered text { fill: #7ee2a8; }
   .gnode.planned circle { stroke: #fbbf24; stroke-dasharray: 3 2; }
@@ -552,11 +555,10 @@
       <div class="pulse"></div>
       <div class="t" id="thinking-text">Thinking…</div>
     </div>
-    <div id="graph-viz"></div>
     <div id="trace"></div>
     <div class="brain-empty" id="brain-empty">
       <span class="orb big"></span>
-      <div>Start a session and watch every decision happen here — the subject map lights up as the agent picks what to teach you, with its reasoning streaming live.</div>
+      <div>Start a session and watch every decision happen here — the agent’s reasoning streams live, with receipts for each step. The subject map it works from draws itself on the left.</div>
     </div>
   </aside>
 </div>
@@ -898,9 +900,9 @@ function renderGraphViz(nodes) {
   const maxD = Math.max(...nodes.map(n => depth[n.id]), 0);
   const cols = [];
   nodes.forEach(n => { (cols[depth[n.id]] = cols[depth[n.id]] || []).push(n); });
-  const W = 352, PADX = 34, rowH = 32, PADY = 22;
+  const W = 720, PADX = 64, rowH = 46, PADY = 34;
   const maxRows = Math.max(...cols.map(c => c ? c.length : 0));
-  const H = Math.max(PADY * 2 + (maxRows - 1) * rowH + 16, 96);
+  const H = Math.max(PADY * 2 + (maxRows - 1) * rowH + 24, 150);
   const pos = {};
   cols.forEach((col, ci) => {
     if (!col) return;
@@ -919,13 +921,29 @@ function renderGraphViz(nodes) {
   nodes.forEach(n => {
     const q = pos[n.id];
     const name = n.name || n.id;
-    const label = name.length > 15 ? name.slice(0, 14) + "…" : name;
-    dots += `<g class="gnode" id="gn-${n.id}"><circle cx="${q.x}" cy="${q.y}" r="6"/>` +
-            `<text x="${q.x}" y="${q.y - 10}" text-anchor="middle">${esc(label)}</text></g>`;
+    const label = name.length > 26 ? name.slice(0, 25) + "…" : name;
+    dots += `<g class="gnode" id="gn-${n.id}"><circle cx="${q.x}" cy="${q.y}" r="7"/>` +
+            `<text x="${q.x}" y="${q.y - 13}" text-anchor="middle">${esc(label)}</text></g>`;
   });
-  document.getElementById("graph-viz").innerHTML =
-    `<div class="gv-h">Subject map — what the agent sees</div>` +
-    `<svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg>`;
+  // Full-width card in the lesson column, right after the journey card.
+  let card = document.getElementById("graph-viz");
+  if (!card) {
+    card = document.createElement("div");
+    card.className = "lesson";
+    card.id = "graph-viz";
+    const feed = document.getElementById("feed");
+    const journey = document.getElementById("journey");
+    feed.insertBefore(card, journey ? journey.nextSibling : null);
+  }
+  card.innerHTML =
+    `<div class="gv-h">🗺️ Subject map — what the agent sees</div>` +
+    `<svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg>` +
+    `<div class="gv-legend">` +
+    `<span><span class="sw" style="background:#2ea043;"></span>you’ve mastered</span>` +
+    `<span><span class="sw" style="background:#1d4ed8;box-shadow:0 0 4px #60a5fa;"></span>teaching next</span>` +
+    `<span><span class="sw" style="background:#0c1322;border:1.5px dashed #fbbf24;"></span>in your plan</span>` +
+    `<span><span class="sw" style="background:#1c2742;border:1px solid #3b4a6e;"></span>not yet</span>` +
+    `</div>`;
 }
 function gvClass(id, cls) {
   const el = document.getElementById("gn-" + id);
@@ -1280,8 +1298,7 @@ function startSession() {
   document.getElementById("start").disabled = true;
   document.getElementById("feed").innerHTML = "";
   document.getElementById("trace").innerHTML = "";
-  document.getElementById("graph-viz").innerHTML = "";
-  GV_NODES = null;
+  GV_NODES = null; // the map card lives in the feed, which was just cleared
   currentSessionId = null; totalSteps = 0;
   setStatus("connecting…");
 
