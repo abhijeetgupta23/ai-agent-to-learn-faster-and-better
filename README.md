@@ -5,7 +5,8 @@
 **An agent that learns how a person learns** — ingests an arbitrary domain (paper, URL, file), builds a learning-science-grounded knowledge graph, generates an adaptive curriculum on the fly, and proves the adaptation worked via a first-class eval harness.
 
 ![demo](docs/assets/demo.gif)
-<!-- 20-30s session recording, see Part B4 -->
+
+*A real teaching session streamed live over SSE at `/visual` — graph load → gap diagnosis → workflow plan → generated artifact. 2× speed.*
 
 > Evaluation and reliability infrastructure for production AI agents, applied to adaptive pedagogy. The eval harness is the headline.
 
