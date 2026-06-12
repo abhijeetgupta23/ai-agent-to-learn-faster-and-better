@@ -9,49 +9,49 @@
           "step_number": 1,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Read a clear definition of base rates as the underlying frequency of an event in a population, connecting it to everyday experiences like disease prevalence or lottery odds.",
+          "objective": "Introduce the definition of a base rate as the underlying frequency of an event in a population, independent of new evidence.",
           "pedagogy_principle": "elaboration"
         },
         {
           "step_number": 2,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Study a worked example showing how a base rate is computed and used (e.g., 1% of a population has a condition) before any specific evidence is considered.",
+          "objective": "Walk through a concrete worked example (e.g., the prevalence of a disease in a population) showing how to read and state a base rate.",
           "pedagogy_principle": "worked_example"
         },
         {
           "step_number": 3,
           "concept_id": "base_rate",
           "modality": "interactive",
-          "objective": "Practice identifying and computing base rates from short scenarios via retrieval-style problems, with immediate feedback.",
+          "objective": "Have the learner identify and compute base rates from short scenarios, retrieving the concept rather than re-reading it.",
           "pedagogy_principle": "desirable_difficulty"
         },
         {
           "step_number": 4,
-          "concept_id": "conditional_probability",
-          "modality": "reading",
-          "objective": "Briefly preview how base rates serve as the starting prior for conditional probability, linking the new concept to where it leads next.",
-          "pedagogy_principle": "interleaving"
+          "concept_id": "base_rate",
+          "modality": "interactive",
+          "objective": "Check understanding with a final applied question that asks the learner to distinguish a base rate from anecdotal evidence.",
+          "pedagogy_principle": "desirable_difficulty"
         }
       ],
-      "rationale": "The learner is a true novice with no mastered concepts and a reading preference, and base_rate is a difficulty-1 expository concept the learner has never seen \u2014 so reading is the correct primary modality (not socratic, since there is no diagnosed misconception, and not interactive, since the concept hasn't been introduced yet). Steps 1-2 introduce and model the concept through reading (elaboration then worked example), step 3 shifts to interactive retrieval practice to consolidate via desirable difficulty, and step 4 previews conditional_probability to interleave and motivate the graph's next node."
+      "rationale": "The learner is a complete novice (no mastered concepts, no history) and the concept is foundational, expository material they have never seen. Their stated modality_preference is reading, and the concept's modality_hint is reading, so the KEY teaching step uses reading to introduce and model the definition. Because base_rate has no prerequisites, there is no prior concept to activate via spaced repetition; instead the workflow moves from elaboration and a worked example into interactive retrieval practice to consolidate the new knowledge and verify mastery before progressing toward dependent concepts like conditional_probability."
     },
     "artifact_type": "reading",
     "judge_results": [
       {
         "judge_name": "gap_to_pedagogy",
-        "score": 0.7,
-        "rationale": "Target_concept_id 'base_rate' matches the diagnosed gap exactly. Steps 1-3 are on-topic: step 1 (elaboration) and step 2 (worked_example) are well-suited for a novice's first exposure, and step 3 (desirable_difficulty via retrieval practice) is appropriate for consolidating a freshly introduced concept. Step 4 drifts to conditional_probability, a downstream concept; while framed as a brief preview, its 'interleaving' principle is somewhat questionable since interleaving normally mixes already-learned concepts, and the learner has only just been introduced to base_rate. This minor tangential drift and slightly mismatched principle on step 4 keep it from a perfect score, but the core workflow is solid and on-target."
+        "score": 1.0,
+        "rationale": "The target_concept_id 'base_rate' exactly matches the diagnosed gap. All four steps focus exclusively on 'base_rate' with no drift to tangential concepts. Step 1 uses 'elaboration' to introduce the definition \u2014 appropriate for a brand-new concept with no prerequisites. Step 2 uses 'worked_example', which is a well-established principle for novice learners encountering a concept for the first time. Steps 3 and 4 use 'desirable_difficulty' (retrieval practice / applied discrimination), which is appropriate after initial exposure via elaboration and worked example \u2014 this progression from instruction to practice is pedagogically sound. Notably, 'spaced_repetition' is not used, which would be inappropriate for a brand-new concept; the workflow correctly avoids it. The rationale explicitly justifies why spaced repetition was excluded. The sequencing (elaboration \u2192 worked example \u2192 retrieval practice \u2192 applied check) follows a coherent instructional design for a difficulty-1 foundational concept with no prerequisites."
       },
       {
         "judge_name": "modality_fit",
         "score": 1.0,
-        "rationale": "The learner is a true novice (no mastered concepts, not struggling with base_rate, never seen it) and base_rate is new difficulty-1 expository material \u2014 textbook case for reading. The reading modality_preference reinforces this. No diagnosed misconception rules out socratic, and the concept hasn't been introduced yet, ruling out leading with interactive. The rationale correctly cites these learner-state signals."
+        "rationale": "All learner-state signals align perfectly with the 'reading' choice: (1) the target concept 'base_rate' is new to the learner (already_mastered=False, not in mastered list), so expository introduction is required rather than dialogue or retrieval; (2) the learner is NOT struggling with the target (is_struggling_with_target=False, not in struggling_concepts), so 'socratic' is not indicated; (3) modality_preference is explicitly 'reading'; (4) difficulty_level=1 and empty mastery history confirm complete novice status, making foundational reading the textbook-correct first step. The rationale in the workflow explicitly cites the learner's novice state, the absence of prior mastered concepts, and the concept's expository nature to justify the choice."
       },
       {
         "judge_name": "adaptive_progression",
         "score": 1.0,
-        "rationale": "The learner is a novice with 0 struggling concepts, 0 mastered concepts, and 0 recent turns. With no struggling concepts there's no reason to lower difficulty, and with no recent correct turns there's no basis to step up. The suggested difficulty of 1 matches the current difficulty_level exactly, is within the expected band (1,2), and is in valid range [1,5]. This is exactly right per the principles."
+        "rationale": "The learner is a complete novice with no history, no struggling concepts, and no mastered concepts. The suggested difficulty of 1 is exactly appropriate: it matches the current difficulty_level, stays within the valid [1,5] range, and aligns with the expected band of (1,2). With zero recent turns and zero struggling concepts, there is no signal to push difficulty up or down \u2014 starting at difficulty 1 for a foundational concept with no prerequisites is the correct adaptive decision."
       }
     ]
   },
@@ -65,119 +65,112 @@
           "step_number": 1,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Re-activate the definition of base rates and why population frequency matters before any new evidence is considered.",
+          "objective": "Refresh the definition of a base rate as the population-level frequency that exists before any test evidence, priming the learner to spot the number they keep dropping.",
           "pedagogy_principle": "spaced_repetition"
         },
         {
           "step_number": 2,
-          "concept_id": "conditional_probability",
-          "modality": "reading",
-          "objective": "Refresh how P(A|B) combines a prior (base rate) with evidence, setting up the worked logic of the medical-test scenario.",
+          "concept_id": "base_rate_neglect",
+          "modality": "socratic",
+          "objective": "Through guided questioning on the medical-test problem, surface the misconception of jumping to the test's accuracy while ignoring the low prior, leading the learner to articulate why the base rate dominates the posterior.",
           "pedagogy_principle": "elaboration"
         },
         {
           "step_number": 3,
-          "concept_id": "base_rate_neglect",
-          "modality": "socratic",
-          "objective": "Through guided questioning on a simplified (difficulty-2) medical-test problem, surface the learner's tendency to ignore the base rate and make them articulate where the prior went missing.",
-          "pedagogy_principle": "worked_example"
-        },
-        {
-          "step_number": 4,
           "concept_id": "representativeness_heuristic",
           "modality": "socratic",
-          "objective": "Contrast base rate neglect with the representativeness heuristic to clarify why both lead to ignoring base rates, reinforcing the target by distinction.",
+          "objective": "Contrast base rate neglect with the representativeness heuristic to clarify that both ignore base rates but for different reasons, sharpening the boundary of the target concept.",
           "pedagogy_principle": "interleaving"
         },
         {
-          "step_number": 5,
+          "step_number": 4,
           "concept_id": "base_rate_neglect",
           "modality": "interactive",
-          "objective": "Apply the corrected reasoning to a fresh easy-level problem, retrieving the base rate first before weighing the evidence.",
+          "objective": "Apply the corrected reasoning to a fresh medical-test-style problem, requiring the learner to plug in the base rate and compute the true probability without prompting.",
           "pedagogy_principle": "desirable_difficulty"
         }
       ],
-      "rationale": "The learner is struggling with base_rate_neglect and has failed twice on reading-based delivery of the medical-test problem, so re-reading is unlikely to help. Base rate neglect is a classic misconception-driven bias, and the graph hints socratic/interactive. A Socratic dialogue is chosen as the primary modality because it surfaces exactly WHY the learner drops the base rate rather than just restating the rule. Prerequisites are mastered, so steps 1-2 are quick reading refreshers (spaced repetition + elaboration) to prime the prior; step 3 is the key Socratic teaching step at the dropped difficulty (2); step 4 interleaves the commonly-confused representativeness heuristic; step 5 closes with an interactive retrieval check."
+      "rationale": "The learner has failed base_rate_neglect twice using reading, their stated preference, so re-reading is unlikely to help. Because the gap is a persistent misconception (anchoring on test accuracy and dropping the prior) and the concept's modality hints favor socratic/interactive, the KEY teaching step is socratic dialogue to surface and correct the specific error on the medical-test problem. Step 1 re-activates the mastered base_rate prerequisite, step 3 interleaves the commonly-confused representativeness heuristic, and step 4 shifts to interactive retrieval practice to confirm transfer at difficulty 3."
     },
     "artifact_type": "reading",
     "judge_results": [
       {
         "judge_name": "gap_to_pedagogy",
         "score": 0.7,
-        "rationale": "Target_concept_id matches the gap (base_rate_neglect). Steps 1-2 are reasonable prerequisite refreshers (base_rate, conditional_probability) and spaced_repetition/elaboration are defensible for re-activating already-mastered priors. Step 3 is the core Socratic teaching step at difficulty 2, well aligned; though it is labeled 'worked_example' while delivered Socratically, the principle is appropriate for surfacing the missing prior. Step 4 introduces representativeness_heuristic via interleaving\u2014this is a slightly tangential concept but is justified as a contrast to reinforce the target, so it is on-topic rather than drift. Step 5 returns to base_rate_neglect with an interactive retrieval check (desirable_difficulty), appropriate. Principles are mostly suitable; the minor mislabel in step 3 and the mild excursion in step 4 keep this from a 1.0."
+        "rationale": "The target_concept_id 'base_rate_neglect' matches the diagnosed gap exactly. Steps 2 and 4 are directly on-target: Step 2 uses Socratic dialogue with elaboration to surface the specific misconception on the medical-test problem, and Step 4 applies desirable_difficulty to confirm transfer on a fresh problem \u2014 both well-matched to an application-level gap. Step 1 revisits the mastered prerequisite 'base_rate' using spaced_repetition, which is pedagogically sound for re-activating a mastered concept before working on a dependent struggling concept. The deduction is primarily for Step 3, which introduces 'representativeness_heuristic' \u2014 a tangential concept that is neither the target nor a listed prerequisite. While interleaving for contrast has legitimate pedagogical uses, this step drifts from the direct remediation of base_rate_neglect and the rationale does not strongly justify why this comparison is essential at this moment rather than after the learner has consolidated the target concept. The interleaving principle itself is appropriate in general, but applying it to an unrelated heuristic at Step 3 (before the learner has demonstrated mastery of the target) risks cognitive overload and dilutes the focus. Overall: target matches, three of four steps are on-topic and principle-appropriate, one step drifts tangentially \u2014 consistent with a 0.7 score."
       },
       {
         "judge_name": "modality_fit",
         "score": 1.0,
-        "rationale": "The target concept base_rate_neglect is in the learner's struggling_concepts and they failed twice on reading-based delivery \u2014 the precise signal favoring socratic over more reading. Base rate neglect is also a classic misconception-driven bias, exactly where dialogue surfaces the underlying error. The rationale cites the struggling state and prior reading failures to justify the routing, making this the textbook-correct choice."
+        "rationale": "The learner is explicitly flagged as struggling with base_rate_neglect (is_struggling_with_target=True, appears in struggling_concepts), and has already failed twice with reading \u2014 their stated modality preference. The routing rule is unambiguous: when a learner is struggling with the target concept, socratic dialogue is the correct call because it surfaces the specific misconception (anchoring on test accuracy, dropping the prior) that re-reading cannot expose. The workflow rationale correctly cites the learner-state signals \u2014 repeated reading failures, persistent misconception pattern, and the concept's known susceptibility to the representativeness heuristic \u2014 to justify overriding the reading preference. The modality_preference signal is outweighed by the stronger is_struggling signal per the routing principles. Socratic is the textbook-correct choice here."
       },
       {
         "judge_name": "adaptive_progression",
         "score": 1.0,
-        "rationale": "The learner has 0 correct recent turns and is struggling with base_rate_neglect at difficulty_level 3. Dropping to suggested_difficulty 2 (difficulty_level - 1) is appropriate to rebuild understanding, stays within [1,5], and falls inside the expected band (2,3). The decision correctly avoids stepping up given repeated failures."
+        "rationale": "The learner has struggled with base_rate_neglect (failed twice, 0 correct in recent turns) at difficulty_level 3. With 1 struggling concept at the current level and 0 recent correct turns, the adaptive principles indicate suggested_difficulty should be <= difficulty_level (3). The suggested difficulty of 3 is exactly at the current level, which is appropriate \u2014 it does not raise difficulty for a struggling learner, and it stays within the expected band of (2, 3). Maintaining difficulty at 3 is justified since there is only 1 struggling concept (not 2+), so a drop is not strictly required, but staying at the same level is fully compliant. The decision is exactly right per the principles."
       }
     ]
   },
   {
     "case_id": "case_03_mastered_basics_practice",
     "workflow": {
-      "target_concept_id": "base_rate_neglect",
-      "modality": "socratic",
+      "target_concept_id": "availability_heuristic",
+      "modality": "reading",
       "steps": [
         {
           "step_number": 1,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Reactivate the definition of base rates as population frequencies independent of new evidence, due for spaced review (3-day interval).",
+          "objective": "Refresh the idea of actual event frequency in a population, which the learner will need to contrast against subjective likelihood estimates.",
           "pedagogy_principle": "spaced_repetition"
         },
         {
           "step_number": 2,
-          "concept_id": "conditional_probability",
-          "modality": "interactive",
-          "objective": "Retrieve and apply P(A|B) in a quick problem, reinforcing the just-mastered prerequisite that feeds base rate neglect.",
-          "pedagogy_principle": "desirable_difficulty"
-        },
-        {
-          "step_number": 3,
-          "concept_id": "base_rate_neglect",
-          "modality": "socratic",
-          "objective": "Through guided dialogue around a classic taxi-cab or disease-test scenario, surface the learner's intuition to over-weight specific evidence and confront why ignoring the base rate yields the wrong probability.",
+          "concept_id": "availability_heuristic",
+          "modality": "reading",
+          "objective": "Introduce the availability heuristic: estimating likelihood by how easily examples come to mind, and connect it to the just-reviewed notion of true base rates.",
           "pedagogy_principle": "elaboration"
         },
         {
+          "step_number": 3,
+          "concept_id": "availability_heuristic",
+          "modality": "reading",
+          "objective": "Walk through a worked example (e.g., overestimating plane-crash risk after vivid news coverage) showing how ease-of-recall diverges from real frequency.",
+          "pedagogy_principle": "worked_example"
+        },
+        {
           "step_number": 4,
-          "concept_id": "representativeness_heuristic",
-          "modality": "socratic",
-          "objective": "Interleave the closely related representativeness heuristic to distinguish 'ignoring base rates' from 'judging by prototype similarity,' preventing conflation.",
+          "concept_id": "anchoring",
+          "modality": "reading",
+          "objective": "Briefly contrast the availability heuristic with anchoring so the learner can tell apart two commonly confused System-1 shortcuts.",
           "pedagogy_principle": "interleaving"
         },
         {
           "step_number": 5,
-          "concept_id": "base_rate_neglect",
-          "modality": "interactive",
-          "objective": "Independently solve a new judgment problem, correctly combining the base rate with case-specific evidence to check mastery.",
+          "concept_id": "availability_heuristic",
+          "modality": "reading",
+          "objective": "Retrieval check: present novel scenarios and have the learner identify whether and why the availability heuristic is at play, without re-reading.",
           "pedagogy_principle": "desirable_difficulty"
         }
       ],
-      "rationale": "Base rate neglect is fundamentally a misconception about how to weigh evidence \u2014 learners reflexively favor vivid specifics over statistical base rates. A socratic dialogue is the most efficient way to elicit and confront that faulty intuition directly, and the concept's own modality_hints lead with 'socratic'. Although the learner prefers reading, reading would let them passively agree without exposing the bias; the gap is corrective, not expository. Reading is therefore relegated to the prerequisite warm-up (step 1). Steps 1-2 reactivate the mastered prerequisite chain, step 3 delivers the key socratic confrontation, step 4 interleaves the commonly-confused representativeness heuristic per the graph's interleave edge, and step 5 provides retrieval-based practice at the target difficulty (3)."
+      "rationale": "The learner prefers reading, has all prerequisites mastered, and is not struggling with any concept, so this is genuinely new expository material rather than a misconception to surface \u2014 making reading (over socratic) the appropriate primary modality for the key teaching steps (2-3). Step 1 spaces the due base_rate prerequisite (3-day interval) to anchor the new concept against true frequency. Step 4 interleaves with anchoring per the graph's interleave_with edge to pre-empt confusion between System-1 shortcuts, and step 5 converts passive reading into active retrieval for durable encoding."
     },
     "artifact_type": "reading",
     "judge_results": [
       {
         "judge_name": "gap_to_pedagogy",
-        "score": 0.95,
-        "rationale": "Target concept_id 'base_rate_neglect' exactly matches the diagnosed gap. Steps are well-aligned: step 1 reactivates the prerequisite 'base_rate' and step 2 retrieves 'conditional_probability', both legitimate prerequisites of the gap. Step 3 (socratic, elaboration) and step 5 (interactive, desirable_difficulty) directly target base_rate_neglect with appropriate principles for a corrective misconception at difficulty 3. Step 4 interleaves 'representativeness_heuristic', a closely related concept used to prevent conflation \u2014 defensible via interleaving rather than a drift to a tangent. The pedagogy principles are appropriate: spaced_repetition on a previously-mastered prerequisite (not the new concept) is correctly placed in step 1, and desirable_difficulty/elaboration fit the new corrective concept. Minor reservation: introducing representativeness_heuristic (an unmastered, non-prerequisite concept) adds slight scope creep, hence not a perfect 1.0."
+        "score": 0.7,
+        "rationale": "The target_concept_id 'availability_heuristic' matches the diagnosed gap exactly, and the reading modality aligns with the stated learner preference. Steps 2, 3, and 5 are tightly on-target: Step 2 uses elaboration (appropriate for introducing a brand-new concept by connecting it to prior knowledge), Step 3 uses worked_example (well-suited to difficulty-2 new material), and Step 5 uses desirable_difficulty via retrieval practice (appropriate after initial exposure). Step 1 applies spaced_repetition to the already-mastered base_rate concept as a bridging review, which is a legitimate use of spaced_repetition on consolidated knowledge \u2014 not a mismatch. The main deduction is Step 4, which introduces 'anchoring,' a concept that is neither the target nor a prerequisite of availability_heuristic per the graph. Although the interleaving rationale (differentiating two System-1 shortcuts) is pedagogically coherent, it means the workflow does not confine all steps to the target concept or its prerequisites, preventing a score of 1.0. The step is brief and purposeful rather than a derailment, so the score remains at 0.7 rather than lower."
       },
       {
         "judge_name": "modality_fit",
         "score": 1.0,
-        "rationale": "The learner is not in struggling_concepts for the target, but base_rate_neglect is a canonical bias/misconception concept \u2014 the rules explicitly endorse socratic for 'concepts known to harbor common misconceptions.' The rationale correctly weighs that the learner has mastered the prerequisites (base_rate, conditional_probability) yet would only passively agree if given reading, and that the concept's modality_hints lead with socratic. Overriding the reading preference is justified because the gap is corrective rather than expository. Textbook-correct choice."
+        "rationale": "All three routing signals align perfectly with 'reading'. (1) The learner has not yet encountered availability_heuristic (already_mastered_target=False, not in mastered list), satisfying the 'new conceptual material' criterion. (2) The struggling list is empty and is_struggling_with_target=False, so neither the 'socratic for misconceptions' nor the 'surface hidden misunderstandings' trigger fires. (3) modality_preference=reading directly satisfies the tie-breaking rule for new expository material. 'Interactive' would be premature because the learner has not seen the material even once (retrieval practice requires prior encoding). 'Socratic' would be misapplied to genuinely new content with no flagged misconceptions. The workflow rationale correctly names all three learner-state signals\u2014new concept, no struggle, reading preference\u2014to justify the choice."
       },
       {
         "judge_name": "adaptive_progression",
         "score": 1.0,
-        "rationale": "The learner has 3 recent correct turns at difficulty_level 2 and 0 struggling concepts, satisfying the 3+ correct condition for a step up. The suggested_difficulty of 3 (level+1) is supported by the intrinsic difficulty of base_rate_neglect building on the just-mastered conditional_probability chain. The value stays within [1,5] and matches the expected band (2,4)."
+        "rationale": "The learner has 0 struggling concepts and 3 recent correct turns at difficulty_level 2, which satisfies the '3+ correct turns' condition that permits (but does not require) a step-up to difficulty 3. The suggested difficulty of 2 stays at the current level while introducing a new unmastered concept (availability_heuristic), which is entirely compliant \u2014 the step-up principle uses 'may,' not 'must.' No struggling-concept signal exists that would demand a reduction, and the suggestion falls squarely within the confirmed expected band of (2, 4). All adaptive-difficulty principles are satisfied."
       }
     ]
   },
@@ -191,49 +184,49 @@
           "step_number": 1,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Refresh the mastered notion of base rates as underlying population frequencies, priming the learner to distinguish them from conditional probabilities.",
+          "objective": "Re-activate the mastered base_rate concept as the foundation for conditional probability, reframing it as P(A) before any evidence.",
           "pedagogy_principle": "spaced_repetition"
         },
         {
           "step_number": 2,
           "concept_id": "conditional_probability",
           "modality": "socratic",
-          "objective": "Use guided dialogue to surface the learner's misconception about P(A|B) \u2014 especially the common confusion of P(A|B) with P(B|A) \u2014 connecting it to the already-mastered base_rate idea.",
+          "objective": "Through guided questioning, surface the misconception behind repeated failures (likely confusing P(A|B) with P(B|A) or P(A)) and lead the learner to articulate what 'given that B occurred' really restricts.",
           "pedagogy_principle": "elaboration"
         },
         {
           "step_number": 3,
           "concept_id": "conditional_probability",
           "modality": "interactive",
-          "objective": "Walk through a low-difficulty worked example computing P(A|B) from a simple two-way table, then ask the learner to fill in the next step.",
+          "objective": "Walk through one fully worked P(A|B) calculation from a 2x2 table, then ask the learner to fill in the final step themselves.",
           "pedagogy_principle": "worked_example"
         },
         {
           "step_number": 4,
           "concept_id": "conditional_probability",
           "modality": "interactive",
-          "objective": "Have the learner independently solve one easy conditional-probability problem to retrieve and consolidate the corrected understanding.",
+          "objective": "Retrieval practice: learner solves a fresh conditional-probability problem at difficulty 3 without scaffolding to confirm the gap is closing.",
           "pedagogy_principle": "desirable_difficulty"
         }
       ],
-      "rationale": "The learner is actively struggling with conditional_probability and has already failed it via interactive practice, signaling an underlying misconception (likely conflating P(A|B) and P(B|A)) rather than a lack of exposure. Per the modality rules, a struggling concept with a likely misconception is best served by a socratic key step that elicits and corrects the faulty mental model \u2014 re-doing interactive drills alone hasn't worked. We open with a light spaced-repetition refresh of the mastered prerequisite (base_rate) to reduce overwhelm and build confidence, then use socratic dialogue as the core teaching step, and close with a worked example plus one low-difficulty retrieval task (difficulty lowered to ~3 as advised) so success is achievable. This rebuilds the foundation that bayesian_updating depends on."
+      "rationale": "Although the learner's stated preference is interactive, conditional_probability is in struggling_concepts and the learner has already failed an interactive attempt on it (plus two on the dependent bayesian_updating). Repeating the same interactive drill risks reinforcing the unsurfaced misconception. The KEY teaching step is therefore socratic: dialogue is the most efficient way to expose whether the learner is inverting the conditional (a classic P(A|B) vs P(B|A) error). I bracket it with a spaced-repetition refresh of the mastered base_rate prerequisite (step 1), then return to the learner's preferred interactive modality for a worked example and a desirable-difficulty check (steps 3-4), keeping difficulty at 3 rather than 4 given signs of overwhelm. Bayesian_updating is deliberately deferred until this prerequisite is solid."
     },
     "artifact_type": "reading",
     "judge_results": [
       {
         "judge_name": "gap_to_pedagogy",
         "score": 1.0,
-        "rationale": "Target_concept_id is conditional_probability, exactly matching the diagnosed gap. Step 1 refreshes base_rate, the mastered prerequisite \u2014 using spaced_repetition appropriately here since base_rate is already mastered and being re-activated, not newly introduced. Steps 2-4 all focus directly on conditional_probability. Step 2's socratic/elaboration principle is well-suited to surfacing the P(A|B) vs P(B|A) misconception. Step 3's worked_example and Step 4's desirable_difficulty (a low-difficulty retrieval task) are appropriate for a struggling concept and respect the suggested difficulty lowering. All steps are on-topic and pedagogy principles are matched correctly."
+        "rationale": "The workflow's target_concept_id ('conditional_probability') exactly matches the diagnosed gap. All four steps are on-topic: Step 1 revisits the mastered prerequisite 'base_rate' using spaced_repetition, which is appropriate for a concept already mastered (reactivation rather than new learning). Step 2 applies 'elaboration' via Socratic questioning to surface the P(A|B) vs P(B|A) inversion misconception \u2014 well-matched to diagnosing a persistent gap. Step 3 uses 'worked_example' for a guided 2\u00d72-table calculation, a classically appropriate principle for initial skill-building on a struggling concept. Step 4 applies 'desirable_difficulty' for unscaffolded retrieval practice to confirm closure, also appropriate given the learner already has some exposure. No tangential concepts (e.g., bayesian_updating, base_rate_neglect) appear as targets. Difficulty is pegged at 3 per the diagnosis. The rationale also explicitly defers bayesian_updating, respecting the prerequisite ordering. All pedagogy principles are correctly matched to the learner's state with respect to each concept."
       },
       {
         "judge_name": "modality_fit",
         "score": 1.0,
-        "rationale": "The learner state signal of is_struggling_with_target=True (conditional_probability is in struggling_concepts) makes socratic the textbook-correct choice \u2014 dialogue surfaces the likely P(A|B)/P(B|A) misconception that re-doing interactive drills failed to fix. The rationale explicitly cites the failed interactive practice and the struggling state, and correctly notes that more drilling alone hasn't worked. Overriding the learner's interactive preference is justified here precisely because that modality already failed."
+        "rationale": "The learner is explicitly listed in struggling_concepts for conditional_probability, which is the target concept. Per the routing rules, 'socratic' is the textbook-correct call when a learner is struggling \u2014 dialogue surfaces misconceptions (here, the classic P(A|B) vs P(B|A) inversion) that re-reading or repeated interactive drills cannot. The workflow rationale correctly identifies two prior failed interactive attempts on this concept and its dependent (bayesian_updating), making a third interactive drill counterproductive. The key learner-state signals weighed are: (1) is_struggling_with_target=True, (2) already_mastered_target=False, and (3) prior interactive failures. The rationale also appropriately defers bayesian_updating and plans a return to the learner's preferred interactive modality post-consolidation, which is pedagogically sound. All signals align with the socratic choice."
       },
       {
         "judge_name": "adaptive_progression",
         "score": 1.0,
-        "rationale": "The learner has 2 struggling concepts (conditional_probability, bayesian_updating) at difficulty_level 4, which per the principles requires suggested_difficulty <= 4. Additionally, 0 of 3 recent turns were correct, signaling no readiness to step up. The suggested difficulty of 3 lowers difficulty to ease overwhelm, falls within the expected band (2,3), and stays in [1,5]. This is exactly right."
+        "rationale": "The learner is at difficulty_level 4 with 2 struggling concepts (conditional_probability and bayesian_updating) and 0 correct turns out of 3 recent turns. Per the adaptive-difficulty principles, 2+ struggling concepts at the current difficulty level require suggested_difficulty <= difficulty_level (4). The suggested difficulty of 3 is below the current level (4), which satisfies this constraint. Furthermore, it falls exactly within the expected band of (2, 3), making it the correct adaptive response to a clearly struggling learner. Dropping to difficulty 3 is appropriate to address the foundational gap in conditional_probability before re-attempting harder material."
       }
     ]
   },
@@ -247,49 +240,49 @@
           "step_number": 1,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Reactivate the meaning of base rates as population-level frequencies that should anchor probability judgments.",
+          "objective": "Refresh the definition of base rates and why population frequencies matter before introducing a heuristic that ignores them.",
           "pedagogy_principle": "spaced_repetition"
         },
         {
           "step_number": 2,
           "concept_id": "representativeness_heuristic",
           "modality": "socratic",
-          "objective": "Through guided questioning about a prototype-matching scenario, surface the learner's intuition that similarity drives probability, then expose why it conflicts with base rates.",
+          "objective": "Use guided questioning (e.g., the classic librarian-vs-farmer prototype problem) to surface the misconception that similarity to a prototype equals probability.",
           "pedagogy_principle": "elaboration"
         },
         {
           "step_number": 3,
           "concept_id": "base_rate_neglect",
           "modality": "socratic",
-          "objective": "Contrast representativeness with the recently mastered base-rate neglect, prompting the learner to articulate how the two differ (prototype similarity vs. simply ignoring base rates).",
+          "objective": "Interleave with base rate neglect by contrasting WHY each bias ignores base rates \u2014 prototype matching vs. discounting priors \u2014 to prevent confusion.",
           "pedagogy_principle": "interleaving"
         },
         {
           "step_number": 4,
           "concept_id": "representativeness_heuristic",
-          "modality": "interactive",
-          "objective": "Apply the concept by classifying novel judgment scenarios as driven by representativeness or not, retrieving the distinction without re-reading.",
+          "modality": "socratic",
+          "objective": "Have the learner retrieve and apply the concept by diagnosing a fresh scenario and justifying the correct probability reasoning unaided.",
           "pedagogy_principle": "desirable_difficulty"
         }
       ],
-      "rationale": "Socratic is the primary modality for the key teaching step (step 2): representativeness is rife with the misconception that similarity equals probability, and the learner explicitly prefers socratic dialogue. Dialogue surfaces and corrects that misconception more efficiently than exposition. Step 1 briefly re-activates the base_rate prerequisite (spaced repetition), step 3 interleaves with the easily-confused, recently-mastered base_rate_neglect to sharpen discrimination, and step 4 closes with retrieval-based application at difficulty 3."
+      "rationale": "Socratic is the primary modality: the concept carries a well-documented misconception (mistaking prototype similarity for probability), its modality_hint is socratic, and the learner explicitly prefers socratic dialogue \u2014 far more efficient for surfacing the prototype-vs-base-rate confusion than re-reading. Step 1 reactivates the mastered base_rate prerequisite (due for spaced review). Step 2 introduces the target via guided dialogue connecting to prior knowledge. Step 3 interleaves with the just-mastered base_rate_neglect, since the graph flags these as commonly confused, to sharpen the distinction. Step 4 closes with unaided retrieval practice at difficulty 3."
     },
     "artifact_type": "reading",
     "judge_results": [
       {
         "judge_name": "gap_to_pedagogy",
         "score": 1.0,
-        "rationale": "Target_concept_id 'representativeness_heuristic' matches the diagnosed gap exactly. All four steps are on-topic: Step 1 (base_rate, reading, spaced_repetition) appropriately reactivates a mastered prerequisite\u2014spaced_repetition is fitting for a previously-learned concept. Step 2 (representativeness_heuristic, socratic, elaboration) is the core teaching step and matches the learner's socratic preference; elaboration suits surfacing/correcting the similarity-equals-probability misconception. Step 3 (base_rate_neglect, interleaving) correctly interleaves with the recently mastered, easily-confused concept\u2014exactly the rationale's basis for selecting this gap. Step 4 (representativeness_heuristic, desirable_difficulty) closes with retrieval-based application at difficulty 3, matching suggested_difficulty. Pedagogy principles are each appropriate to their step's status (new vs. mastered), and no drift to tangential concepts like anchoring or availability_heuristic occurs."
+        "rationale": "The workflow's target_concept_id is 'representativeness_heuristic', matching the diagnosed gap exactly. All four steps are on-topic: Step 1 revisits the mastered prerequisite 'base_rate' using spaced_repetition \u2014 appropriate because the concept is already mastered and being reactivated, not introduced fresh. Step 2 introduces the target concept via socratic dialogue with elaboration \u2014 correct for building on prior knowledge and surfacing the prototype-vs-probability misconception. Step 3 interleaves the just-mastered 'base_rate_neglect' using interleaving \u2014 directly supported by the gap rationale's flag that these two concepts are commonly confused, making contrast-based interleaving pedagogically sound. Step 4 applies desirable_difficulty for unaided retrieval at difficulty 3 \u2014 appropriate for consolidating a newly introduced concept at the suggested difficulty level. The socratic modality aligns with the learner's preference and the concept's modality_hint throughout the core steps. No steps drift to tangential concepts (anchoring, availability_heuristic, etc. are not present). Every pedagogy principle is well-matched to the step's purpose."
       },
       {
         "judge_name": "modality_fit",
         "score": 0.7,
-        "rationale": "The target concept (representativeness_heuristic) is not in the learner's struggling list and is not yet mastered, so it is arguably new conceptual material that could warrant 'reading'. However, representativeness is a textbook case of a concept harboring a common misconception (similarity = probability), which the rules explicitly flag as a 'socratic' use case, and the learner's modality_preference is socratic. The rationale soundly cites both the misconception-prone nature of the concept and the stated preference. Since reading was also a defensible choice for unseen material, this is a strong but not unambiguous call."
+        "rationale": "The workflow correctly identifies two signals that support Socratic: (1) representativeness_heuristic is a concept well-known to harbour the prototype-vs-base-rate misconception, which the routing rules list as an independent justification for Socratic dialogue, and (2) the learner's explicit modality_preference is socratic. The rationale also sensibly anchors Step 2 to already-mastered prerequisites (base_rate, base_rate_neglect), which mitigates the cold-start risk. However, the learner's is_struggling_with_target is False and already_mastered_target is False \u2014 meaning this is genuinely new conceptual material the learner has not yet encountered. The routing rules state 'reading is the RIGHT call for new conceptual material the learner hasn't seen,' and a brief expository pass before Socratic probing would reduce the risk of leaving structural gaps. Socratic dialogue on a brand-new concept can surface misconceptions the learner doesn't yet have the schema to engage with. The choice is therefore defensible (the misconception-prone exception is real and cited correctly) but a reading-then-Socratic sequence would have been the textbook-correct choice here. Score: 0.7."
       },
       {
         "judge_name": "adaptive_progression",
         "score": 1.0,
-        "rationale": "Learner has 0 struggling concepts and only 2 recent correct turns (not 3+), so the step-up condition is not yet met. Per the principle, suggested_difficulty should stay at or within 1 of difficulty_level (3). Suggested difficulty of 3 matches difficulty_level exactly and falls within the expected band (3,4), making it the correct, well-calibrated choice."
+        "rationale": "The learner has no struggling concepts and 2 recent correct turns at difficulty_level 3. With 0 struggling concepts, there is no pressure to reduce difficulty. With only 2 correct turns (not 3+), a step-up to difficulty 4 is not required but would be permissible; staying at 3 is equally valid. The suggested_difficulty of 3 falls exactly within the expected band of (3, 4) and satisfies all adaptive-difficulty principles: it does not lower difficulty for a struggling learner (no struggles exist), and it does not prematurely jump difficulty without the 3+ correct threshold being met. The choice is pedagogically sound."
       }
     ]
   },
@@ -303,49 +296,49 @@
           "step_number": 1,
           "concept_id": "base_rate",
           "modality": "reading",
-          "objective": "Briefly review base rates as the underlying frequency of an event, refreshing the mastered prerequisite before building on it.",
+          "objective": "Refresh the mastered base-rate concept as the foundation for conditioning on evidence.",
           "pedagogy_principle": "spaced_repetition"
         },
         {
           "step_number": 2,
           "concept_id": "conditional_probability",
           "modality": "reading",
-          "objective": "Introduce P(A|B) and connect it explicitly to the learner's existing understanding of base rates, framing conditioning as updating frequency given new information.",
-          "pedagogy_principle": "elaboration"
+          "objective": "Introduce P(A|B) with a worked example contrasting unconditional base rate vs. probability after an event occurs.",
+          "pedagogy_principle": "worked_example"
         },
         {
           "step_number": 3,
           "concept_id": "conditional_probability",
           "modality": "interactive",
-          "objective": "Walk through a worked example computing P(A|B) from a contingency table, then prompt the learner to complete the final step themselves.",
-          "pedagogy_principle": "worked_example"
+          "objective": "Compute conditional probabilities from a two-way table, applying the definition to new scenarios.",
+          "pedagogy_principle": "desirable_difficulty"
         },
         {
           "step_number": 4,
           "concept_id": "conditional_probability",
           "modality": "interactive",
-          "objective": "Have the learner solve novel conditional-probability problems with feedback, retrieving the formula and applying it without scaffolding.",
-          "pedagogy_principle": "desirable_difficulty"
+          "objective": "Retrieval-practice check: solve a fresh conditional-probability problem and connect the result back to its base rate.",
+          "pedagogy_principle": "elaboration"
         }
       ],
-      "rationale": "Conditional probability is a procedural, application-heavy concept the learner has not yet practiced, and it is not in their struggling list \u2014 so interactive is the right primary modality, which also matches the learner's stated interactive preference and the concept's interactive hint. The key teaching step (3) and the practice step (4) are interactive. A brief reading review of the mastered prerequisite base_rate activates prior knowledge via spaced repetition, and a short reading elaboration bridges base rates to conditioning before hands-on computation builds fluency that gates base_rate_neglect and bayesian_updating."
+      "rationale": "The learner has seen base_rate but never practiced conditioning, and the concept is procedural (computing P(A|B)). It is not in struggling_concepts, so socratic misconception-surfacing isn't warranted, and the learner's modality_preference is interactive \u2014 so the KEY teaching step is interactive application. A brief reading worked_example precedes hands-on practice, and the workflow opens by spacing the mastered base_rate prerequisite (due for 3-day review) before building toward computation and a retrieval check."
     },
     "artifact_type": "reading",
     "judge_results": [
       {
         "judge_name": "gap_to_pedagogy",
         "score": 1.0,
-        "rationale": "The workflow's target_concept_id ('conditional_probability') exactly matches the diagnosed gap. All steps are on-topic: Step 1 reviews the mastered prerequisite base_rate using spaced_repetition, which is appropriate here since base_rate is already mastered and only being refreshed for prior-knowledge activation. Steps 2-4 all focus on conditional_probability with a sound pedagogical progression: elaboration to connect new material to prior knowledge, worked_example with a fade to learner completion, and desirable_difficulty for unscaffolded retrieval practice. The principles are well-matched to a newly-introduced procedural concept \u2014 note that spaced_repetition is applied only to the already-mastered prerequisite, not the new concept, avoiding the common mismatch. Modality choice (interactive) aligns with the application-heavy concept and learner preference."
+        "rationale": "Target concept 'conditional_probability' exactly matches the diagnosed gap. All four steps are on-topic: Step 1 covers 'base_rate' (the sole mastered prerequisite) and Step 2\u20134 directly address 'conditional_probability'. No tangential concepts (e.g., base_rate_neglect, bayesian_updating) appear. Pedagogy principles are appropriate throughout: Step 1 uses 'spaced_repetition' on a mastered prerequisite, which is correct usage (the rationale even cites a 3-day review interval). Step 2 uses 'worked_example' to introduce the new concept\u2014ideal for a first exposure to a procedural skill at difficulty 2. Step 3 uses 'desirable_difficulty' for table-based practice, which appropriately follows the worked example and increases cognitive demand incrementally. Step 4 uses 'elaboration' to have the learner connect the new conditional probability result back to the base rate\u2014legitimate elaborative encoding even though the objective text also mentions a retrieval check; the cross-concept connection is the defining elaboration move. The workflow correctly avoids 'socratic' or misconception-surfacing steps since no struggling concepts were diagnosed, and it favors the learner's 'interactive' modality preference in the later, weightier steps."
       },
       {
         "judge_name": "modality_fit",
         "score": 1.0,
-        "rationale": "Target concept conditional_probability is not in the empty struggling list and not yet mastered, but the prerequisite base_rate is mastered \u2014 so the learner has the foundation to practice an application-heavy procedural skill. Interactive (retrieval/practice) is the textbook-correct choice for a procedural skill the learner needs to build fluency in, and it aligns with the learner's stated interactive preference. Rationale correctly cites learner state (not struggling, prerequisite mastered, interactive preference)."
+        "rationale": "All learner-state signals align perfectly with 'interactive': (1) the learner has seen the prerequisite (base_rate mastered) but has not yet encountered conditional_probability, placing them in the 'seen once, needs practice' zone rather than the 'brand new concept' zone; (2) conditional_probability is a procedural skill (computing P(A|B)), making retrieval practice via interactive quiz/scenario the textbook-correct choice over re-reading; (3) the learner's explicit modality_preference is interactive; (4) the target is not in struggling_concepts, so socratic misconception-surfacing is not warranted. The rationale in the workflow correctly cites all three signals \u2014 procedural nature of the skill, absence from struggling_concepts, and interactive preference \u2014 to justify the choice."
       },
       {
         "judge_name": "adaptive_progression",
         "score": 1.0,
-        "rationale": "Learner has 0 struggling concepts and only 1 recent correct turn (not the 3+ needed to justify a step-up), so suggested_difficulty should stay at the current level of 2. The suggestion of 2 matches difficulty_level exactly and falls within the expected band (2,3), correctly avoiding a premature progression on a single correct turn."
+        "rationale": "The learner has 0 struggling concepts at difficulty_level 2, so no downward pressure applies. There is only 1 recent correct turn (not 3+), so no upward step is warranted. The suggested_difficulty of 2 exactly matches the current difficulty_level, which is the correct holding position given insufficient correct turns to advance and no struggling concepts to trigger a reduction. This falls squarely within the expected band of (2, 3)."
       }
     ]
   }
