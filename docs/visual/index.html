@@ -724,8 +724,8 @@ function showProgress(chars) {
 let currentPhase = "";
 function flushReasoning() {
   if (!thinkingBuf || !currentPhase) return;
-  trace("phase-" + currentPhase, "reasoning →", "model thinking",
-    `<details><summary>show full reasoning (${thinkingBuf.length} chars)</summary>` +
+  trace("phase-" + currentPhase, "reasoning", "Why — in the model's own words",
+    `<details><summary>read the full reasoning</summary>` +
     `<div class="reason-full">${esc(thinkingBuf)}</div></details>`);
 }
 
@@ -945,7 +945,7 @@ function noteLine(cls, key, text) {
 function submitResponse(correct, notes) {
   noteLine("", "you", (correct ? "Got it ✓" : "Still fuzzy ✗") + (notes ? ` — “${esc(notes)}”` : ""));
   setThinking(THINKING.adapt);
-  trace("phase-observe", "OBSERVE", "learner response", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
+  trace("phase-observe", "observe", "Your answer", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
 
   fetch(`/sessions/${currentSessionId}/respond`, {
     method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
@@ -975,7 +975,7 @@ function showDone(res) {
     <div class="big">🎉</div>
     <h3>Session complete</h3>
     <div class="body"><p>${esc(res.note || "Nice work.")}</p>
-      <p style="color:var(--muted);font-size:14px;">Start again and the tutor will <b>re-diagnose</b> from everything you just did.</p></div>`;
+      <p style="color:var(--muted);font-size:14px;">Start again and the tutor <b>picks up from everything you just did</b> — nothing resets.</p></div>`;
   const b = document.createElement("button");
   b.className = "primary"; b.textContent = "Start a new session →";
   b.onclick = () => { document.getElementById("setup").scrollIntoView({behavior:"smooth"}); startSession(); };
@@ -994,7 +994,7 @@ function trace(phaseClass, label, title, contentHTML) {
   t.appendChild(card);
 }
 function renderLearnerTrace(learner) {
-  trace("phase-adapt", "learner state", "LearnerModel",
+  trace("phase-adapt", "learner state → LearnerModel", "What the tutor knows about you",
     `<pre>${esc(JSON.stringify(learner, null, 2))}</pre>`);
 }
 
@@ -1063,8 +1063,14 @@ function dispatch(event, p) {
     flushReasoning(); // archive the previous phase's reasoning before resetting
     currentPhase = p.name;
     if (THINKING[p.name]) setThinking(THINKING[p.name]);
-    trace("phase-" + p.name, "phase", p.name.toUpperCase(),
-      `calling the <code>${p.name}</code> step`);
+    const PHASE_TITLES = {
+      load_graph: "Reading the subject map",
+      assess: "Working out what you need",
+      plan: "Designing your lesson plan",
+      generate: "Writing your lesson",
+    };
+    trace("phase-" + p.name, "phase", PHASE_TITLES[p.name] || p.name.toUpperCase(),
+      `running the <code>${p.name}</code> step`);
     return;
   }
   if (event === "thinking") {
@@ -1076,15 +1082,15 @@ function dispatch(event, p) {
     return;
   }
   if (event === "graph") {
-    trace("phase-assess", "graph loaded", esc(p.domain_id),
-      `<b>${p.n_nodes}</b> concepts mapped from the source material.`);
+    trace("phase-assess", "subject map", `${p.n_nodes} concepts, connected`,
+      `Built from the source material for <code>${esc(p.domain_id)}</code> — every concept linked to the ones you need first.`);
     return;
   }
   if (event === "learner") { renderLearnerTrace(p.learner); return; }
   if (event === "gap") {
     const g = p.gap;
-    trace("phase-assess", "diagnose_learner →", "GapEstimate",
-      `<b>target:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
+    trace("phase-assess", "diagnose_learner → GapEstimate", "What you need next",
+      `<b>topic:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
        <div style="margin-top:6px;">${esc(g.rationale)}</div>`);
     return;
   }
@@ -1092,22 +1098,23 @@ function dispatch(event, p) {
     const w = p.workflow;
     totalSteps = (w.steps || []).length;
     const steps = w.steps.map(s => `<span class="step-mini"><b>${s.step_number}.</b> ${esc(s.concept_id)} · ${s.modality} · ${esc(s.pedagogy_principle)}</span>`).join("");
-    trace("phase-plan", "plan_workflow →", `Workflow (${esc(w.modality)})`,
+    trace("phase-plan", "plan_workflow → Workflow", `Your lesson plan (${esc(w.modality)})`,
       `${steps}<div style="margin-top:6px;">${esc(w.rationale)}</div>`);
     renderCurriculum(w);
     return;
   }
   if (event === "artifact") {
     lastStep = p.step;
-    trace("phase-generate", "generate_artifact →", `Artifact (${p.artifact.type}, step ${p.step.step_number})`,
-      `Rendered above for the learner.`);
+    trace("phase-generate", "generate_artifact → Artifact", `Lesson ready (${p.artifact.type}, step ${p.step.step_number})`,
+      `Shown above.`);
     renderLesson(p.artifact, p.step);
     return;
   }
   if (event === "session_ready") {
     flushReasoning(); // archive the generate phase's reasoning too
     currentSessionId = p.session_id;
-    trace("phase-generate", "session ready", esc(p.session_id), `Awaiting learner response.`);
+    trace("phase-generate", "session ready", "Waiting for your answer",
+      `session <code>${esc(p.session_id)}</code>`);
     return;
   }
   if (event === "error") {
