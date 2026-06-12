@@ -70,6 +70,25 @@ class StartSessionRequest(BaseModel):
     # One of these must be set:
     source_text: str | None = None  # raw material to extract a graph from
     domain_title: str | None = None
+    # Optional: seed the learner state (mastered/struggling/difficulty/history)
+    # so a demo can reproduce a specific adaptive decision (e.g. a prereq gap).
+    learner: dict | None = None
+
+
+def _seeded_learner(req: "StartSessionRequest") -> LearnerModel | None:
+    """Build a LearnerModel from an explicit seed in the request, if present."""
+    if not req.learner:
+        return None
+    seed = req.learner
+    return LearnerModel(
+        user_id=req.user_id,
+        domain_id=req.domain_id,
+        mastered_concepts=seed.get("mastered_concepts", []),
+        struggling_concepts=seed.get("struggling_concepts", []),
+        modality_preference=seed.get("modality_preference", "reading"),
+        difficulty_level=seed.get("difficulty_level", 1),
+        session_history=[SessionTurn(**t) for t in seed.get("session_history", [])],
+    )
 
 
 class RespondRequest(BaseModel):
@@ -85,6 +104,37 @@ def health():
 @app.get("/graphs")
 def list_graphs():
     return {"graphs": store.list_graphs()}
+
+
+@app.get("/evals")
+def get_evals():
+    """Serve the live eval-harness results (6 golden cases × 3 judges)."""
+    results_path = Path(__file__).resolve().parents[2] / "evals" / "results.json"
+    if not results_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="No eval results yet. Run: python run_evals.py --json evals/results.json",
+        )
+    cases = json.loads(results_path.read_text(encoding="utf-8"))
+    PASS_THRESHOLD = 0.6
+    summary = []
+    for c in cases:
+        judges = c.get("judge_results", [])
+        passed = all(j["score"] >= PASS_THRESHOLD for j in judges) if judges else False
+        summary.append({
+            "case_id": c["case_id"],
+            "passed": passed,
+            "judges": judges,
+            "workflow": c.get("workflow", {}),
+            "artifact_type": c.get("artifact_type"),
+        })
+    n_pass = sum(1 for s in summary if s["passed"])
+    return {
+        "pass_threshold": PASS_THRESHOLD,
+        "n_pass": n_pass,
+        "n_total": len(summary),
+        "cases": summary,
+    }
 
 
 @app.post("/sessions/start")
@@ -117,11 +167,15 @@ def start_session(req: StartSessionRequest):
             ),
         )
 
-    # 2. Get-or-create the learner.
-    learner = store.get_learner(req.user_id, req.domain_id)
-    if learner is None:
-        learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
+    # 2. Get-or-create the learner (or use an explicit seed).
+    learner = _seeded_learner(req)
+    if learner is not None:
         store.save_learner(learner)
+    else:
+        learner = store.get_learner(req.user_id, req.domain_id)
+        if learner is None:
+            learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
+            store.save_learner(learner)
 
     # 3. ASSESS + PLAN.
     gap = diagnose_learner(learner, graph)
@@ -199,11 +253,15 @@ def start_session_stream(req: StartSessionRequest):
                 "graph", {"domain_id": graph.domain_id, "n_nodes": len(graph.nodes)}
             )
 
-            # 2. Learner.
-            learner = store.get_learner(req.user_id, req.domain_id)
-            if learner is None:
-                learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
+            # 2. Learner (or an explicit seed, for reproducible demo decisions).
+            learner = _seeded_learner(req)
+            if learner is not None:
                 store.save_learner(learner)
+            else:
+                learner = store.get_learner(req.user_id, req.domain_id)
+                if learner is None:
+                    learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
+                    store.save_learner(learner)
             yield _sse_event("learner", {"learner": learner.model_dump(mode="json")})
 
             # 3. ASSESS.
