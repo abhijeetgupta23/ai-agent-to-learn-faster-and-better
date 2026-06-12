@@ -40,7 +40,9 @@ DAILY_USD_CAP = float(os.environ.get("DEMO_DAILY_USD_CAP", "20.00"))
 RATE_LIMIT_PER_HOUR = int(os.environ.get("DEMO_RATE_LIMIT_PER_HOUR", "5"))
 
 # Endpoints that must stay reachable without a token (and skip budget checks).
-_OPEN_PREFIXES = ("/health", "/visual", "/docs", "/openapi.json", "/redoc")
+# /evals serves static recorded harness results (no LLM cost), read by the
+# visual walkthrough's eval tab without a token.
+_OPEN_PREFIXES = ("/health", "/visual", "/evals", "/docs", "/openapi.json", "/redoc")
 _OPEN_EXACT = ("/",)
 
 

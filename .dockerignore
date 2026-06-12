@@ -7,6 +7,8 @@ __pycache__
 data
 tests
 evals
+# ...but the /evals endpoint serves the recorded harness results.
+!evals/results.json
 scripts
 docs/traces
 docs/assets
