@@ -79,8 +79,11 @@ def extract_learning_graph(
         f"derived from the title. Use source_hash='{source_hash}'."
     )
 
+    # Large cap: big domains (e.g. ai.md) produce 250+ lines of graph JSON, and
+    # adaptive-thinking tokens count toward max_tokens too. Streaming in
+    # src/llm.py means a high cap carries no timeout risk.
     graph = complete_json(
-        EXTRACTOR_SYSTEM, user, LearningGraph, label="extract_graph", max_tokens=16000
+        EXTRACTOR_SYSTEM, user, LearningGraph, label="extract_graph", max_tokens=32000
     )
     # Force the hash to match what we computed (the LLM may hallucinate it).
     graph.source_hash = source_hash

@@ -129,6 +129,12 @@ def _generate_anthropic(*, model: str, max_tokens: int, system: str, user: str) 
             elif event.delta.type == "text_delta" and event.delta.text:
                 sink("text", event.delta.text)
         response = stream.get_final_message()
+    if response.stop_reason == "max_tokens":
+        raise ValueError(
+            f"LLM output truncated at max_tokens={max_tokens} (model={model}). "
+            "Note adaptive-thinking tokens count toward the cap — raise "
+            "max_tokens for this call."
+        )
     text, thinking = _split_blocks(response)
     return text, thinking, _usage_dict(response)
 
@@ -169,8 +175,11 @@ def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -
     text_parts: list[str] = []
     thinking_parts: list[str] = []
     usage = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0}
+    finish_reason = None
     for chunk in stream:
         if chunk.choices:
+            if chunk.choices[0].finish_reason:
+                finish_reason = chunk.choices[0].finish_reason
             delta = chunk.choices[0].delta
             reasoning = getattr(delta, "reasoning_content", None)
             if reasoning:
@@ -188,6 +197,11 @@ def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -
                 "output_tokens": chunk.usage.completion_tokens,
                 "cache_read_input_tokens": getattr(details, "cached_tokens", 0) or 0,
             }
+    if finish_reason == "length":
+        raise ValueError(
+            f"LLM output truncated at max_tokens={max_tokens} (model={model}). "
+            "Raise max_tokens for this call."
+        )
     return "".join(text_parts), "".join(thinking_parts), usage
 
 
