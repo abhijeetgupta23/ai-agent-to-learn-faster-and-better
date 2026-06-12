@@ -10,7 +10,7 @@ Returns a score in [0, 1] and a rationale that names the evidence.
 
 from __future__ import annotations
 
-from src.llm import complete_json
+from src.llm import JUDGE_MODEL, complete_json
 from src.schemas import GapEstimate, JudgeResult, LearningGraph, Workflow
 
 SYSTEM = """\
@@ -45,7 +45,7 @@ def judge_gap_to_pedagogy(
         f"Return a JudgeResult with judge_name='gap_to_pedagogy'."
     )
     result = complete_json(
-        SYSTEM, user, JudgeResult, label="judge:gap_to_pedagogy", max_tokens=3000
+        SYSTEM, user, JudgeResult, label="judge:gap_to_pedagogy", model=JUDGE_MODEL, max_tokens=3000
     )
     result.judge_name = "gap_to_pedagogy"
     return result

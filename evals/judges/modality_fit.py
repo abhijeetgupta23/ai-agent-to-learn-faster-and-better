@@ -8,7 +8,7 @@ using a small ruleset, then asks the LLM to weigh edge cases.
 
 from __future__ import annotations
 
-from src.llm import complete_json
+from src.llm import JUDGE_MODEL, complete_json
 from src.schemas import JudgeResult, LearnerModel, Modality, Workflow
 
 SYSTEM = """\
@@ -62,7 +62,7 @@ def judge_modality_fit(
         "judge_name='modality_fit'."
     )
     result = complete_json(
-        SYSTEM, user, JudgeResult, label="judge:modality_fit", max_tokens=3000
+        SYSTEM, user, JudgeResult, label="judge:modality_fit", model=JUDGE_MODEL, max_tokens=3000
     )
     result.judge_name = "modality_fit"
     return result

@@ -8,7 +8,7 @@ session_history (struggling → step down, mastery → step up).
 
 from __future__ import annotations
 
-from src.llm import complete_json
+from src.llm import JUDGE_MODEL, complete_json
 from src.schemas import GapEstimate, JudgeResult, LearnerModel
 
 SYSTEM = """\
@@ -58,7 +58,7 @@ def judge_adaptive_progression(
         "judge_name='adaptive_progression'."
     )
     result = complete_json(
-        SYSTEM, user, JudgeResult, label="judge:adaptive_progression", max_tokens=3000
+        SYSTEM, user, JudgeResult, label="judge:adaptive_progression", model=JUDGE_MODEL, max_tokens=3000
     )
     result.judge_name = "adaptive_progression"
     return result
