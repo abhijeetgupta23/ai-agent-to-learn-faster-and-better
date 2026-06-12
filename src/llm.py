@@ -29,7 +29,7 @@ from src.trace import LLMCall, get_active_tracer
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODEL = os.environ.get("ADAPTIVE_LEARNING_MODEL", "claude-opus-4-8")
+DEFAULT_MODEL = os.environ.get("ADAPTIVE_LEARNING_MODEL", "claude-sonnet-4-6")
 
 # Adaptive thinking with summarized display: the model decides how much to
 # think, and we get a readable summary of that reasoning back. This is the
@@ -91,14 +91,22 @@ def _maybe_wrap_langsmith(client: anthropic.Anthropic) -> anthropic.Anthropic:
         return client
 
 
-def _create_message(client: anthropic.Anthropic, *, model: str, max_tokens: int, system: str, user: str):
+def _generate(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
     """
-    One LLM round-trip, streamed. Streaming (vs create) avoids HTTP timeouts on
-    long generations and lets us forward thinking deltas to the active sink the
-    moment they arrive; the returned final message is identical to create()'s.
+    One LLM round-trip, streamed; provider chosen by model name. Streaming
+    (vs create) avoids HTTP timeouts on long generations and lets us forward
+    thinking deltas to the active sink the moment they arrive.
+
+    Returns (text, summarized_thinking, usage_dict) — provider-normalized.
     """
+    if model.startswith("deepseek"):
+        return _generate_deepseek(model=model, max_tokens=max_tokens, system=system, user=user)
+    return _generate_anthropic(model=model, max_tokens=max_tokens, system=system, user=user)
+
+
+def _generate_anthropic(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
     sink = _thinking_sink.get()
-    with client.messages.stream(
+    with get_client().messages.stream(
         model=model,
         max_tokens=max_tokens,
         thinking=_THINKING,
@@ -113,7 +121,65 @@ def _create_message(client: anthropic.Anthropic, *, model: str, max_tokens: int,
                 and event.delta.thinking
             ):
                 sink(event.delta.thinking)
-        return stream.get_final_message()
+        response = stream.get_final_message()
+    text, thinking = _split_blocks(response)
+    return text, thinking, _usage_dict(response)
+
+
+# --- DeepSeek experiment (OpenAI-compatible API) -----------------------------
+# Opt in by setting ADAPTIVE_LEARNING_MODEL=deepseek-chat or deepseek-reasoner
+# plus DEEPSEEK_API_KEY. deepseek-reasoner streams its chain of thought as
+# `reasoning_content` deltas, which map straight onto the thinking sink.
+
+DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+
+_deepseek_client = None
+
+
+def get_deepseek_client():
+    global _deepseek_client
+    if _deepseek_client is None:
+        from openai import OpenAI  # lazy: optional dependency, experiments only
+
+        _deepseek_client = OpenAI(
+            api_key=os.environ["DEEPSEEK_API_KEY"], base_url=DEEPSEEK_BASE_URL
+        )
+    return _deepseek_client
+
+
+def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
+    sink = _thinking_sink.get()
+    stream = get_deepseek_client().chat.completions.create(
+        model=model,
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        stream=True,
+        stream_options={"include_usage": True},
+    )
+    text_parts: list[str] = []
+    thinking_parts: list[str] = []
+    usage = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0}
+    for chunk in stream:
+        if chunk.choices:
+            delta = chunk.choices[0].delta
+            reasoning = getattr(delta, "reasoning_content", None)
+            if reasoning:
+                thinking_parts.append(reasoning)
+                if sink is not None:
+                    sink(reasoning)
+            if delta.content:
+                text_parts.append(delta.content)
+        if chunk.usage:
+            details = getattr(chunk.usage, "prompt_tokens_details", None)
+            usage = {
+                "input_tokens": chunk.usage.prompt_tokens,
+                "output_tokens": chunk.usage.completion_tokens,
+                "cache_read_input_tokens": getattr(details, "cached_tokens", 0) or 0,
+            }
+    return "".join(text_parts), "".join(thinking_parts), usage
 
 
 def _extract_json(text: str) -> str:
@@ -160,7 +226,6 @@ def complete_json(
     `label` identifies which decision this call drives (e.g. "diagnose",
     "plan") and shows up in the trace.
     """
-    client = get_client()
     schema_json = json.dumps(schema.model_json_schema(), indent=2)
     system_full = (
         f"{system}\n\n"
@@ -171,15 +236,14 @@ def complete_json(
     t0 = time.perf_counter()
     # Retries transient API failures (timeout/429/5xx) twice with linear
     # backoff; wraps permanent ones in ExternalCallError. See src/harness/retry.py.
-    response = call_with_retries(
-        lambda: _create_message(
-            client, model=model, max_tokens=max_tokens, system=system_full, user=user
+    text, thinking, usage = call_with_retries(
+        lambda: _generate(
+            model=model, max_tokens=max_tokens, system=system_full, user=user
         ),
         label=f"llm:{label}",
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000
-    text, thinking = _split_blocks(response)
-    cost.record(model, _usage_dict(response))  # feeds per-session + daily budget caps
+    cost.record(model, usage)  # feeds per-session + daily budget caps
 
     parsed: T | None = None
     error: Exception | None = None
@@ -199,7 +263,7 @@ def complete_json(
                 response_text=text,
                 parsed=(parsed.model_dump(mode="json") if parsed is not None else None),
                 elapsed_ms=elapsed_ms,
-                usage=_usage_dict(response),
+                usage=usage,
             )
         )
 
@@ -219,17 +283,13 @@ def complete_text(
     model: str = DEFAULT_MODEL,
     max_tokens: int = 4000,
 ) -> str:
-    client = get_client()
     t0 = time.perf_counter()
-    response = call_with_retries(
-        lambda: _create_message(
-            client, model=model, max_tokens=max_tokens, system=system, user=user
-        ),
+    text, thinking, usage = call_with_retries(
+        lambda: _generate(model=model, max_tokens=max_tokens, system=system, user=user),
         label=f"llm:{label}",
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000
-    text, thinking = _split_blocks(response)
-    cost.record(model, _usage_dict(response))  # feeds per-session + daily budget caps
+    cost.record(model, usage)  # feeds per-session + daily budget caps
 
     tracer = get_active_tracer()
     if tracer is not None:
@@ -242,7 +302,7 @@ def complete_text(
                 response_text=text,
                 parsed=None,
                 elapsed_ms=elapsed_ms,
-                usage=_usage_dict(response),
+                usage=usage,
             )
         )
     return text

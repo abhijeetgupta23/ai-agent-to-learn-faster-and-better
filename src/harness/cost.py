@@ -33,6 +33,10 @@ PRICING: dict[str, dict[str, float]] = {
     "claude-sonnet-4-6": {"in": 3.00, "out": 15.00},
     "claude-haiku-4-5": {"in": 1.00, "out": 5.00},
     "claude-haiku-4-5-20251001": {"in": 1.00, "out": 5.00},
+    # DeepSeek (experiment) — list prices at time of writing; verify before
+    # relying on these for budget math.
+    "deepseek-chat": {"in": 0.27, "out": 1.10},
+    "deepseek-reasoner": {"in": 0.55, "out": 2.19},
 }
 # Fall back to Opus pricing for an unknown model id — never under-count spend.
 _FALLBACK = PRICING["claude-opus-4-8"]
