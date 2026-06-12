@@ -420,6 +420,20 @@
   .gnode.target text { fill: #cfe1ff; font-weight: 700; }
   @keyframes target-pulse { 50% { stroke-width: 5; stroke-opacity: .4; } }
   .brain-empty { text-align: center; }
+  /* Agent-loop flowchart */
+  #flowchart { width: 100%; display: block; margin-bottom: 10px; background: #0c1322;
+    border: 1px solid #1e2940; border-radius: 10px; }
+  .fedge { stroke: #2a3550; stroke-width: 1.6; fill: none; marker-end: url(#arr); transition: stroke .3s; }
+  .fedge.on { stroke: #60a5fa; stroke-dasharray: 6 5; animation: fdash .7s linear infinite; }
+  .fedge.loop { stroke-dasharray: 3 4; }
+  @keyframes fdash { to { stroke-dashoffset: -11; } }
+  .fnode rect { fill: #131c2f; stroke: #2a3550; stroke-width: 1.5; transition: all .3s; }
+  .fnode text { fill: #8fa0c4; font-size: 12px; }
+  .fnode.active rect { stroke: #60a5fa; animation: fpulse 1.2s ease-in-out infinite; }
+  .fnode.active text { fill: #cfe1ff; font-weight: 700; }
+  .fnode.done rect { stroke: #2ea043; }
+  .fnode.done text { fill: #7ee2a8; }
+  @keyframes fpulse { 50% { stroke-opacity: .35; stroke-width: 3; } }
   .brain-empty .orb { margin: 4px auto 10px; display: block; }
 
   @media (max-width: 1080px) {
@@ -505,7 +519,7 @@
     <div class="logo">🎓</div>
     <div>
       <h1>AI Agent to Learn Faster</h1>
-      <p class="sub">Pick a subject — an AI agent works out exactly what <i>you</i> need next and teaches it the way you’ll learn it fastest: no re-reading what you know, no drowning at the wrong level. Reasoning shown, every step.</p>
+      <p class="sub">Pick a subject — an AI agent maps it, diagnoses exactly what <i>you</i> need, and picks the format you’ll learn fastest from: no re-reading what you know, no drowning at the wrong level. Reasoning shown, every step.</p>
     </div>
   </div>
 </header>
@@ -575,6 +589,27 @@
   </div>
   <aside class="brain" id="brain">
     <div class="brain-h"><span class="orb" id="orb"></span> Tutor’s brain — <span class="live-dot"></span> live</div>
+    <!-- The agent loop as a live flowchart: the active stage pulses, finished
+         stages turn green, and the adapt→assess edge shows it's a LOOP. -->
+    <svg id="flowchart" viewBox="0 0 372 130">
+      <defs>
+        <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#3b4a6e"/>
+        </marker>
+      </defs>
+      <path class="fedge" id="fe-assess" d="M110,25 L132,25"/>
+      <path class="fedge" id="fe-plan" d="M236,25 L258,25"/>
+      <path class="fedge" id="fe-teach" d="M311,42 L311,82"/>
+      <path class="fedge" id="fe-observe" d="M258,99 L236,99"/>
+      <path class="fedge" id="fe-adapt" d="M132,99 L110,99"/>
+      <path class="fedge loop" id="fe-loop" d="M58,82 C58,56 100,48 130,38"/>
+      <g class="fnode" id="fn-map"><rect x="6" y="8" width="104" height="34" rx="9"/><text x="58" y="29" text-anchor="middle">🗺️ map</text></g>
+      <g class="fnode" id="fn-assess"><rect x="132" y="8" width="104" height="34" rx="9"/><text x="184" y="29" text-anchor="middle">🔍 assess</text></g>
+      <g class="fnode" id="fn-plan"><rect x="258" y="8" width="104" height="34" rx="9"/><text x="310" y="29" text-anchor="middle">📋 plan</text></g>
+      <g class="fnode" id="fn-teach"><rect x="258" y="82" width="104" height="34" rx="9"/><text x="310" y="103" text-anchor="middle">✍️ teach</text></g>
+      <g class="fnode" id="fn-observe"><rect x="132" y="82" width="104" height="34" rx="9"/><text x="184" y="103" text-anchor="middle">👀 observe</text></g>
+      <g class="fnode" id="fn-adapt"><rect x="6" y="82" width="104" height="34" rx="9"/><text x="58" y="103" text-anchor="middle">🔄 adapt</text></g>
+    </svg>
     <div class="thinking" id="thinking">
       <div class="pulse"></div>
       <div class="t" id="thinking-text">Thinking…</div>
@@ -994,6 +1029,38 @@ function orbState(s) {
     o.className = "orb" + (o.classList.contains("big") ? " big" : "") + (s ? " " + s : "");
   });
 }
+
+// ---- agent-loop flowchart: active stage pulses, finished stages go green ----
+const FLOW_BY_PHASE = { load_graph: "map", assess: "assess", plan: "plan", generate: "teach" };
+const FLOW_EDGE_IN = { assess: "fe-assess", plan: "fe-plan", teach: "fe-teach",
+                       observe: "fe-observe", adapt: "fe-adapt" };
+function flowReset() {
+  document.querySelectorAll("#flowchart .fnode").forEach(n => n.className.baseVal = "fnode");
+  document.querySelectorAll("#flowchart .fedge").forEach(e =>
+    e.classList.remove("on"));
+}
+function flowActive(stage) {
+  if (!stage) return;
+  document.querySelectorAll("#flowchart .fnode.active").forEach(n => {
+    n.classList.remove("active");
+    n.classList.add("done");
+  });
+  document.querySelectorAll("#flowchart .fedge.on").forEach(e => e.classList.remove("on"));
+  const node = document.getElementById("fn-" + stage);
+  if (node) { node.classList.remove("done"); node.classList.add("active"); }
+  const edge = document.getElementById(FLOW_EDGE_IN[stage]);
+  if (edge) edge.classList.add("on");
+  if (stage === "adapt") {
+    const loop = document.getElementById("fe-loop");
+    if (loop) loop.classList.add("on");
+  }
+}
+function flowDone(stage) {
+  const node = document.getElementById("fn-" + stage);
+  if (node) { node.classList.remove("active"); node.classList.add("done"); }
+  const edge = document.getElementById(FLOW_EDGE_IN[stage]);
+  if (edge) edge.classList.remove("on");
+}
 let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
@@ -1257,6 +1324,8 @@ function noteLine(cls, key, text) {
 
 function submitResponse(correct, notes) {
   noteLine("", "you", (correct ? "Got it ✓" : "Still fuzzy ✗") + (notes ? ` — “${esc(notes)}”` : ""));
+  flowDone("observe");
+  flowActive("adapt");
   setThinking(THINKING.adapt);
   trace("phase-observe", "observe", "Your answer", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
 
@@ -1272,6 +1341,9 @@ function submitResponse(correct, notes) {
         + `${(res.learner.mastered_concepts||[]).length} mastered, ${(res.learner.struggling_concepts||[]).length} to revisit.`);
     }
     if (res.current_step && res.current_step.concept_id) gvTarget(res.current_step.concept_id);
+    flowDone("adapt");
+    if (res.status === "workflow_complete") { flowDone("teach"); }
+    else if (res.artifact) { flowActive("teach"); setTimeout(() => { flowDone("teach"); flowActive("observe"); }, 900); }
     if (res.status === "workflow_complete") { showDone(res); return; }
     if (res.artifact && res.current_step) {
       setThinking(THINKING.generate);
@@ -1354,6 +1426,7 @@ function startSession() {
   document.getElementById("feed").innerHTML = "";
   document.getElementById("trace").innerHTML = "";
   GV_NODES = null; // the map card lives in the feed, which was just cleared
+  flowReset();
   currentSessionId = null; totalSteps = 0;
   setStatus("connecting…");
 
@@ -1437,6 +1510,7 @@ function dispatch(event, p) {
       generate: "generate_artifact",
     };
     journeyPhase(p.name);
+    flowActive(FLOW_BY_PHASE[p.name]);
     traceSection(p.name === "load_graph" ? "assess" : p.name,
       PHASE_TITLES[p.name] || p.name, PHASE_AGENT[p.name]);
     return;
@@ -1451,6 +1525,7 @@ function dispatch(event, p) {
   }
   if (event === "graph") {
     journeyDone("load_graph", `${p.n_nodes} concepts`);
+    flowDone("map");
     if (p.nodes) renderGraphViz(p.nodes); // the map card on the left IS this event's receipt
     return;
   }
@@ -1462,6 +1537,7 @@ function dispatch(event, p) {
   if (event === "gap") {
     const g = p.gap;
     journeyDone("assess", `next: ${humanizeConcept(g.target_concept_id)}`);
+    flowDone("assess");
     gvTarget(g.target_concept_id);
     trace("phase-assess", "diagnose_learner → GapEstimate", "What you need next",
       `<b>topic:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
@@ -1473,6 +1549,7 @@ function dispatch(event, p) {
     totalSteps = (w.steps || []).length;
     const steps = w.steps.map(s => `<span class="step-mini"><b>${s.step_number}.</b> ${esc(s.concept_id)} · ${s.modality} · ${esc(s.pedagogy_principle)}</span>`).join("");
     journeyDone("plan", `${(w.steps || []).length} steps · ${w.modality}`);
+    flowDone("plan");
     (w.steps || []).forEach(s => gvClass(s.concept_id, "planned"));
     trace("phase-plan", "plan_workflow → Workflow", `Your lesson plan (${esc(w.modality)})`,
       `${steps}<div style="margin-top:6px;">${esc(w.rationale)}</div>`);
@@ -1482,6 +1559,7 @@ function dispatch(event, p) {
   if (event === "artifact") {
     lastStep = p.step;
     journeyDone("generate", "ready");
+    flowDone("teach");
     trace("phase-generate", "generate_artifact → Artifact", `Lesson ready (${p.artifact.type}, step ${p.step.step_number})`,
       `Shown above.`);
     renderLesson(p.artifact, p.step);
@@ -1491,6 +1569,7 @@ function dispatch(event, p) {
     flushReasoning(); // archive the generate phase's reasoning too
     orbState("");
     currentSessionId = p.session_id;
+    flowActive("observe");
     traceSection("generate", "✓ ready — waiting for your answer");
     return;
   }
