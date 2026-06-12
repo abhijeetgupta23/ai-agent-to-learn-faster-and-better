@@ -611,6 +611,12 @@ function caseTitle(id) {
   const m = id.match(/^case_(\d+)_(.*)$/);
   return m ? `Case ${m[1]} · ${m[2].replace(/_/g, " ")}` : id;
 }
+const MODALITY_PLAIN = {
+  reading: "a reading passage",
+  interactive: "hands-on questions",
+  socratic: "a back-and-forth dialogue",
+};
+function humanizeConcept(id) { return (id || "").replace(/_/g, " "); }
 
 function loadEvals() {
   if (evalsLoaded) return;
@@ -637,7 +643,7 @@ function renderEvals(d) {
           <span class="jtag">(${esc(j.judge_name)})</span>
           <span class="jscore-pill">${j.score.toFixed(2)}</span>
         </div>
-        <div class="jr">${esc(j.rationale)}</div>
+        <div class="jr">“${esc(j.rationale)}”</div>
       </div>`).join("");
     det.innerHTML = `
       <summary>
@@ -648,9 +654,10 @@ function renderEvals(d) {
       </summary>
       <div class="ev-body">
         ${rationales}
-        <div class="ev-wf"><b>What the agent planned:</b> ${(c.workflow.steps || []).length} steps,
-          ${esc(c.workflow.modality || "")}, targeting <code>${esc(c.workflow.target_concept_id || "")}</code>.
-          <div style="margin-top:6px;">${esc(c.workflow.rationale || "")}</div></div>
+        <div class="ev-wf"><b>What the agent decided:</b> teach
+          “${esc(humanizeConcept(c.workflow.target_concept_id))}” over ${(c.workflow.steps || []).length} short steps,
+          as ${MODALITY_PLAIN[c.workflow.modality] || esc(c.workflow.modality || "")}.
+          <div style="margin-top:6px;"><i>Its reasoning, verbatim:</i> ${esc(c.workflow.rationale || "")}</div></div>
       </div>`;
     host.appendChild(det);
   });
