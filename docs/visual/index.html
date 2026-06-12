@@ -597,22 +597,36 @@ function renderEvals(d) {
 applyTheme(document.getElementById("domain").value); // theme the initial view
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
-let thinkingLabel = "", thinkingBuf = "";
+let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
   if (text === null) { t.classList.remove("show"); return; }
-  thinkingLabel = text; thinkingBuf = "";
+  thinkingLabel = text; thinkingBuf = ""; writingChars = 0;
   document.getElementById("thinking-text").innerHTML = text;
   t.classList.add("show");
 }
-// Live reasoning: append a streamed thinking delta under the phase label,
-// keeping only the tail so the pane stays a readable size.
+// Live progress: reasoning deltas stream into a tail under the phase label;
+// while the model writes its answer (reasoning goes quiet), a character
+// counter keeps the pane moving instead of freezing for tens of seconds.
+function renderThinking() {
+  const tail = thinkingBuf.length > 360 ? "…" + thinkingBuf.slice(-360) : thinkingBuf;
+  let html = thinkingLabel;
+  if (tail) html += '<span class="reasoning">' + esc(tail) + "</span>";
+  if (writingChars > 0) {
+    const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
+    html += '<span class="reasoning">✍ writing… ' + k + " characters</span>";
+  }
+  document.getElementById("thinking-text").innerHTML = html;
+  document.getElementById("thinking").classList.add("show");
+}
 function appendThinking(delta) {
   thinkingBuf += delta;
-  const tail = thinkingBuf.length > 360 ? "…" + thinkingBuf.slice(-360) : thinkingBuf;
-  document.getElementById("thinking-text").innerHTML =
-    thinkingLabel + '<span class="reasoning">' + esc(tail) + "</span>";
-  document.getElementById("thinking").classList.add("show");
+  writingChars = 0; // back to reasoning — clear the writing counter
+  renderThinking();
+}
+function showProgress(chars) {
+  writingChars = chars;
+  renderThinking();
 }
 
 const THINKING = {
@@ -944,6 +958,10 @@ function dispatch(event, p) {
   }
   if (event === "thinking") {
     appendThinking(p.delta);
+    return;
+  }
+  if (event === "progress") {
+    showProgress(p.chars);
     return;
   }
   if (event === "graph") {
