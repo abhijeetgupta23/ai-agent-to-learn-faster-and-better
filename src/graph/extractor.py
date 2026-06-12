@@ -8,9 +8,15 @@ metadata is not invented from whole cloth.
 
 from __future__ import annotations
 
-from src.llm import complete_json
+import os
+
+from src.llm import DEFAULT_MODEL, complete_json
 from src.memory.store import MemoryStore, hash_source
 from src.schemas import LearningGraph
+
+# Extraction is a one-time-per-domain, cached call, mechanically different from
+# the pedagogy calls — overridable independently (e.g. a cheaper provider).
+EXTRACT_MODEL = os.environ.get("ADAPTIVE_LEARNING_EXTRACT_MODEL", DEFAULT_MODEL)
 
 EXTRACTOR_SYSTEM = """\
 You are a curriculum designer trained in cognitive science. Given source
@@ -83,7 +89,8 @@ def extract_learning_graph(
     # adaptive-thinking tokens count toward max_tokens too. Streaming in
     # src/llm.py means a high cap carries no timeout risk.
     graph = complete_json(
-        EXTRACTOR_SYSTEM, user, LearningGraph, label="extract_graph", max_tokens=32000
+        EXTRACTOR_SYSTEM, user, LearningGraph, label="extract_graph",
+        model=EXTRACT_MODEL, max_tokens=32000,
     )
     # Force the hash to match what we computed (the LLM may hallucinate it).
     graph.source_hash = source_hash

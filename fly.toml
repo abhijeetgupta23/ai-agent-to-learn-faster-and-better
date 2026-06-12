@@ -13,6 +13,9 @@ primary_region = 'ord'
   # Sonnet 4.6: validated 6/6 on the eval harness; ~2x faster and 40% cheaper
   # than Opus for this workload.
   ADAPTIVE_LEARNING_MODEL = 'claude-sonnet-4-6'
+  # Graph extraction on DeepSeek: validated on cognitive_biases + ai (13 nodes,
+  # same as Sonnet), ~30x cheaper and ~5x faster. Pedagogy calls stay on Sonnet.
+  ADAPTIVE_LEARNING_EXTRACT_MODEL = 'deepseek-chat'
 
 # The store dir already defaults to /data/store in the image; the mount below
 # makes it survive restarts and deploys.

@@ -162,6 +162,9 @@ def get_deepseek_client():
 
 def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
     sink = _thinking_sink.get()
+    # DeepSeek caps output tokens per model (chat: 8K, reasoner: 64K); requests
+    # above the cap are rejected outright, so clamp rather than fail.
+    max_tokens = min(max_tokens, 8192 if model == "deepseek-chat" else 65536)
     stream = get_deepseek_client().chat.completions.create(
         model=model,
         max_tokens=max_tokens,
@@ -244,7 +247,12 @@ def complete_json(
     max_tokens: int = 8000,
 ) -> T:
     """
-    Ask Claude for JSON conforming to a Pydantic schema. Fails fast on bad output.
+    Ask Claude for JSON conforming to a Pydantic schema.
+
+    One repair round: if the output fails schema validation (e.g. an unescaped
+    quote inside a JSON string — it happens), the model is shown its own
+    output plus the validation error and asked to emit the corrected JSON.
+    Fails fast only after that.
 
     `label` identifies which decision this call drives (e.g. "diagnose",
     "plan") and shows up in the trace.
@@ -256,46 +264,55 @@ def complete_json(
         "Do not include any prose, markdown fences, or commentary outside the JSON."
     )
 
-    t0 = time.perf_counter()
-    # Retries transient API failures (timeout/429/5xx) twice with linear
-    # backoff; wraps permanent ones in ExternalCallError. See src/harness/retry.py.
-    text, thinking, usage = call_with_retries(
-        lambda: _generate(
-            model=model, max_tokens=max_tokens, system=system_full, user=user
-        ),
-        label=f"llm:{label}",
-    )
-    elapsed_ms = (time.perf_counter() - t0) * 1000
-    cost.record(model, usage)  # feeds per-session + daily budget caps
-
-    parsed: T | None = None
+    attempt_user = user
     error: Exception | None = None
-    try:
-        parsed = schema.model_validate_json(_extract_json(text))
-    except ValidationError as e:
-        error = e
+    for attempt in ("", ":repair"):
+        t0 = time.perf_counter()
+        # Retries transient API failures (timeout/429/5xx) twice with linear
+        # backoff; wraps permanent ones in ExternalCallError. See src/harness/retry.py.
+        text, thinking, usage = call_with_retries(
+            lambda: _generate(
+                model=model, max_tokens=max_tokens, system=system_full, user=attempt_user
+            ),
+            label=f"llm:{label}{attempt}",
+        )
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        cost.record(model, usage)  # feeds per-session + daily budget caps
 
-    tracer = get_active_tracer()
-    if tracer is not None:
-        tracer.record(
-            LLMCall(
-                label=label,
-                system=system_full,
-                user=user,
-                thinking=thinking,
-                response_text=text,
-                parsed=(parsed.model_dump(mode="json") if parsed is not None else None),
-                elapsed_ms=elapsed_ms,
-                usage=usage,
+        parsed: T | None = None
+        error = None
+        try:
+            parsed = schema.model_validate_json(_extract_json(text))
+        except ValidationError as e:
+            error = e
+
+        tracer = get_active_tracer()
+        if tracer is not None:
+            tracer.record(
+                LLMCall(
+                    label=label + attempt,
+                    system=system_full,
+                    user=attempt_user,
+                    thinking=thinking,
+                    response_text=text,
+                    parsed=(parsed.model_dump(mode="json") if parsed is not None else None),
+                    elapsed_ms=elapsed_ms,
+                    usage=usage,
+                )
             )
+
+        if error is None:
+            return parsed
+        attempt_user = (
+            f"{user}\n\nYour previous response was not valid JSON for the schema. "
+            f"Validation error:\n{error}\n\nPrevious response:\n{text}\n\n"
+            "Emit the corrected JSON only — fix the error without changing the content."
         )
 
-    if error is not None:
-        raise ValueError(
-            f"LLM output failed schema validation for {schema.__name__} "
-            f"(label={label}):\n{text[:1000]}\n\n{error}"
-        ) from error
-    return parsed
+    raise ValueError(
+        f"LLM output failed schema validation for {schema.__name__} "
+        f"(label={label}) after a repair attempt:\n{text[:1000]}\n\n{error}"
+    ) from error
 
 
 def complete_text(

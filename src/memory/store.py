@@ -35,16 +35,16 @@ class MemoryStore:
         path = self.root / "graphs" / f"{source_hash}.json"
         if not path.exists():
             return None
-        return LearningGraph.model_validate_json(path.read_text())
+        return LearningGraph.model_validate_json(path.read_text(encoding="utf-8"))
 
     def save_graph(self, graph: LearningGraph) -> None:
         path = self.root / "graphs" / f"{graph.source_hash}.json"
-        path.write_text(graph.model_dump_json(indent=2))
+        path.write_text(graph.model_dump_json(indent=2), encoding="utf-8")
 
     def list_graphs(self) -> list[dict]:
         out = []
         for p in sorted((self.root / "graphs").glob("*.json")):
-            data = json.loads(p.read_text())
+            data = json.loads(p.read_text(encoding="utf-8"))
             out.append(
                 {
                     "source_hash": data["source_hash"],
@@ -60,11 +60,11 @@ class MemoryStore:
     def save_source(self, source_hash: str, source_text: str) -> None:
         """Persist the raw source a graph was extracted from, so generation can
         later retrieve passages from it (grounded generation)."""
-        (self.root / "sources" / f"{source_hash}.txt").write_text(source_text)
+        (self.root / "sources" / f"{source_hash}.txt").write_text(source_text, encoding="utf-8")
 
     def get_source(self, source_hash: str) -> str | None:
         path = self.root / "sources" / f"{source_hash}.txt"
-        return path.read_text() if path.exists() else None
+        return path.read_text(encoding="utf-8") if path.exists() else None
 
     # --- learners ---------------------------------------------------------
 
@@ -72,8 +72,8 @@ class MemoryStore:
         path = self.root / "learners" / f"{user_id}__{domain_id}.json"
         if not path.exists():
             return None
-        return LearnerModel.model_validate_json(path.read_text())
+        return LearnerModel.model_validate_json(path.read_text(encoding="utf-8"))
 
     def save_learner(self, learner: LearnerModel) -> None:
         path = self.root / "learners" / f"{learner.user_id}__{learner.domain_id}.json"
-        path.write_text(learner.model_dump_json(indent=2))
+        path.write_text(learner.model_dump_json(indent=2), encoding="utf-8")
