@@ -346,3 +346,88 @@ def complete_text(
             )
         )
     return text
+
+
+# ---------------------------------------------------------------------------
+# Charts via Anthropic code execution (true PTC): the model WRITES matplotlib
+# code and runs it in Anthropic's hosted sandbox; we retrieve the rendered PNG.
+# No code executes on our infrastructure — the sandbox is Anthropic's.
+# ---------------------------------------------------------------------------
+
+CHARTS_ENABLED = os.environ.get("ADAPTIVE_LEARNING_CHARTS", "on").lower() != "off"
+# Pinned to Sonnet independent of the pedagogy model: chart-writing is a
+# code-gen task Sonnet does reliably (it completes the write→run→export tool
+# dance), whereas Opus 4.8 tends to narrate and end its turn before the
+# sandbox exports the figure. Also cheaper.
+CHART_MODEL = os.environ.get("ADAPTIVE_LEARNING_CHART_MODEL", "claude-sonnet-4-6")
+_CODE_EXEC_TOOL = {"type": "code_execution_20260120", "name": "code_execution"}
+
+
+def _find_file_ids(obj) -> list[str]:
+    """Collect every file_id anywhere in a model_dump'd response (dict/list tree)."""
+    found: list[str] = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == "file_id" and isinstance(v, str):
+                found.append(v)
+            else:
+                found.extend(_find_file_ids(v))
+    elif isinstance(obj, list):
+        for v in obj:
+            found.extend(_find_file_ids(v))
+    return found
+
+
+def generate_chart_png(instruction: str, *, max_tokens: int = 4096) -> bytes | None:
+    """
+    Ask Claude to write+run matplotlib in its sandbox and return the PNG bytes,
+    or None if no chart was produced (model declined, or anything went wrong —
+    a missing chart must never break a lesson). Cost is metered like any call.
+    """
+    if not CHARTS_ENABLED:
+        return None
+    client = get_client()
+    file_ids: list[str] = []
+    # The model occasionally ends its turn after one bash step, before the
+    # sandbox exports the saved figure as a downloadable file. Retry until a
+    # file appears (or we give up — a missing chart never breaks a lesson).
+    nudge = (
+        "\n\nAfter saving the figure, run a SECOND bash command "
+        "`ls -la /tmp/chart.png` so the sandbox captures and exports the file."
+    )
+    for attempt in range(3):
+        try:
+            response = client.messages.create(
+                model=CHART_MODEL,
+                max_tokens=max_tokens,
+                tools=[_CODE_EXEC_TOOL],
+                tool_choice={"type": "any"},  # force code execution, don't let it narrate
+                messages=[{"role": "user", "content": instruction + nudge}],
+                extra_headers={"anthropic-beta": "files-api-2025-04-14"},
+            )
+        except Exception:
+            continue
+        cost.record(CHART_MODEL, _usage_dict(response))
+        file_ids = _find_file_ids(response.model_dump(warnings=False))
+        if file_ids:
+            break
+
+    for file_id in file_ids:
+        try:
+            meta = client.beta.files.retrieve_metadata(file_id)
+            mime = getattr(meta, "mime_type", "") or ""
+            if mime and "image" not in mime:
+                continue
+            downloaded = client.beta.files.download(file_id)
+            if hasattr(downloaded, "read"):
+                return downloaded.read()
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+                tmp = tf.name
+            downloaded.write_to_file(tmp)
+            with open(tmp, "rb") as f:
+                return f.read()
+        except Exception:
+            continue
+    return None

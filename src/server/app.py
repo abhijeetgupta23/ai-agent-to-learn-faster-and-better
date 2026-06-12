@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from src.graph.extractor import extract_learning_graph
 from src.graph.retriever import ground_context
+from src.tools.charts import chart_data_url
 from src.harness import ExternalCallError, cost
 from src.agent.autonomous import kickoff_message, observation_message, run_agent_turn
 from src.llm import thinking_sink
@@ -450,10 +451,21 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                     "artifact": artifact.model_dump(mode="json"),
                 },
             )
+            # Session is usable now — emit ready first so the respond UI works
+            # immediately, then stream the chart in (it takes ~30s and must
+            # never block the session or the lesson).
             yield _sse_event(
                 "session_ready",
                 {"session_id": session_id, "cost": _cost_summary(session_meter.total_usd)},
             )
+            # Teaching chart (true PTC — model writes+runs matplotlib in
+            # Anthropic's hosted sandbox; no code runs on our infra).
+            if artifact.type == "reading":
+                durl = chart_data_url(concept, artifact.title, step.objective)
+                if durl:
+                    yield _sse_event(
+                        "chart", {"step_number": step.step_number, "chart": durl}
+                    )
         except ExternalCallError as e:
             yield _sse_event("error", e.to_payload())
         except Exception as e:

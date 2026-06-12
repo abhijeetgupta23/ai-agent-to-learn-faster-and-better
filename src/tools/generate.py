@@ -19,6 +19,10 @@ You are an expert tutor writing a short reading passage (300-500 words) that
 teaches one concept clearly. Use a worked example or analogy if it helps.
 Calibrate vocabulary to the learner's difficulty_level (1=novice, 5=expert).
 Include 3-5 key takeaways.
+
+Use LaTeX for any mathematical notation so it renders as real math: $...$ for
+inline (e.g. $P(A \\mid B)$) and $$...$$ on its own line for display equations
+(e.g. Bayes' theorem). Don't overuse it — only where notation aids clarity.
 """
 
 INTERACTIVE_SYSTEM = """\
