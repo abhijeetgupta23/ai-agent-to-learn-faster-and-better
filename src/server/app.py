@@ -186,7 +186,7 @@ def _run_start(req: StartSessionRequest, session_meter: cost.CostMeter) -> JSONR
         )
     elif domain_path.exists():
         graph = extract_learning_graph(
-            domain_path.read_text(),
+            domain_path.read_text(encoding="utf-8"),
             req.domain_title or req.domain_id.replace("_", " "),
             store,
         )
@@ -223,7 +223,7 @@ def _run_start(req: StartSessionRequest, session_meter: cost.CostMeter) -> JSONR
     step = workflow.steps[0]
     concept = graph.node_by_id(step.concept_id)
     artifact = generate_artifact(
-        step, concept, learner, source_context=ground_context(concept, graph, store)
+        step, concept, learner, source_context=ground_context(concept, graph, store, learner=learner)
     )
 
     session_id = uuid.uuid4().hex[:12]
@@ -348,7 +348,7 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                     session_meter,
                 )
             elif domain_path.exists():
-                source = domain_path.read_text()
+                source = domain_path.read_text(encoding="utf-8")
                 graph = yield from _thinking_events(
                     "load_graph",
                     lambda: extract_learning_graph(
@@ -411,7 +411,7 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                     step,
                     concept,
                     learner,
-                    source_context=ground_context(concept, graph, store),
+                    source_context=ground_context(concept, graph, store, learner=learner),
                 ),
                 session_meter,
             )
@@ -502,7 +502,7 @@ def respond(session_id: str, req: RespondRequest):
     concept = graph.node_by_id(next_step.concept_id)
     with cost.meter() as step_meter:
         artifact = generate_artifact(
-            next_step, concept, learner, source_context=ground_context(concept, graph, store)
+            next_step, concept, learner, source_context=ground_context(concept, graph, store, learner=learner)
         )
     state["cost_usd"] = state.get("cost_usd", 0.0) + step_meter.total_usd
     return JSONResponse(

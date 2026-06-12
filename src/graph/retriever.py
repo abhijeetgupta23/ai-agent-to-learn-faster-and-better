@@ -140,16 +140,39 @@ def _source_for_graph(graph: LearningGraph, store) -> str | None:
     return fallback.read_text() if fallback.exists() else None
 
 
-def ground_context(concept: ConceptNode, graph: LearningGraph, store, *, k: int = 2) -> str | None:
+def ground_context(
+    concept: ConceptNode, graph: LearningGraph, store, *, k: int = 2, learner=None
+) -> str | None:
     """
     Convenience for call sites: resolve the source for `graph`, retrieve the
     passages for `concept`, and return them as a context string ready to pass
     to `generate_artifact(source_context=...)`. Returns None when no source is
     available or nothing relevant is found, so callers fall back to ungrounded
     generation transparently.
+
+    Graph-aware bridging: when `learner` is given, passages for up to two of
+    the concept's *mastered* prerequisites are appended (labeled), so the
+    lesson can bridge from what the learner already knows into the new
+    concept instead of teaching it in isolation.
     """
     source = _source_for_graph(graph, store)
     if not source:
         return None
     retrieval = retrieve(source, concept, k=k)
-    return retrieval.as_context() if retrieval.grounded else None
+    if not retrieval.grounded:
+        return None
+
+    parts = [retrieval.as_context()]
+    if learner is not None:
+        mastered = set(learner.mastered_concepts)
+        for pid in [p for p in concept.prerequisites if p in mastered][:2]:
+            prereq = graph.node_by_id(pid)
+            if prereq is None:
+                continue
+            bridge = retrieve(source, prereq, k=1)
+            if bridge.grounded:
+                parts.append(
+                    f"[MASTERED PREREQUISITE — the learner already knows "
+                    f"\"{prereq.name}\"]\n{bridge.as_context()}"
+                )
+    return "\n\n".join(parts)
