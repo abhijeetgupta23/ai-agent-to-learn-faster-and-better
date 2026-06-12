@@ -99,7 +99,7 @@ def run_case(case: EvalCase, store: MemoryStore, trace_dir: Path | None = None) 
 def render_table(results: list[EvalResult]) -> str:
     lines = []
     lines.append(
-        f"| Case | gap_to_pedagogy | modality_fit | adaptive_progression | Pass |"
+        "| Case | gap_to_pedagogy | modality_fit | adaptive_progression | Pass |"
     )
     lines.append("|------|-----------------|--------------|----------------------|------|")
     for r in results:

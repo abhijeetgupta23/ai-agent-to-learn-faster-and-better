@@ -13,7 +13,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.6"]
+# Opt-in observability: enable with LANGSMITH_TRACING=true (see src/llm.py).
+tracing = ["langsmith>=0.1"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# scripts/ holds manually-run demos, not part of the shipped package
+# (see tool.setuptools below); lint the library, tests, and evals.
+extend-exclude = ["scripts"]
+
+[tool.ruff.lint]
+# E501 (line length) off — prompt strings are intentionally prose-shaped.
+ignore = ["E501"]
 
 [build-system]
 requires = ["setuptools>=68"]
