@@ -87,16 +87,24 @@
   /* Live model reasoning streamed under the phase label — full text,
      scrollable, pinned to the latest line. */
   .thinking .t .reasoning {
-    display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.45;
-    color: var(--muted); opacity: .85; font-style: italic;
+    display: block; margin-top: 5px; font-size: 13px; line-height: 1.5;
+    color: var(--muted); font-style: italic;
     max-height: 132px; overflow-y: auto; white-space: pre-wrap;
   }
-  /* Full per-phase reasoning archived into the trace timeline */
+  /* The terminal theme's muted gray is too dim for small monospace; italic
+     monospace also reads poorly — brighten and straighten there. */
+  body[data-theme="terminal"] .thinking .t .reasoning {
+    color: #adbac7; font-style: normal;
+  }
+  /* Full per-phase reasoning archived into the trace timeline. The trace
+     cards have a FIXED dark palette (see .stream-card), so use its content
+     color — var(--muted) is theme-dependent and illegible here. */
   .stream-card .reason-full {
-    font-size: 12.5px; line-height: 1.5; font-style: italic; color: var(--muted);
+    font-size: 12.5px; line-height: 1.55; color: #aab6d2;
     white-space: pre-wrap; max-height: 260px; overflow-y: auto; margin-top: 6px;
   }
-  .stream-card details summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+  .stream-card details summary { cursor: pointer; font-size: 12.5px; color: #8fa0c4; }
+  .stream-card details summary:hover { color: #dbe4f7; }
 
   /* Lesson card */
   .lesson {
