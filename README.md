@@ -4,6 +4,9 @@
 
 **An agent that learns how a person learns** — ingests an arbitrary domain (paper, URL, file), builds a learning-science-grounded knowledge graph, generates an adaptive curriculum on the fly, and proves the adaptation worked via a first-class eval harness.
 
+![demo](docs/assets/demo.gif)
+<!-- 20-30s session recording, see Part B4 -->
+
 > Evaluation and reliability infrastructure for production AI agents, applied to adaptive pedagogy. The eval harness is the headline.
 
 > 👋 **Not an engineer?** Read the plain-English [User Guide](docs/USER_GUIDE.md) instead — what this is and how to use it, no jargon.
@@ -82,7 +85,7 @@ flowchart LR
 ### Stack
 
 - **Orchestration:** single-loop Programmatic Tool Calling — the five tools (§6 below) are functions in the execution namespace; the LLM authors the workflow that chains them.
-- **LLM:** Claude `claude-opus-4-8` with adaptive thinking. Frontier baseline makes the evals bulletproof. (An open-model branch is planned — see *Roadmap*.)
+- **LLM:** Claude `claude-sonnet-4-6` by default (eval-validated; override via `ADAPTIVE_LEARNING_MODEL`) with adaptive thinking. (An open-model branch is planned — see *Roadmap*.)
 - **Memory / persistence:** file-backed JSON store, lookup by ID. The interface is shaped so a real vector store (Chroma, FAISS, pgvector) is a one-file swap.
 - **I/O:** Pydantic-validated everywhere — every tool returns a typed model; the agent fails fast on malformed LLM output.
 - **Streaming:** FastAPI with Server-Sent Events for incremental artifact rendering.
@@ -91,7 +94,7 @@ flowchart LR
 
 Five tools, each returning a Pydantic model:
 
-1. `extract_learning_graph(source) → LearningGraph` — parse paper/URL/file into nodes + edges with pedagogy metadata. Checks vector store first; generates + caches on miss.
+1. `extract_learning_graph(source) → LearningGraph` — parse paper/URL/file into nodes + edges with pedagogy metadata. Checks the graph cache first; generates + caches on miss.
 2. `diagnose_learner(learner_state, graph) → GapEstimate` — produce a structured gap estimate.
 3. `plan_workflow(gap, learner_model, graph) → Workflow` — author the multi-step teaching sequence + choose modality.
 4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic) in the chosen modality.
@@ -302,3 +305,9 @@ adaptive-learning-agent/
 - **Open-model backend** — note as a future branch; Claude is the frontier baseline that makes the evals bulletproof.
 - **Multi-user crowdsourcing UI for graphs** — graphs are reusable internally already; no community UI yet.
 - **Real vector store backend** — the `MemoryStore` interface is shaped for this; swap `src/memory/store.py` to a Chroma/FAISS/pgvector backend without touching call sites.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
