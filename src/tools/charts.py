@@ -1,5 +1,5 @@
 """
-Teaching charts via Anthropic code execution (true PTC).
+Teaching charts via Anthropic code execution (model-written code, hosted sandbox).
 
 The model WRITES matplotlib code and RUNS it in Anthropic's hosted sandbox;
 we retrieve the rendered PNG and hand it back as a data URL. No code executes

@@ -349,7 +349,7 @@ def complete_text(
 
 
 # ---------------------------------------------------------------------------
-# Charts via Anthropic code execution (true PTC): the model WRITES matplotlib
+# Charts via Anthropic code execution (model-written code): the model WRITES matplotlib
 # code and runs it in Anthropic's hosted sandbox; we retrieve the rendered PNG.
 # No code executes on our infrastructure — the sandbox is Anthropic's.
 # ---------------------------------------------------------------------------

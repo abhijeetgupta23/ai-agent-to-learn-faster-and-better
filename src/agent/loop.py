@@ -2,9 +2,9 @@
 Single-loop agent: ASSESS → PLAN → GENERATE → OBSERVE → ADAPT.
 
 The five tools (§6 of the README) are wired here as native Python functions
-called directly from the loop — Programmatic Tool Calling in spirit: the tools
-are functions in the execution namespace, the LLM authors the workflow that
-chains them. The LLM is the workflow author; this loop is the executor.
+called directly by this executor — the LLM authors the workflow, this loop
+runs it. (PTC proper — the model writing orchestration code — is deliberately
+not used here; see README Orchestration.)
 
 For V1, the workflow shape is fixed (diagnose → plan → for each step:
 generate → observe). The LLM's "agentic" decision-making is concentrated in

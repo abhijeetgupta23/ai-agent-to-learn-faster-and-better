@@ -204,7 +204,7 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
             "step": step.model_dump(mode="json"),
             "artifact": artifact.model_dump(mode="json"),
         })
-        # Teaching chart (true PTC), emitted after the lesson — never blocks it.
+        # Teaching chart (model-written code, hosted sandbox), emitted after the lesson.
         if artifact.type == "reading":
             from src.tools.charts import chart_data_url
 

@@ -85,7 +85,7 @@ flowchart LR
 
 ### Stack
 
-- **Orchestration:** single-loop Programmatic Tool Calling — the five tools (§6 below) are functions in the execution namespace; the LLM authors the workflow that chains them.
+- **Orchestration:** two modes on one shared harness. **Workflow mode** (default): the LLM authors the lesson plan; executor code chains the five tools (§6 below) as native Python functions. **Autonomous mode** (`?mode=agent`): the same tools exposed via the Anthropic tools API — the model owns the loop, deciding which tool to call, in what order, and when to stop, inside the same budgets and cost meter. Chart generation additionally uses Anthropic's code-execution sandbox: the model writes and runs matplotlib; no code executes on our infrastructure.
 - **LLM:** Claude `claude-sonnet-4-6` by default (eval-validated; override via `ADAPTIVE_LEARNING_MODEL`) with adaptive thinking. (An open-model branch is planned — see *Roadmap*.)
 - **Memory / persistence:** file-backed JSON store, lookup by ID. The interface is shaped so a real vector store (Chroma, FAISS, pgvector) is a one-file swap.
 - **I/O:** Pydantic-validated everywhere — every tool returns a typed model; the agent fails fast on malformed LLM output.

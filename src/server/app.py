@@ -458,7 +458,7 @@ def start_session_stream(req: StartSessionRequest, request: Request):
                 "session_ready",
                 {"session_id": session_id, "cost": _cost_summary(session_meter.total_usd)},
             )
-            # Teaching chart (true PTC — model writes+runs matplotlib in
+            # Teaching chart (model-written code — model writes+runs matplotlib in
             # Anthropic's hosted sandbox; no code runs on our infra).
             if artifact.type == "reading":
                 durl = chart_data_url(concept, artifact.title, step.objective)
