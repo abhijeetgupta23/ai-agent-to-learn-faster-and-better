@@ -84,11 +84,19 @@
   @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8);} 50% { opacity: 1; transform: scale(1.15);} }
   .thinking .t { font-size: 14px; color: var(--muted); }
   .thinking .t b { color: var(--ink); font-weight: 600; }
-  /* Live model reasoning streamed under the phase label */
+  /* Live model reasoning streamed under the phase label — full text,
+     scrollable, pinned to the latest line. */
   .thinking .t .reasoning {
     display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.45;
     color: var(--muted); opacity: .85; font-style: italic;
+    max-height: 132px; overflow-y: auto; white-space: pre-wrap;
   }
+  /* Full per-phase reasoning archived into the trace timeline */
+  .stream-card .reason-full {
+    font-size: 12.5px; line-height: 1.5; font-style: italic; color: var(--muted);
+    white-space: pre-wrap; max-height: 260px; overflow-y: auto; margin-top: 6px;
+  }
+  .stream-card details summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
 
   /* Lesson card */
   .lesson {
@@ -621,15 +629,16 @@ function setThinking(text) {
 // while the model writes its answer (reasoning goes quiet), a character
 // counter keeps the pane moving instead of freezing for tens of seconds.
 function renderThinking() {
-  const tail = thinkingBuf.length > 360 ? "…" + thinkingBuf.slice(-360) : thinkingBuf;
   let html = thinkingLabel;
-  if (tail) html += '<span class="reasoning">' + esc(tail) + "</span>";
+  if (thinkingBuf) html += '<span class="reasoning" id="live-reason">' + esc(thinkingBuf) + "</span>";
   if (writingChars > 0) {
     const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
     html += '<span class="reasoning">✍ writing… ' + k + " characters</span>";
   }
   document.getElementById("thinking-text").innerHTML = html;
   document.getElementById("thinking").classList.add("show");
+  const live = document.getElementById("live-reason");
+  if (live) live.scrollTop = live.scrollHeight; // pin to the newest line
 }
 function appendThinking(delta) {
   thinkingBuf += delta;
@@ -639,6 +648,15 @@ function appendThinking(delta) {
 function showProgress(chars) {
   writingChars = chars;
   renderThinking();
+}
+// Archive the finished phase's full reasoning into the trace timeline, so it
+// stays reviewable after the live pane moves on to the next phase.
+let currentPhase = "";
+function flushReasoning() {
+  if (!thinkingBuf || !currentPhase) return;
+  trace("phase-" + currentPhase, "reasoning →", "model thinking",
+    `<details><summary>show full reasoning (${thinkingBuf.length} chars)</summary>` +
+    `<div class="reason-full">${esc(thinkingBuf)}</div></details>`);
 }
 
 const THINKING = {
@@ -972,6 +990,8 @@ function handleSSE(raw) {
 
 function dispatch(event, p) {
   if (event === "phase") {
+    flushReasoning(); // archive the previous phase's reasoning before resetting
+    currentPhase = p.name;
     if (THINKING[p.name]) setThinking(THINKING[p.name]);
     trace("phase-" + p.name, "phase", p.name.toUpperCase(),
       `calling the <code>${p.name}</code> step`);
@@ -1015,6 +1035,7 @@ function dispatch(event, p) {
     return;
   }
   if (event === "session_ready") {
+    flushReasoning(); // archive the generate phase's reasoning too
     currentSessionId = p.session_id;
     trace("phase-generate", "session ready", esc(p.session_id), `Awaiting learner response.`);
     return;
