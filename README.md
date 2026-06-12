@@ -101,6 +101,26 @@ Five tools, each returning a Pydantic model:
 4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic) in the chosen modality.
 5. `update_learner_model(response, learner_model) → LearnerModel` — persist the adaptation.
 
+### Agent memory
+
+Three layers, all structured, typed, and inspectable — no opaque vector blobs:
+
+| Layer | What it holds | Lifetime |
+|---|---|---|
+| **Episodic — learner memory** | `LearnerModel`: mastered/struggling concepts, modality preference, difficulty, timestamped history of every turn ([`src/memory/store.py`](src/memory/store.py)) | Permanent, per learner+domain (volume-persisted in deployment) |
+| **Semantic — domain memory** | Extracted `LearningGraph`s cached by source hash, plus the original source text for grounded retrieval | Permanent, shared across all learners — extraction paid once per domain |
+| **Working — session memory** | Autonomous mode's full conversation history: what was taught, what failed, the agent's own prior reasoning | One session (in-process) |
+
+The episodic layer is the load-bearing one: every diagnosis reads it, so adaptation
+survives across sessions — start a new session and the tutor picks up exactly where
+the learner left off. The UI renders it verbatim ("what the tutor knows about you"),
+so memory is auditable, not asserted.
+
+Deliberately not here (yet): learned/reflective memory and embedding-based retrieval.
+The store interface is shaped so a vector backend (Chroma, FAISS, pgvector) is a
+one-file swap, and `session_history` carries timestamps so stale-turn eviction can
+land without a schema change.
+
 ### What a learning graph looks like
 
 Below is the eval graph (`evals/golden/graphs/cognitive_biases.json`) — 7 concepts, 5 edges, the same shape the extractor produces from raw source material. Nodes are colored by difficulty; solid arrows are prerequisites, dashed are *interleave_with* (concepts the agent will mix during practice because they're easily confused).
