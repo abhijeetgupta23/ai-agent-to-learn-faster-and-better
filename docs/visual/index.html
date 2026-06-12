@@ -596,6 +596,18 @@ function renderEvals(d) {
 })();
 applyTheme(document.getElementById("domain").value); // theme the initial view
 
+// Demo token for the gated deployment: read once from ?token=… in the page
+// URL (then remembered in localStorage) and sent as X-Demo-Token on session
+// calls. Locally, with no DEMO_TOKEN configured, everything stays open.
+const DEMO_TOKEN = (() => {
+  const fromUrl = new URLSearchParams(location.search).get("token");
+  try {
+    if (fromUrl) { localStorage.setItem("demo_token", fromUrl); return fromUrl; }
+    return localStorage.getItem("demo_token") || "";
+  } catch (e) { return fromUrl || ""; }
+})();
+function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN } : h; }
+
 function setStatus(s) { document.getElementById("status").textContent = s; }
 let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
@@ -848,7 +860,7 @@ function submitResponse(correct, notes) {
   trace("phase-observe", "OBSERVE", "learner response", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
 
   fetch(`/sessions/${currentSessionId}/respond`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ correct, notes }),
   }).then(r => r.json()).then(res => {
     if (res.detail) { setThinking(null); noteLine("", "error", esc(res.detail)); return; }
@@ -915,9 +927,18 @@ function startSession() {
   if (pendingSeed) { payload.learner = pendingSeed; pendingSeed = null; }
 
   fetch("/sessions/start_stream", {
-    method: "POST", headers: { "Content-Type": "application/json" },
+    method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   }).then(async (resp) => {
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      setThinking(null); setStatus("error");
+      noteLine("", "error", esc(err.message || err.detail ||
+        `Request failed (${resp.status}).`) +
+        (resp.status === 401 ? " Append <code>?token=&lt;demo token&gt;</code> to this page's URL and retry." : ""));
+      document.getElementById("start").disabled = false;
+      return;
+    }
     setStatus("learning");
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
