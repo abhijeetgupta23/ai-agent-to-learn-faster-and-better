@@ -14,6 +14,8 @@ COPY src ./src
 COPY domains ./domains
 COPY docs/visual ./docs/visual
 COPY run_server.py ./
+# /evals endpoint serves the recorded eval-harness results.
+COPY evals/results.json ./evals/results.json
 
 # Persisted learner/graph store lives here; mount a volume to keep it.
 ENV ADAPTIVE_LEARNING_STORE_DIR=/data/store
