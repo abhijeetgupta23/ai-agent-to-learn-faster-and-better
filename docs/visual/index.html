@@ -226,6 +226,9 @@
   .trace-sec.phase-generate { color: #34d399; }
   .trace-sec.phase-observe { color: #f472b6; }
   .trace-sec.phase-adapt { color: #c084fc; }
+  .trace-sec .sec-agent { font-size: 9.5px; font-weight: 500; letter-spacing: 0; text-transform: none;
+    color: #5d6b8c; background: #0c1322; border: 1px solid #1e2940; padding: 1px 6px;
+    border-radius: 5px; margin-left: 2px; }
   /* Learner profile chips */
   .lstats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .lstat { background: #0c1322; border: 1px solid #233152; border-radius: 999px;
@@ -1322,11 +1325,11 @@ function trace(phaseClass, label, title, contentHTML) {
     document.getElementById("trace").appendChild(card);
   });
 }
-function traceSection(phaseName, text) {
+function traceSection(phaseName, text, agent) {
   _railFollow(() => {
     const sec = document.createElement("div");
     sec.className = "trace-sec phase-" + phaseName;
-    sec.textContent = text;
+    sec.innerHTML = esc(text) + (agent ? `<span class="sec-agent">${esc(agent)}()</span>` : "");
     document.getElementById("trace").appendChild(sec);
   });
 }
@@ -1427,9 +1430,15 @@ function dispatch(event, p) {
       plan: "📋 designing your lesson plan",
       generate: "✍️ writing your lesson",
     };
+    const PHASE_AGENT = {
+      load_graph: "extract_learning_graph",
+      assess: "diagnose_learner",
+      plan: "plan_workflow",
+      generate: "generate_artifact",
+    };
     journeyPhase(p.name);
     traceSection(p.name === "load_graph" ? "assess" : p.name,
-      PHASE_TITLES[p.name] || p.name);
+      PHASE_TITLES[p.name] || p.name, PHASE_AGENT[p.name]);
     return;
   }
   if (event === "thinking") {
