@@ -229,7 +229,7 @@ The image honours `$PORT` if the platform sets one (Railway, Heroku), else serve
 
 ### Deploying the public demo
 
-[`DEPLOY.md`](DEPLOY.md) is a Railway checklist (portable to any container host). The server ships with deployment guards, all env-driven so the same image runs open locally or gated in production ([`src/server/guards.py`](src/server/guards.py)):
+[`DEPLOY.md`](DEPLOY.md) is a Fly.io checklist (portable to any container host). The server ships with deployment guards, all env-driven so the same image runs open locally or gated in production ([`src/server/guards.py`](src/server/guards.py)):
 
 - **Access gate** — set `DEMO_TOKEN` and session endpoints require an `X-Demo-Token` header (401 otherwise); `/health` and `/visual` stay open.
 - **Budget caps** — a per-session USD cap terminates a session gracefully when crossed, and a persisted daily global cap flips session endpoints to a "budget exhausted for today" response (the counter is JSON on disk, so restarts don't reset the day). Spend is metered live in [`src/harness/cost.py`](src/harness/cost.py) and echoed in every session response.
