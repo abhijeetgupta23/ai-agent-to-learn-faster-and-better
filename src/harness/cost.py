@@ -27,7 +27,9 @@ from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 
-# $/1M tokens. Cache reads are billed at 10% of input (Anthropic prompt caching).
+# $/1M tokens. With Anthropic prompt caching, a cache WRITE costs 1.25x base
+# input (5-min TTL) and a cache READ costs 0.10x. We price both so a cached run
+# is measured honestly — the write premium is real spend, not a free lunch.
 PRICING: dict[str, dict[str, float]] = {
     "claude-opus-4-8": {"in": 5.00, "out": 25.00},
     "claude-sonnet-4-6": {"in": 3.00, "out": 15.00},
@@ -47,7 +49,13 @@ def usd_for(usage: dict, model: str) -> float:
     inp = usage.get("input_tokens", 0)
     out = usage.get("output_tokens", 0)
     cache_read = usage.get("cache_read_input_tokens", 0)
-    return (inp / 1e6) * p["in"] + (out / 1e6) * p["out"] + (cache_read / 1e6) * p["in"] * 0.10
+    cache_write = usage.get("cache_creation_input_tokens", 0)
+    return (
+        (inp / 1e6) * p["in"]
+        + (out / 1e6) * p["out"]
+        + (cache_read / 1e6) * p["in"] * 0.10
+        + (cache_write / 1e6) * p["in"] * 1.25
+    )
 
 
 class CostMeter:

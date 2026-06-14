@@ -114,11 +114,16 @@ def _generate(*, model: str, max_tokens: int, system: str, user: str) -> tuple[s
 
 def _generate_anthropic(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
     sink = _thinking_sink.get()
+    # Cache the system block: it's constant across every call with this label
+    # (e.g. all six diagnose calls share one system prompt), so from the second
+    # call inside the 5-min window onward the prefix is a cache read at 0.10x.
+    # Below the model's min cacheable length the breakpoint is simply ignored.
+    system_blocks = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
     with get_client().messages.stream(
         model=model,
         max_tokens=max_tokens,
         thinking=_THINKING,
-        system=system,
+        system=system_blocks,
         messages=[{"role": "user", "content": user}],
     ) as stream:
         for event in stream:
@@ -233,7 +238,8 @@ def _usage_dict(response) -> dict:
     return {
         "input_tokens": getattr(u, "input_tokens", 0),
         "output_tokens": getattr(u, "output_tokens", 0),
-        "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0),
+        "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0) or 0,
+        "cache_creation_input_tokens": getattr(u, "cache_creation_input_tokens", 0) or 0,
     }
 
 

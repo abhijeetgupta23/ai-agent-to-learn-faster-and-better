@@ -19,3 +19,5 @@ package-lock.json
 
 # eval comparison run log
 compare_run.log
+smoke_cache.log
+compare_run*.log

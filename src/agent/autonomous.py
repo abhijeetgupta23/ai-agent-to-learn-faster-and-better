@@ -189,7 +189,8 @@ def _usage(response) -> dict:
     return {
         "input_tokens": getattr(u, "input_tokens", 0),
         "output_tokens": getattr(u, "output_tokens", 0),
-        "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0),
+        "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0) or 0,
+        "cache_creation_input_tokens": getattr(u, "cache_creation_input_tokens", 0) or 0,
     }
 
 
@@ -276,6 +277,36 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
     raise ValueError(f"Unknown tool: {name}")
 
 
+# System prompt as a cached block. Request order is tools -> system -> messages,
+# so a breakpoint here caches the static tools+system prefix (re-read on every
+# loop iteration after the first), and a second breakpoint on the last message
+# (see _prime_cache) caches the growing conversation incrementally. Together they
+# turn the orchestrator's biggest cost — re-sending a long repeated prefix ~N
+# times per turn — into cache reads at 0.10x.
+_SYSTEM_BLOCKS = [{"type": "text", "text": AGENT_SYSTEM, "cache_control": {"type": "ephemeral"}}]
+
+
+def _prime_cache(messages: list) -> list:
+    """Return a copy of `messages` with one cache breakpoint on the last block of
+    the last message. The stored history stays clean (no accumulating
+    breakpoints); the breakpoint moves forward each turn for incremental caching.
+    User turns here are always str or list-of-dict content, so no SDK block
+    objects are mutated."""
+    if not messages:
+        return messages
+    out = list(messages)
+    last = dict(out[-1])
+    content = last.get("content")
+    if isinstance(content, str):
+        last["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
+    elif isinstance(content, list) and content and isinstance(content[-1], dict):
+        last["content"] = content[:-1] + [{**content[-1], "cache_control": {"type": "ephemeral"}}]
+    else:
+        return messages  # nothing safe to mark — skip rather than inject content
+    out[-1] = last
+    return out
+
+
 def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], None]) -> str:
     """
     One learner-visible turn: append the user message, then let the model run
@@ -298,9 +329,9 @@ def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], N
                 model=AGENT_MODEL,
                 max_tokens=6000,
                 thinking=_THINKING,
-                system=AGENT_SYSTEM,
+                system=_SYSTEM_BLOCKS,
                 tools=TOOL_SCHEMAS,
-                messages=messages,
+                messages=_prime_cache(messages),
             ) as s:
                 for event in s:
                     if sink is None or event.type != "content_block_delta":
