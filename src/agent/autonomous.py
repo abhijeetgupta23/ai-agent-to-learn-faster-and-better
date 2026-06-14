@@ -39,17 +39,38 @@ AGENT_SYSTEM = """\
 You are an autonomous adaptive-tutor agent. Goal: move this learner toward
 mastery of the subject as fast as possible, one lesson at a time.
 
-You own the loop. There is no fixed pipeline — YOU decide which tools to call,
-in what order, and when to stop. Guidance, not rules:
+You own the loop — YOU decide which tools to call, in what order, and when to
+stop. But owning the loop means owning the RIGOR, not skipping it. On a fresh
+session a strong turn is almost always: `diagnose` → `plan_lessons` → `teach`
+the key step → end your turn.
 
-- Fresh session: usually diagnose first, optionally plan, then teach exactly
-  ONE lesson and end your turn.
-- When given the learner's answer: record_observation FIRST, then decide —
+- Fresh session: ALWAYS `diagnose` first. You need the GapEstimate (target
+  concept + suggested difficulty) before you can teach or plan well — don't
+  teach from your gut. Then call `plan_lessons`: it authors a 3-5 step sequence
+  and, crucially, reasons out the MODALITY and pedagogy principle per step from
+  learner state. Skip it only when the right concept AND modality are truly
+  unambiguous. Then `teach` the plan's key step IN THE MODALITY THE PLAN CHOSE.
+- When given the learner's answer: `record_observation` FIRST, then decide —
   advance to the next concept, re-teach the same one differently, backfill a
   prerequisite (re-diagnose if unsure), or declare the session complete if
   mastery has been reached.
 - Teach AT MOST ONE artifact per turn. After a successful `teach`, end your
   turn with one or two sentences to the learner about what you chose and why.
+
+MODALITY ROUTING is the central adaptive decision — choose the medium from the
+learner's STATE, never a default:
+  - 'socratic' when the learner is STRUGGLING with the target concept (it is in
+    struggling_concepts), or the concept harbors common misconceptions —
+    dialogue surfaces the error that re-reading hides.
+  - 'interactive' (quiz / scenario / problem set) for a procedural skill the
+    learner has already seen once and needs to PRACTICE — retrieval beats
+    re-reading (desirable difficulty).
+  - 'reading' for NEW conceptual material the learner hasn't met, especially
+    when their modality_preference is reading.
+  A struggling learner getting more reading, or a brand-new concept opened with
+  socratic, is the classic WRONG call. modality_preference is a tie-breaker,
+  not an override — demonstrated struggle outranks stated preference.
+
 - Don't call tools you don't need. Don't re-teach a concept the same way that
   already failed twice — change modality or back up the prerequisite chain.
 - The subject map and learner profile arrive in the conversation; trust them.
@@ -61,8 +82,9 @@ TOOL_SCHEMAS: list[dict] = [
         "description": (
             "Estimate the learner's most valuable next concept from their profile "
             "and the subject map. Returns a GapEstimate (target concept, suggested "
-            "difficulty, confidence, rationale). Call when you're unsure what to "
-            "teach next or the learner's state changed materially."
+            "difficulty, confidence, rationale). ALWAYS call this first on a fresh "
+            "session, and again whenever the learner's state has changed materially "
+            "— you need the gap before you can teach or plan well."
         ),
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
@@ -70,9 +92,12 @@ TOOL_SCHEMAS: list[dict] = [
         "name": "plan_lessons",
         "description": (
             "Author a 3-5 step teaching workflow for the most recent diagnosis "
-            "(requires a prior `diagnose` this session). Returns the workflow with "
-            "modality and pedagogy principle per step. Optional — you may teach "
-            "directly from a diagnosis when one step is obviously right."
+            "(requires a prior `diagnose` this session). This is where the MODALITY "
+            "and pedagogy principle are chosen with rigor, per step, from learner "
+            "state — the most important adaptive decision. Strongly preferred over "
+            "teaching straight from a diagnosis; skip it only when the correct "
+            "concept AND modality are truly unambiguous. Returns the workflow — then "
+            "`teach` its key step in the modality it selected."
         ),
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
@@ -87,7 +112,17 @@ TOOL_SCHEMAS: list[dict] = [
             "type": "object",
             "properties": {
                 "concept_id": {"type": "string", "description": "Concept id from the subject map."},
-                "modality": {"type": "string", "enum": ["reading", "interactive", "socratic"]},
+                "modality": {
+                    "type": "string",
+                    "enum": ["reading", "interactive", "socratic"],
+                    "description": (
+                        "Pick from learner state, not a default: 'socratic' for a "
+                        "STRUGGLING concept or one with common misconceptions; "
+                        "'interactive' to PRACTICE a procedural skill seen once; "
+                        "'reading' for NEW conceptual material. Struggle outranks "
+                        "stated modality_preference."
+                    ),
+                },
                 "objective": {"type": "string", "description": "What this lesson should achieve."},
                 "pedagogy_principle": {
                     "type": "string",
@@ -154,7 +189,8 @@ def _usage(response) -> dict:
     return {
         "input_tokens": getattr(u, "input_tokens", 0),
         "output_tokens": getattr(u, "output_tokens", 0),
-        "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0),
+        "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0) or 0,
+        "cache_creation_input_tokens": getattr(u, "cache_creation_input_tokens", 0) or 0,
     }
 
 
@@ -241,6 +277,36 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
     raise ValueError(f"Unknown tool: {name}")
 
 
+# System prompt as a cached block. Request order is tools -> system -> messages,
+# so a breakpoint here caches the static tools+system prefix (re-read on every
+# loop iteration after the first), and a second breakpoint on the last message
+# (see _prime_cache) caches the growing conversation incrementally. Together they
+# turn the orchestrator's biggest cost — re-sending a long repeated prefix ~N
+# times per turn — into cache reads at 0.10x.
+_SYSTEM_BLOCKS = [{"type": "text", "text": AGENT_SYSTEM, "cache_control": {"type": "ephemeral"}}]
+
+
+def _prime_cache(messages: list) -> list:
+    """Return a copy of `messages` with one cache breakpoint on the last block of
+    the last message. The stored history stays clean (no accumulating
+    breakpoints); the breakpoint moves forward each turn for incremental caching.
+    User turns here are always str or list-of-dict content, so no SDK block
+    objects are mutated."""
+    if not messages:
+        return messages
+    out = list(messages)
+    last = dict(out[-1])
+    content = last.get("content")
+    if isinstance(content, str):
+        last["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
+    elif isinstance(content, list) and content and isinstance(content[-1], dict):
+        last["content"] = content[:-1] + [{**content[-1], "cache_control": {"type": "ephemeral"}}]
+    else:
+        return messages  # nothing safe to mark — skip rather than inject content
+    out[-1] = last
+    return out
+
+
 def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], None]) -> str:
     """
     One learner-visible turn: append the user message, then let the model run
@@ -263,9 +329,9 @@ def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], N
                 model=AGENT_MODEL,
                 max_tokens=6000,
                 thinking=_THINKING,
-                system=AGENT_SYSTEM,
+                system=_SYSTEM_BLOCKS,
                 tools=TOOL_SCHEMAS,
-                messages=messages,
+                messages=_prime_cache(messages),
             ) as s:
                 for event in s:
                     if sink is None or event.type != "content_block_delta":

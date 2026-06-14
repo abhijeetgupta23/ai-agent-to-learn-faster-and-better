@@ -16,3 +16,8 @@ package.json
 package-lock.json
 *.swp
 .DS_Store
+
+# eval comparison run log
+compare_run.log
+smoke_cache.log
+compare_run*.log
