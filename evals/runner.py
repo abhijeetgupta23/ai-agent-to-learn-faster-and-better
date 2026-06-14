@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from evals.judges import (
@@ -22,8 +23,17 @@ from evals.judges import (
     judge_modality_fit,
 )
 from src.graph.extractor import extract_learning_graph
+from src.harness import cost
 from src.memory.store import MemoryStore
-from src.schemas import EvalCase, EvalResult, LearningGraph, WorkflowStep
+from src.schemas import (
+    EvalCase,
+    EvalResult,
+    GapEstimate,
+    LearningGraph,
+    Modality,
+    Workflow,
+    WorkflowStep,
+)
 from src.tools import diagnose_learner, generate_artifact, plan_workflow
 from src.trace import trace
 
@@ -62,36 +72,101 @@ def _load_graph(domain_id: str, store: MemoryStore) -> LearningGraph:
     )
 
 
-def run_case(case: EvalCase, store: MemoryStore, trace_dir: Path | None = None) -> EvalResult:
-    graph = _load_graph(case.domain_id, store)
+@dataclass
+class WorkflowCapture:
+    """What the WORKFLOW-mode pipeline exposed to the eval surfaces, mirroring
+    AutonomousCapture so the head-to-head driver treats both modes uniformly."""
 
+    case_id: str
+    gap: GapEstimate
+    workflow: Workflow
+    artifact_type: str
+    cost_usd: float = 0.0
+    # The fixed pipeline runs three tools per case: diagnose, plan, generate.
+    tool_calls: int = 3
+    tool_sequence: list[str] = field(default_factory=lambda: ["diagnose", "plan_lessons", "teach"])
+
+
+def run_workflow_case(
+    case: EvalCase, graph: LearningGraph, store: MemoryStore, trace_dir: Path | None = None
+) -> WorkflowCapture:
+    """Run the fixed diagnose -> plan -> generate pipeline and capture the
+    judge-facing artifacts plus cost. Judges are NOT run here (the caller scores)
+    so judge spend is never charged to the mode."""
     with trace(case.case_id) as tracer:
-        gap = diagnose_learner(case.learner_model, graph)
-        workflow = plan_workflow(gap, case.learner_model, graph)
+        # Meter ONLY the system-under-test calls. Judge calls happen in the
+        # caller, outside this meter — same discipline as autonomous mode.
+        with cost.meter() as meter:
+            gap = diagnose_learner(case.learner_model, graph)
+            workflow = plan_workflow(gap, case.learner_model, graph)
 
-        # Generate the first step's artifact — enough to record the artifact type
-        # (the modality is what we score).
-        first_step: WorkflowStep = workflow.steps[0]
-        concept = graph.node_by_id(first_step.concept_id)
-        artifact = generate_artifact(first_step, concept, case.learner_model)
-
-        judges = [
-            judge_gap_to_pedagogy(gap, workflow, graph),
-            judge_modality_fit(workflow, case.learner_model, gap.target_concept_id),
-            judge_adaptive_progression(
-                gap, case.learner_model, case.expected_difficulty_band
-            ),
-        ]
+            # Generate the first step's artifact — enough to record the artifact
+            # type (the modality is what we score).
+            first_step: WorkflowStep = workflow.steps[0]
+            concept = graph.node_by_id(first_step.concept_id)
+            artifact = generate_artifact(first_step, concept, case.learner_model)
 
     if trace_dir is not None:
         trace_dir.mkdir(parents=True, exist_ok=True)
         tracer.save_json(trace_dir / f"{case.case_id}.json")
         (trace_dir / f"{case.case_id}.md").write_text(tracer.render_markdown())
 
-    return EvalResult(
+    return WorkflowCapture(
         case_id=case.case_id,
+        gap=gap,
         workflow=workflow,
         artifact_type=artifact.type,
+        cost_usd=meter.total_usd,
+    )
+
+
+def _placeholder_workflow(gap: GapEstimate | None) -> Workflow:
+    """Container Workflow for an autonomous turn that taught nothing — the judges
+    have already recorded the miss; this only fills EvalResult.workflow."""
+    return Workflow(
+        target_concept_id=(gap.target_concept_id if gap else "none"),
+        modality=Modality.READING,
+        steps=[],
+        rationale="[no lesson taught this turn]",
+    )
+
+
+def run_case(
+    case: EvalCase,
+    store: MemoryStore,
+    trace_dir: Path | None = None,
+    mode: str = "workflow",
+) -> EvalResult:
+    """Score one golden case in `mode` ('workflow' or 'autonomous') with the
+    SAME three pinned judges. Autonomous mode is judged on the lesson it actually
+    taught (the `teach` call, surface B)."""
+    graph = _load_graph(case.domain_id, store)
+
+    if mode == "autonomous":
+        # Imported lazily so the default workflow path has no autonomous deps.
+        from evals.autonomous_eval import run_autonomous_case, score_with_judges
+
+        cap = run_autonomous_case(case, graph, store)
+        judges = score_with_judges(cap.gap, cap.teach_workflow, case, graph)
+        return EvalResult(
+            case_id=case.case_id,
+            workflow=cap.teach_workflow or _placeholder_workflow(cap.gap),
+            artifact_type=cap.artifact_type or "none",
+            judge_results=judges,
+        )
+
+    wf = run_workflow_case(case, graph, store, trace_dir=trace_dir)
+    judges = [
+        judge_gap_to_pedagogy(wf.gap, wf.workflow, graph),
+        judge_modality_fit(wf.workflow, case.learner_model, wf.gap.target_concept_id),
+        judge_adaptive_progression(
+            wf.gap, case.learner_model, case.expected_difficulty_band
+        ),
+    ]
+    return EvalResult(
+        case_id=case.case_id,
+        workflow=wf.workflow,
+        artifact_type=wf.artifact_type,
         judge_results=judges,
     )
 
@@ -142,20 +217,28 @@ def main() -> int:
         help="Write a full per-case reasoning trace (prompt + thinking + output) "
         "to this directory.",
     )
+    ap.add_argument(
+        "--mode",
+        choices=["workflow", "autonomous"],
+        default="workflow",
+        help="Orchestration mode to score with the same three judges. "
+        "'workflow' = fixed diagnose->plan->generate pipeline (default, baseline). "
+        "'autonomous' = model-owned tool loop, judged on the lesson it taught.",
+    )
     args = ap.parse_args()
 
     cases = load_cases()
     if not cases:
         print("No golden cases found in evals/golden/", file=sys.stderr)
         return 1
-    print(f"Running {len(cases)} eval cases...", file=sys.stderr)
+    print(f"Running {len(cases)} eval cases in '{args.mode}' mode...", file=sys.stderr)
 
     store = MemoryStore()
     results = []
     for case in cases:
         print(f"  [{case.case_id}] ...", file=sys.stderr)
         try:
-            results.append(run_case(case, store, trace_dir=args.trace))
+            results.append(run_case(case, store, trace_dir=args.trace, mode=args.mode))
         except Exception as e:
             print(f"  [{case.case_id}] FAILED with {type(e).__name__}: {e}", file=sys.stderr)
             raise
