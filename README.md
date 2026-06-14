@@ -6,7 +6,7 @@
 
 ![demo](docs/assets/demo.gif)
 
-*A real teaching session streamed live over SSE at `/visual` — graph load → gap diagnosis → workflow plan → generated artifact. 2× speed.*
+*A real teaching session streamed live over SSE at `/visual` — graph load → gap diagnosis → lesson plan → generated artifact. 2× speed.*
 
 > Evaluation and reliability infrastructure for production AI agents, applied to adaptive pedagogy. The eval harness is the headline.
 
@@ -39,52 +39,14 @@ This repo is a public reference implementation that demonstrates four hard thing
 
 1. **Learning graph generated from source material** (not hand-curated) via LLM parsing, with named pedagogy metadata on every node and edge.
 2. **Modality adaptation** — the agent personalizes the *medium* (reading / interactive / Socratic), not just content. This is the differentiator vs. existing edtech (Squirrel AI, Khanmigo, Adaptemy), which are mostly rules-based routing or pure dialogue.
-3. **Agentic workflow generation** — the LLM authors a 3-5 step teaching sequence on the fly from learner state, then executes it.
+3. **Agentic orchestration** — the model owns the tool loop, authoring each lesson (concept, modality, pedagogy) from learner state and deciding which tool to call and when to stop.
 4. **Eval harness with rationale per judge** — auditable proof that the adaptive decisions were correct.
 
 ---
 
 ## Architecture
 
-The agent generates a workflow on the fly from learner state, executes it, observes, then regenerates. The workflow is the output of an agentic decision, not a fixed chain.
-
-![Architecture: the 5-tool loop](docs/assets/architecture.png)
-
-<details>
-<summary>Mermaid source</summary>
-
-```mermaid
-flowchart LR
-    L["LearnerModel<br/>(mastered, struggling,<br/>modality pref, difficulty)"]
-    G["LearningGraph<br/>(nodes + edges<br/>+ pedagogy metadata)"]
-
-    L --> A["1 ASSESS<br/>diagnose_learner"]
-    G --> A
-    A -- GapEstimate --> P["2 PLAN<br/>plan_workflow"]
-    G --> P
-    L --> P
-    P -- "Workflow (3-5 steps + modality)" --> GEN["3 GENERATE<br/>generate_artifact"]
-    GEN -- "Artifact (reading / interactive / socratic)" --> O["4 OBSERVE<br/>learner response"]
-    O -- SessionTurn --> AD["5 ADAPT<br/>update_learner_model"]
-    AD -- "updated LearnerModel" --> A
-
-    style A fill:#e3f2fd,stroke:#1976d2
-    style P fill:#fff3e0,stroke:#f57c00
-    style GEN fill:#e8f5e9,stroke:#388e3c
-    style O fill:#fce4ec,stroke:#c2185b
-    style AD fill:#f3e5f5,stroke:#7b1fa2
-```
-
-</details>
-
-**The agentic decision is concentrated in step 2 (PLAN).** The LLM authors the step sequence, picks the modality, and cites a pedagogy principle per step — all from learner state. Steps 1, 3, 5 are deterministic plumbing; step 4 is the human.
-
-### Autonomous mode — same tools, different driver
-
-The diagram above is **workflow mode**: code owns the loop and chains the tools in a fixed order; the LLM fills in the decisions inside `plan_workflow`. **Autonomous mode** ([`src/agent/autonomous.py`](src/agent/autonomous.py)) keeps the same capabilities but hands the loop to the model: the five tools are exposed via the Anthropic `tools=` API, and Claude decides which to call, in what order, and when to stop — inside the same cost meter and a per-turn tool budget. Same tools, same judges; the *driver* moves from code to model.
-
-<details>
-<summary>Mermaid source — autonomous mode</summary>
+**The model owns the loop.** The five tools are exposed via the Anthropic `tools=` API ([`src/agent/autonomous.py`](src/agent/autonomous.py)); Claude decides which to call, in what order, and when to stop — typically `diagnose` the learner, `plan_lessons` to choose modality and sequence, then `teach` one artifact and end the turn — bounded by a per-turn tool budget and metered by a shared cost meter. The orchestration is an agentic decision, not a fixed chain.
 
 ```mermaid
 flowchart LR
@@ -102,10 +64,10 @@ flowchart LR
 
     M ==>|"tool call · Anthropic tools API boundary"| TOOLS
 
-    subgraph TOOLS["5 tools — same capabilities as workflow mode"]
+    subgraph TOOLS["5 tools the model can call"]
         direction TB
         T1["diagnose -> GapEstimate"]
-        T2["plan_lessons -> Workflow<br/>(optional)"]
+        T2["plan_lessons -> Workflow"]
         T3["teach -> Artifact<br/>(max 1 per turn, reaches learner)"]
         T4["record_observation -> LearnerModel"]
         T5["view_learner -> LearnerModel"]
@@ -115,7 +77,7 @@ flowchart LR
 
     T1 -. "GapEstimate" .-> J
     T3 -. "teach call =&gt; synthesized Workflow" .-> J
-    subgraph J["judges observe (pinned, identical to workflow mode)"]
+    subgraph J["judges observe (pinned)"]
         direction TB
         J1["gap_to_pedagogy"]
         J2["modality_fit"]
@@ -129,17 +91,15 @@ flowchart LR
     style J fill:#f3e5f5,stroke:#7b1fa2
 ```
 
-</details>
+**How to read it.** There is no code-sequenced pipeline — the model re-enters the same `Claude` box after every tool result and chooses the next call itself, bounded only by the 6-call budget. Five tools are available: `diagnose`, `plan_lessons`, `teach`, plus `record_observation` and `view_learner` for multi-turn sessions. The decisions are data-dependent and therefore sequential — `plan_lessons` needs the gap, `teach` needs the plan — so a fresh session settles into `diagnose → plan_lessons → teach` in four loop turns (three tool calls + one closing text turn). The eval judges observe two points: the **diagnosis** (`GapEstimate`) and the **lesson decision** (the `teach` call, read as a `Workflow`).
 
-**Read the two diagrams side by side.** Workflow mode's boxes are numbered 1→5 because *code* sequences them. Autonomous mode has no numbers: the model re-enters the same `Claude` box after every tool result and chooses the next call itself, bounded only by the 6-call budget. The five tools are the same capabilities (`diagnose`, `plan_lessons`, `teach`, plus `record_observation` and `view_learner` for multi-turn sessions); the difference is who holds the loop. The judges sit in the same place in both: they read the **diagnosis** (`GapEstimate`) and the **lesson decision** — `plan_workflow`'s output in workflow mode, the `teach` call (synthesized into a `Workflow`) in autonomous mode.
-
-> **Not a black box.** Every LLM call records its prompt, the model's *summarized reasoning*, and the parsed output. Run `python run_evals.py --trace docs/traces` and read the generated `.md` files to watch the agent reason through each decision. [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) walks the whole pipeline call-by-call against a real captured trace.
+> **Not a black box.** Every LLM call records its prompt, the model's *summarized reasoning*, and the parsed output ([`src/trace.py`](src/trace.py)); the agent's thinking also streams live over SSE as it decides. [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) walks the decisions call-by-call against a real captured trace.
 
 > **See it run live.** [`docs/VISUAL_WALKTHROUGH.md`](docs/VISUAL_WALKTHROUGH.md) is a phase-by-phase visual: six screenshots from a real session, captured by Playwright driving the live SSE stream. The page that produced them is [`docs/visual/index.html`](docs/visual/index.html) — a single static file served by FastAPI at `/visual`, no build step.
 
 ### Stack
 
-- **Orchestration:** two modes on one shared harness. **Workflow mode** (default): the LLM authors the lesson plan; executor code chains the five tools (§6 below) as native Python functions. **Autonomous mode** (`?mode=agent`): the same tools exposed via the Anthropic tools API — the model owns the loop, deciding which tool to call, in what order, and when to stop, inside the same budgets and cost meter. Chart generation additionally uses Anthropic's code-execution sandbox: the model writes and runs matplotlib; no code executes on our infrastructure.
+- **Orchestration:** an autonomous agent — the five tools (§6 below) exposed via the Anthropic tools API, with the model owning the loop: it decides which tool to call, in what order, and when to stop, inside a per-turn tool budget and a shared cost meter. Prompt caching is on for the orchestrator's repeated prefix. Chart generation additionally uses Anthropic's code-execution sandbox: the model writes and runs matplotlib; no code executes on our infrastructure.
 - **LLM:** Claude `claude-sonnet-4-6` by default (eval-validated; override via `ADAPTIVE_LEARNING_MODEL`) with adaptive thinking. (An open-model branch is planned — see *Roadmap*.)
 - **Memory / persistence:** file-backed JSON store, lookup by ID. The interface is shaped so a real vector store (Chroma, FAISS, pgvector) is a one-file swap.
 - **I/O:** Pydantic-validated everywhere — every tool returns a typed model; the agent fails fast on malformed LLM output.
@@ -147,13 +107,13 @@ flowchart LR
 
 ### Tools (§6)
 
-Five tools, each returning a Pydantic model:
+Typed capabilities, each returning a Pydantic model. The agent calls them as tools (`diagnose`, `plan_lessons`, `teach`, `record_observation`, `view_learner`); they wrap these underlying functions:
 
 1. `extract_learning_graph(source) → LearningGraph` — parse paper/URL/file into nodes + edges with pedagogy metadata. Checks the graph cache first; generates + caches on miss.
-2. `diagnose_learner(learner_state, graph) → GapEstimate` — produce a structured gap estimate.
-3. `plan_workflow(gap, learner_model, graph) → Workflow` — author the multi-step teaching sequence + choose modality.
-4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic) in the chosen modality.
-5. `update_learner_model(response, learner_model) → LearnerModel` — persist the adaptation.
+2. `diagnose_learner(learner_state, graph) → GapEstimate` — produce a structured gap estimate. *(tool: `diagnose`)*
+3. `plan_workflow(gap, learner_model, graph) → Workflow` — author the multi-step teaching sequence + choose modality. *(tool: `plan_lessons`)*
+4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic) in the chosen modality. *(tool: `teach`)*
+5. `update_learner_model(response, learner_model) → LearnerModel` — persist the adaptation. *(tool: `record_observation`)*
 
 ### Agent memory
 
@@ -238,7 +198,7 @@ The graph extractor's pedagogy metadata is grounded in named principles, cited i
 
 ## Eval harness — the headline
 
-Three judges are the fixed measuring stick — they score the two decision artifacts (the diagnosed `GapEstimate` and the lesson `Workflow`) and are **identical across both orchestration modes**, so workflow and autonomous can be compared head-to-head on equal footing (see [Head-to-head](#head-to-head-workflow-vs-autonomous-measured) below). Each returns `{score, rationale}`:
+Three judges are the fixed measuring stick — they score the agent's two decision artifacts (the diagnosed `GapEstimate` and the lesson it teaches, read as a `Workflow`), each returning `{score, rationale}`:
 
 | Judge | What it checks |
 |---|---|
@@ -269,38 +229,29 @@ A case **passes** when all three judges score ≥ 0.6. Verbose mode prints the p
 
 Add `--trace docs/traces` to capture a full reasoning trace per case (prompt + the model's summarized thinking + parsed output), written as readable `.md` and machine-readable `.json`. Two example traces are checked in under [`docs/traces/`](docs/traces/).
 
-The runner takes `--mode {workflow,autonomous}`, so the **same** judges score either architecture:
+### How the agent earned this score
 
-```bash
-python run_evals.py --mode workflow    --verbose   # fixed pipeline (default, baseline)
-python run_evals.py --mode autonomous  --verbose   # model-owned tool loop
-```
+The agent's quality wasn't asserted — it was measured against a deterministic **fixed-pipeline baseline** (`diagnose → plan → generate`, code-sequenced) that is now retired from the product but kept as a yardstick. `python run_compare.py` runs both on all six cases through the same judges and regenerates [`evals/results_comparison.md`](evals/results_comparison.md) (full per-case rationales) and [`evals/results_comparison.json`](evals/results_comparison.json) (raw). The agent is scored on the lesson it actually delivered (the `teach` call, read as a `Workflow`).
 
-### Head-to-head: workflow vs autonomous (measured)
+Latest run — `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, pass = all three judges ≥ 0.60:
 
-Two architectures, one harness, the same three judges — run head-to-head on all six cases and let the data decide. `python run_compare.py` regenerates [`evals/results_comparison.md`](evals/results_comparison.md) (full per-case, per-judge rationales) and [`evals/results_comparison.json`](evals/results_comparison.json) (raw). Autonomous mode is scored two honest ways from a single kickoff turn: **teach (B)** = the lesson the model actually delivered (its true peer of the workflow plan), and **plan (A)** = its `plan_lessons` call.
-
-Latest run — system under test `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, pass = all three judges ≥ 0.60:
-
-| Metric | Workflow (baseline) | Autonomous — teach (B) | Autonomous — plan (A) |
-|--------|---------:|----------------:|---------------:|
-| **Pass rate** | **100% (6/6)** | **100% (6/6)** | 100% (6/6) |
-| mean gap_to_pedagogy | 0.90 | 0.87 | 0.85 |
-| mean modality_fit | 0.90 | 0.90 | 0.95 |
-| mean adaptive_progression | 1.00 | 1.00 | 1.00 |
-| **mean overall score** | **0.93** | **0.92** | 0.93 |
-| mean cost / case (USD) | 0.096 | 0.216 | *(same run as teach)* |
-| mean tool calls / case | 3.0 | 3.0 | *(same run as teach)* |
+| Metric | **Agent** (the product) | Fixed-pipeline baseline (retired) |
+|--------|---------:|----------------:|
+| **Pass rate** | **100% (6/6)** | 100% (6/6) |
+| mean gap_to_pedagogy | 0.87 | 0.90 |
+| mean modality_fit | 0.90 | 0.90 |
+| mean adaptive_progression | 1.00 | 1.00 |
+| **mean overall score** | **0.92** | 0.93 |
+| mean cost / case (USD) | 0.216 | 0.096 |
+| mean loop turns / case | 4 | n/a (no loop) |
 
 **What the data says — measured, not asserted:**
 
-- **Dead heat on decision quality: 6/6 vs 6/6, mean 0.93 vs 0.92.** On these six cases, under Opus 4.8, the two architectures reach equally good decisions. The remaining gap is *cost*, not correctness (below).
-- **This took a fix, and the eval is what earned it.** The first run had autonomous at **3/6 (mean 0.72)**: it skipped `diagnose` on `case_02` (no gap → unscorable), taught *reading* for a struggling concept on `case_04`, and *socratic* for brand-new material on `case_05`. The cause was the autonomous *orchestrator prompt*, not the architecture — it discouraged `plan_lessons` and never stated the modality-routing rules. Fixing that prompt (firm "always diagnose," `plan_lessons` strongly preferred, routing principles inlined) — and **changing nothing about the judges** — moved autonomous to 6/6. That is the eval working as designed: it caught a weak agent, and the same untouched measuring stick confirmed the repair.
-- **The agent now plans every case.** Autonomous runs `diagnose → plan_lessons → teach` on all six (plan surface A went 0/6 → 6/6, and A's `modality_fit` of 0.95 is the single best dimension in the table). The modality misjudgments are gone — `modality_fit` rose 0.55 → 0.90, matching workflow.
-- **The honest cost of autonomy: ~2.25× per case** ($0.216 vs $0.096). Same three tool calls as the pipeline, but the model *also* pays for its own per-turn orchestration reasoning (deciding what to call next, with thinking) on top of the tool-internal calls. Autonomous now reaches the same decisions; it spends more tokens getting there.
-- **One disclosed asymmetry, now visible in the data:** the synthesized teach-Workflow (B) has a single step, while plans have 3–5, and `gap_to_pedagogy` rewards "all steps stay on target." With the agent now planning, you can see it directly — the real multi-step plan (A, 0.85) scores *below* the 1-step teach (B, 0.87) on that judge, because longer plans get docked for interleaving drift. We disclose this rather than pad fake steps (which would corrupt the measuring stick).
+- **The agent matches the deterministic baseline on decision quality: 6/6, mean 0.92 vs 0.93** — a dead heat on these six cases under Opus 4.8. Letting the model own the loop costs nothing in correctness.
+- **It took a fix, and the eval is what caught it.** An earlier agent prompt scored only **3/6 (mean 0.72)**: it skipped `diagnose` on `case_02` (no gap → unscorable), taught *reading* for a struggling concept on `case_04`, and *socratic* for brand-new material on `case_05`. The cause was the orchestrator prompt — it discouraged `plan_lessons` and never stated the modality-routing rules. Fixing the prompt (firm "always diagnose," `plan_lessons` strongly preferred, routing principles inlined) — and **changing nothing about the judges** — moved the agent to 6/6. The same untouched measuring stick scored 3/6 before and 6/6 after.
+- **The honest cost of an agent: ~2.25× per case** ($0.216 vs $0.096). The agent runs four loop turns (`diagnose → plan_lessons → teach` + a closing turn) and pays for its own per-turn orchestration reasoning on top of the tool calls. Prompt caching recovers part of the repeated-prefix input, but most of the premium is *output/thinking* tokens the loop generates — uncacheable. The agent reaches the same decisions; it spends more tokens getting there. That is the price of flexibility, stated plainly.
 
-The judges were **not** changed, tuned, or forked at any point — same functions, thresholds, and prompts as the single-mode runner; only the agent prompt was improved between runs. Workflow mode stays the documented, reproducible baseline and the cheaper default. Autonomous mode is now its equal on decision quality — at a real cost premium — and the path that got it there was earned by the eval, not asserted around it.
+The judges were **not** changed, tuned, or forked at any point — same functions, thresholds, and prompts throughout; only the agent prompt was improved between runs. The fixed pipeline remains in the repo as a reproducible baseline you can re-run any time (`python run_evals.py --mode workflow`), which is exactly why the agent's score is trustworthy: it was earned against a known-good yardstick, not graded on its own curve.
 
 ---
 

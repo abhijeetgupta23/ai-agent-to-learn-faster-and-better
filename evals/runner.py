@@ -222,10 +222,11 @@ def main() -> int:
     ap.add_argument(
         "--mode",
         choices=["workflow", "autonomous"],
-        default="workflow",
+        default="autonomous",
         help="Orchestration mode to score with the same three judges. "
-        "'workflow' = fixed diagnose->plan->generate pipeline (default, baseline). "
-        "'autonomous' = model-owned tool loop, judged on the lesson it taught.",
+        "'autonomous' = the model-owned tool loop (default, the product). "
+        "'workflow' = the retired fixed diagnose->plan->generate pipeline, kept "
+        "as a comparison baseline.",
     )
     args = ap.parse_args()
 
