@@ -44,7 +44,9 @@ DOMAINS_DIR = Path(__file__).parent.parent / "domains"
 def load_cases() -> list[EvalCase]:
     cases = []
     for path in sorted(GOLDEN_DIR.glob("*.json")):
-        cases.append(EvalCase.model_validate_json(path.read_text()))
+        # Explicit utf-8: golden descriptions use em-dashes, and Windows would
+        # otherwise decode them as cp1252 (mojibake) by default.
+        cases.append(EvalCase.model_validate_json(path.read_text(encoding="utf-8")))
     return cases
 
 
@@ -55,7 +57,7 @@ def _load_graph(domain_id: str, store: MemoryStore) -> LearningGraph:
     """
     graph_path = GOLDEN_DIR / "graphs" / f"{domain_id}.json"
     if graph_path.exists():
-        graph = LearningGraph.model_validate_json(graph_path.read_text())
+        graph = LearningGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
         store.save_graph(graph)
         return graph
 

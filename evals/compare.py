@@ -373,8 +373,8 @@ def render_markdown(data: dict) -> str:
 def main() -> int:
     print("Running head-to-head comparison (6 cases × 2 modes)...", file=sys.stderr)
     data = run_comparison()
-    OUT_JSON.write_text(json.dumps(data, indent=2))
-    OUT_MD.write_text(render_markdown(data))
+    OUT_JSON.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    OUT_MD.write_text(render_markdown(data), encoding="utf-8")
     print(f"\nWrote {OUT_MD}\nWrote {OUT_JSON}", file=sys.stderr)
 
     agg = data["aggregate"]
