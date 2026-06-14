@@ -79,6 +79,60 @@ flowchart LR
 
 **The agentic decision is concentrated in step 2 (PLAN).** The LLM authors the step sequence, picks the modality, and cites a pedagogy principle per step — all from learner state. Steps 1, 3, 5 are deterministic plumbing; step 4 is the human.
 
+### Autonomous mode — same tools, different driver
+
+The diagram above is **workflow mode**: code owns the loop and chains the tools in a fixed order; the LLM fills in the decisions inside `plan_workflow`. **Autonomous mode** ([`src/agent/autonomous.py`](src/agent/autonomous.py)) keeps the same capabilities but hands the loop to the model: the five tools are exposed via the Anthropic `tools=` API, and Claude decides which to call, in what order, and when to stop — inside the same cost meter and a per-turn tool budget. Same tools, same judges; the *driver* moves from code to model.
+
+<details>
+<summary>Mermaid source — autonomous mode</summary>
+
+```mermaid
+flowchart LR
+    K["kickoff_message<br/>(subject map +<br/>learner profile)"] --> M
+
+    subgraph LOOP["model-owned loop — run_agent_turn()"]
+        direction TB
+        M["Claude (tools= API)<br/>picks the next tool<br/>— or ends the turn"]
+        B{"per-turn budget<br/>≤ 6 tool calls<br/>(MAX_TOOL_CALLS_PER_TURN)"}
+        M -- "stop_reason = tool_use" --> B
+        B -- "under cap" --> M
+        B -- "cap hit → 'wrap up in text now'" --> F
+        M -- "stop_reason = end_turn" --> F["final text → learner"]
+    end
+
+    M == "tool call  ░░ Anthropic tools= API boundary ░░  tool_result (compact JSON)" ==> TOOLS
+
+    subgraph TOOLS["5 tools — same capabilities as workflow mode"]
+        direction TB
+        T1["diagnose → GapEstimate"]
+        T2["plan_lessons → Workflow<br/>(optional)"]
+        T3["teach → Artifact<br/>(≤ 1 per turn, reaches learner)"]
+        T4["record_observation → LearnerModel"]
+        T5["view_learner → LearnerModel"]
+    end
+
+    TOOLS -.-> M
+
+    T1 -. "GapEstimate" .-> J
+    T3 -. "teach call ⇒ synthesized Workflow" .-> J
+    subgraph J["judges observe (pinned, identical to workflow mode)"]
+        direction TB
+        J1["gap_to_pedagogy"]
+        J2["modality_fit"]
+        J3["adaptive_progression"]
+    end
+
+    style M fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff3e0,stroke:#f57c00
+    style T3 fill:#e8f5e9,stroke:#388e3c
+    style F fill:#fce4ec,stroke:#c2185b
+    style J fill:#f3e5f5,stroke:#7b1fa2
+```
+
+</details>
+
+**Read the two diagrams side by side.** Workflow mode's boxes are numbered 1→5 because *code* sequences them. Autonomous mode has no numbers: the model re-enters the same `Claude` box after every tool result and chooses the next call itself, bounded only by the 6-call budget. The five tools are the same capabilities (`diagnose`, `plan_lessons`, `teach`, plus `record_observation` and `view_learner` for multi-turn sessions); the difference is who holds the loop. The judges sit in the same place in both: they read the **diagnosis** (`GapEstimate`) and the **lesson decision** — `plan_workflow`'s output in workflow mode, the `teach` call (synthesized into a `Workflow`) in autonomous mode.
+
 > **Not a black box.** Every LLM call records its prompt, the model's *summarized reasoning*, and the parsed output. Run `python run_evals.py --trace docs/traces` and read the generated `.md` files to watch the agent reason through each decision. [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) walks the whole pipeline call-by-call against a real captured trace.
 
 > **See it run live.** [`docs/VISUAL_WALKTHROUGH.md`](docs/VISUAL_WALKTHROUGH.md) is a phase-by-phase visual: six screenshots from a real session, captured by Playwright driving the live SSE stream. The page that produced them is [`docs/visual/index.html`](docs/visual/index.html) — a single static file served by FastAPI at `/visual`, no build step.
