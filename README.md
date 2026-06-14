@@ -245,6 +245,8 @@ Latest run — `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, pass = a
 | mean cost / case (USD) | 0.216 | 0.096 |
 | mean loop turns / case | 4 | n/a (no loop) |
 
+> Cost figures are from the last complete run, which **predates the prompt-caching change** — a cached re-run is pending API credits. The one case measured with caching on dropped $0.230 → $0.203, so expect the agent to settle near **~$0.19/case**: caching recovers the repeated-prefix input, but the bulk of the premium is uncacheable output/thinking from the loop.
+
 **What the data says — measured, not asserted:**
 
 - **The agent matches the deterministic baseline on decision quality: 6/6, mean 0.92 vs 0.93** — a dead heat on these six cases under Opus 4.8. Letting the model own the loop costs nothing in correctness.
