@@ -278,31 +278,29 @@ python run_evals.py --mode autonomous  --verbose   # model-owned tool loop
 
 ### Head-to-head: workflow vs autonomous (measured)
 
-Two architectures, one harness, the same three judges — run head-to-head on all six cases and let the data decide. `python run_compare.py` regenerates [`evals/results_comparison.md`](evals/results_comparison.md) (full per-case, per-judge rationales) and [`evals/results_comparison.json`](evals/results_comparison.json) (raw). Autonomous mode is scored two honest ways from a single kickoff turn: **teach (B)** = the lesson the model actually delivered (its true peer of the workflow plan), and **plan (A)** = its *optional* `plan_lessons` call.
+Two architectures, one harness, the same three judges — run head-to-head on all six cases and let the data decide. `python run_compare.py` regenerates [`evals/results_comparison.md`](evals/results_comparison.md) (full per-case, per-judge rationales) and [`evals/results_comparison.json`](evals/results_comparison.json) (raw). Autonomous mode is scored two honest ways from a single kickoff turn: **teach (B)** = the lesson the model actually delivered (its true peer of the workflow plan), and **plan (A)** = its `plan_lessons` call.
 
 Latest run — system under test `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, pass = all three judges ≥ 0.60:
 
 | Metric | Workflow (baseline) | Autonomous — teach (B) | Autonomous — plan (A) |
 |--------|---------:|----------------:|---------------:|
-| **Pass rate** | **100% (6/6)** | **50% (3/6)** | 0% (0/6) |
-| mean gap_to_pedagogy | 0.88 | 0.77 | 0.00 |
-| mean modality_fit | 0.90 | 0.55 | 0.00 |
-| mean adaptive_progression | 1.00 | 0.83 | 0.78 |
-| **mean overall score** | **0.93** | **0.72** | 0.26 |
-| mean cost / case (USD) | 0.096 | 0.149 | *(same run as teach)* |
-| mean tool calls / case | 3.0 | 1.8 | *(same run as teach)* |
-
-Per case, autonomous (teach) passed `case_01`, `case_03`, `case_06` and failed `case_02`, `case_04`, `case_05`; workflow passed all six.
+| **Pass rate** | **100% (6/6)** | **100% (6/6)** | 100% (6/6) |
+| mean gap_to_pedagogy | 0.90 | 0.87 | 0.85 |
+| mean modality_fit | 0.90 | 0.90 | 0.95 |
+| mean adaptive_progression | 1.00 | 1.00 | 1.00 |
+| **mean overall score** | **0.93** | **0.92** | 0.93 |
+| mean cost / case (USD) | 0.096 | 0.216 | *(same run as teach)* |
+| mean tool calls / case | 3.0 | 3.0 | *(same run as teach)* |
 
 **What the data says — measured, not asserted:**
 
-- **Workflow wins this head-to-head: 6/6 vs 3/6, mean 0.93 vs 0.72.** On these six cases, under Opus 4.8, the fixed pipeline is the more reliable *and* the cheaper architecture (~35% less per case).
-- **Autonomous's losses are real, not artifacts.** On `case_02` (struggling learner) it skipped `diagnose` entirely and taught directly — so it produced no `GapEstimate`, which the judges that need one cannot score (an honest structural miss, the worst possible outcome on the case where diagnosis matters most). On `case_04` it taught *reading* where a struggling concept calls for *socratic*; on `case_05` it went *socratic* where brand-new material calls for *reading*. Both are genuine modality misjudgments the pinned `modality_fit` judge caught — which is why autonomous's `modality_fit` mean (0.55) is its weakest dimension.
-- **The "plan (A)" column is 0% because the model never planned** — in all six cases it went straight `diagnose → teach`, never invoking `plan_lessons`. So A measures *"no plan was produced,"* not *"the plans were bad."* Autonomous mode, given the choice, preferred to teach directly from a diagnosis.
-- **Autonomous costs more despite fewer tool calls** (1.8 vs 3.0): the model's own per-turn reasoning (the orchestrator deciding what to call next, with thinking) outweighs the calls it saves by not always planning.
-- **One disclosed asymmetry, in autonomous's favor:** the synthesized teach-Workflow (B) has a single step, while workflow-mode plans have 3–5. `gap_to_pedagogy` rewards "all steps stay on target," so a 1-step plan is trivially on-topic — visible in `case_03/04/06`, where autonomous scored 1.00 on that judge while the multi-step workflow was docked 0.70–0.90 for interleaving drift. We disclose this rather than pad fake steps (which would corrupt the measuring stick); autonomous's `gap_to_pedagogy` would likely fall with real multi-step plans, *widening* the gap, not closing it.
+- **Dead heat on decision quality: 6/6 vs 6/6, mean 0.93 vs 0.92.** On these six cases, under Opus 4.8, the two architectures reach equally good decisions. The remaining gap is *cost*, not correctness (below).
+- **This took a fix, and the eval is what earned it.** The first run had autonomous at **3/6 (mean 0.72)**: it skipped `diagnose` on `case_02` (no gap → unscorable), taught *reading* for a struggling concept on `case_04`, and *socratic* for brand-new material on `case_05`. The cause was the autonomous *orchestrator prompt*, not the architecture — it discouraged `plan_lessons` and never stated the modality-routing rules. Fixing that prompt (firm "always diagnose," `plan_lessons` strongly preferred, routing principles inlined) — and **changing nothing about the judges** — moved autonomous to 6/6. That is the eval working as designed: it caught a weak agent, and the same untouched measuring stick confirmed the repair.
+- **The agent now plans every case.** Autonomous runs `diagnose → plan_lessons → teach` on all six (plan surface A went 0/6 → 6/6, and A's `modality_fit` of 0.95 is the single best dimension in the table). The modality misjudgments are gone — `modality_fit` rose 0.55 → 0.90, matching workflow.
+- **The honest cost of autonomy: ~2.25× per case** ($0.216 vs $0.096). Same three tool calls as the pipeline, but the model *also* pays for its own per-turn orchestration reasoning (deciding what to call next, with thinking) on top of the tool-internal calls. Autonomous now reaches the same decisions; it spends more tokens getting there.
+- **One disclosed asymmetry, now visible in the data:** the synthesized teach-Workflow (B) has a single step, while plans have 3–5, and `gap_to_pedagogy` rewards "all steps stay on target." With the agent now planning, you can see it directly — the real multi-step plan (A, 0.85) scores *below* the 1-step teach (B, 0.87) on that judge, because longer plans get docked for interleaving drift. We disclose this rather than pad fake steps (which would corrupt the measuring stick).
 
-The judges were **not** changed, tuned, or forked for this comparison — same functions, thresholds, and prompts as the single-mode runner. That is the point: if autonomous mode is ever to be called "better," this eval is the thing that has to earn it. Today, on this suite, it doesn't — workflow mode stays the documented, reproducible baseline.
+The judges were **not** changed, tuned, or forked at any point — same functions, thresholds, and prompts as the single-mode runner; only the agent prompt was improved between runs. Workflow mode stays the documented, reproducible baseline and the cheaper default. Autonomous mode is now its equal on decision quality — at a real cost premium — and the path that got it there was earned by the eval, not asserted around it.
 
 ---
 
