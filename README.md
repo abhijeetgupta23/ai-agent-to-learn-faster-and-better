@@ -92,29 +92,29 @@ flowchart LR
 
     subgraph LOOP["model-owned loop — run_agent_turn()"]
         direction TB
-        M["Claude (tools= API)<br/>picks the next tool<br/>— or ends the turn"]
-        B{"per-turn budget<br/>≤ 6 tool calls<br/>(MAX_TOOL_CALLS_PER_TURN)"}
+        M["Claude (tools API)<br/>picks the next tool<br/>— or ends the turn"]
+        B{"per-turn budget<br/>max 6 tool calls<br/>(MAX_TOOL_CALLS_PER_TURN)"}
         M -- "stop_reason = tool_use" --> B
         B -- "under cap" --> M
-        B -- "cap hit → 'wrap up in text now'" --> F
-        M -- "stop_reason = end_turn" --> F["final text → learner"]
+        B -- "cap hit: wrap up in text" --> F
+        M -- "stop_reason = end_turn" --> F["final text to learner"]
     end
 
-    M == "tool call  ░░ Anthropic tools= API boundary ░░  tool_result (compact JSON)" ==> TOOLS
+    M ==>|"tool call · Anthropic tools API boundary"| TOOLS
 
     subgraph TOOLS["5 tools — same capabilities as workflow mode"]
         direction TB
-        T1["diagnose → GapEstimate"]
-        T2["plan_lessons → Workflow<br/>(optional)"]
-        T3["teach → Artifact<br/>(≤ 1 per turn, reaches learner)"]
-        T4["record_observation → LearnerModel"]
-        T5["view_learner → LearnerModel"]
+        T1["diagnose -> GapEstimate"]
+        T2["plan_lessons -> Workflow<br/>(optional)"]
+        T3["teach -> Artifact<br/>(max 1 per turn, reaches learner)"]
+        T4["record_observation -> LearnerModel"]
+        T5["view_learner -> LearnerModel"]
     end
 
-    TOOLS -.-> M
+    TOOLS ==>|"tool_result (compact JSON)"| M
 
     T1 -. "GapEstimate" .-> J
-    T3 -. "teach call ⇒ synthesized Workflow" .-> J
+    T3 -. "teach call =&gt; synthesized Workflow" .-> J
     subgraph J["judges observe (pinned, identical to workflow mode)"]
         direction TB
         J1["gap_to_pedagogy"]
@@ -238,7 +238,7 @@ The graph extractor's pedagogy metadata is grounded in named principles, cited i
 
 ## Eval harness — the headline
 
-Three judges score every workflow, each returning `{score, rationale}`:
+Three judges are the fixed measuring stick — they score the two decision artifacts (the diagnosed `GapEstimate` and the lesson `Workflow`) and are **identical across both orchestration modes**, so workflow and autonomous can be compared head-to-head on equal footing (see [Head-to-head](#head-to-head-workflow-vs-autonomous-measured) below). Each returns `{score, rationale}`:
 
 | Judge | What it checks |
 |---|---|
@@ -268,6 +268,41 @@ python run_evals.py --verbose
 A case **passes** when all three judges score ≥ 0.6. Verbose mode prints the per-case rationale — strangers can read why each judge gave the score it did.
 
 Add `--trace docs/traces` to capture a full reasoning trace per case (prompt + the model's summarized thinking + parsed output), written as readable `.md` and machine-readable `.json`. Two example traces are checked in under [`docs/traces/`](docs/traces/).
+
+The runner takes `--mode {workflow,autonomous}`, so the **same** judges score either architecture:
+
+```bash
+python run_evals.py --mode workflow    --verbose   # fixed pipeline (default, baseline)
+python run_evals.py --mode autonomous  --verbose   # model-owned tool loop
+```
+
+### Head-to-head: workflow vs autonomous (measured)
+
+Two architectures, one harness, the same three judges — run head-to-head on all six cases and let the data decide. `python run_compare.py` regenerates [`evals/results_comparison.md`](evals/results_comparison.md) (full per-case, per-judge rationales) and [`evals/results_comparison.json`](evals/results_comparison.json) (raw). Autonomous mode is scored two honest ways from a single kickoff turn: **teach (B)** = the lesson the model actually delivered (its true peer of the workflow plan), and **plan (A)** = its *optional* `plan_lessons` call.
+
+Latest run — system under test `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, pass = all three judges ≥ 0.60:
+
+| Metric | Workflow (baseline) | Autonomous — teach (B) | Autonomous — plan (A) |
+|--------|---------:|----------------:|---------------:|
+| **Pass rate** | **100% (6/6)** | **50% (3/6)** | 0% (0/6) |
+| mean gap_to_pedagogy | 0.88 | 0.77 | 0.00 |
+| mean modality_fit | 0.90 | 0.55 | 0.00 |
+| mean adaptive_progression | 1.00 | 0.83 | 0.78 |
+| **mean overall score** | **0.93** | **0.72** | 0.26 |
+| mean cost / case (USD) | 0.096 | 0.149 | *(same run as teach)* |
+| mean tool calls / case | 3.0 | 1.8 | *(same run as teach)* |
+
+Per case, autonomous (teach) passed `case_01`, `case_03`, `case_06` and failed `case_02`, `case_04`, `case_05`; workflow passed all six.
+
+**What the data says — measured, not asserted:**
+
+- **Workflow wins this head-to-head: 6/6 vs 3/6, mean 0.93 vs 0.72.** On these six cases, under Opus 4.8, the fixed pipeline is the more reliable *and* the cheaper architecture (~35% less per case).
+- **Autonomous's losses are real, not artifacts.** On `case_02` (struggling learner) it skipped `diagnose` entirely and taught directly — so it produced no `GapEstimate`, which the judges that need one cannot score (an honest structural miss, the worst possible outcome on the case where diagnosis matters most). On `case_04` it taught *reading* where a struggling concept calls for *socratic*; on `case_05` it went *socratic* where brand-new material calls for *reading*. Both are genuine modality misjudgments the pinned `modality_fit` judge caught — which is why autonomous's `modality_fit` mean (0.55) is its weakest dimension.
+- **The "plan (A)" column is 0% because the model never planned** — in all six cases it went straight `diagnose → teach`, never invoking `plan_lessons`. So A measures *"no plan was produced,"* not *"the plans were bad."* Autonomous mode, given the choice, preferred to teach directly from a diagnosis.
+- **Autonomous costs more despite fewer tool calls** (1.8 vs 3.0): the model's own per-turn reasoning (the orchestrator deciding what to call next, with thinking) outweighs the calls it saves by not always planning.
+- **One disclosed asymmetry, in autonomous's favor:** the synthesized teach-Workflow (B) has a single step, while workflow-mode plans have 3–5. `gap_to_pedagogy` rewards "all steps stay on target," so a 1-step plan is trivially on-topic — visible in `case_03/04/06`, where autonomous scored 1.00 on that judge while the multi-step workflow was docked 0.70–0.90 for interleaving drift. We disclose this rather than pad fake steps (which would corrupt the measuring stick); autonomous's `gap_to_pedagogy` would likely fall with real multi-step plans, *widening* the gap, not closing it.
+
+The judges were **not** changed, tuned, or forked for this comparison — same functions, thresholds, and prompts as the single-mode runner. That is the point: if autonomous mode is ever to be called "better," this eval is the thing that has to earn it. Today, on this suite, it doesn't — workflow mode stays the documented, reproducible baseline.
 
 ---
 
