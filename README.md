@@ -233,25 +233,25 @@ Add `--trace docs/traces` to capture a full reasoning trace per case (prompt + t
 
 The agent's quality wasn't asserted — it was measured against a deterministic **fixed-pipeline baseline** (`diagnose → plan → generate`, code-sequenced) that is now retired from the product but kept as a yardstick. `python run_compare.py` runs both on all six cases through the same judges and regenerates [`evals/results_comparison.md`](evals/results_comparison.md) (full per-case rationales) and [`evals/results_comparison.json`](evals/results_comparison.json) (raw). The agent is scored on the lesson it actually delivered (the `teach` call, read as a `Workflow`).
 
-Latest run — `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, pass = all three judges ≥ 0.60:
+Latest run — `claude-opus-4-8`, judges pinned to `claude-sonnet-4-6`, prompt caching on, pass = all three judges ≥ 0.60:
 
 | Metric | **Agent** (the product) | Fixed-pipeline baseline (retired) |
 |--------|---------:|----------------:|
-| **Pass rate** | **100% (6/6)** | 100% (6/6) |
-| mean gap_to_pedagogy | 0.87 | 0.90 |
-| mean modality_fit | 0.90 | 0.90 |
-| mean adaptive_progression | 1.00 | 1.00 |
-| **mean overall score** | **0.92** | 0.93 |
-| mean cost / case (USD) | 0.216 | 0.096 |
+| **Pass rate** | **5/6** (this run) | 6/6 |
+| mean gap_to_pedagogy | 0.80 | 0.90 |
+| mean modality_fit | 0.83 | 0.95 |
+| mean adaptive_progression | 1.00 | 0.95 |
+| **mean overall score** | **0.88** | 0.93 |
+| mean cost / case (USD) | 0.168 | 0.092 |
 | mean loop turns / case | 4 | n/a (no loop) |
 
-> Cost figures are from the last complete run, which **predates the prompt-caching change** — a cached re-run is pending API credits. The one case measured with caching on dropped $0.230 → $0.203, so expect the agent to settle near **~$0.19/case**: caching recovers the repeated-prefix input, but the bulk of the premium is uncacheable output/thinking from the loop.
+> **Run-to-run variance is real — and the eval now shows it.** A prior run scored the agent 6/6 (0.92); this one 5/6 (0.88). The single swing is `case_06`: a borderline modality call (interactive vs reading for new material the learner already has the prerequisite for) that the pinned judge scored **0.7 (pass) one run, 0.3 (fail) the next** — straddling the 0.60 line. The agent taught the same lesson both times; the judge moved. So agent and baseline sit **within judge noise** of each other. Every case runs once — real error bars need repeated runs (see Roadmap).
 
 **What the data says — measured, not asserted:**
 
-- **The agent matches the deterministic baseline on decision quality: 6/6, mean 0.92 vs 0.93** — a dead heat on these six cases under Opus 4.8. Letting the model own the loop costs nothing in correctness.
+- **Near dead-heat on decision quality, within run-to-run noise: agent 5–6/6 (0.88–0.92) vs baseline 6/6 (0.93).** On these six cases under Opus 4.8, letting the model own the loop costs nothing measurable in correctness — the agent–baseline gap is smaller than the judge's own variance (see the `case_06` swing above).
 - **It took a fix, and the eval is what caught it.** An earlier agent prompt scored only **3/6 (mean 0.72)**: it skipped `diagnose` on `case_02` (no gap → unscorable), taught *reading* for a struggling concept on `case_04`, and *socratic* for brand-new material on `case_05`. The cause was the orchestrator prompt — it discouraged `plan_lessons` and never stated the modality-routing rules. Fixing the prompt (firm "always diagnose," `plan_lessons` strongly preferred, routing principles inlined) — and **changing nothing about the judges** — moved the agent to 6/6. The same untouched measuring stick scored 3/6 before and 6/6 after.
-- **The honest cost of an agent: ~2.25× per case** ($0.216 vs $0.096). The agent runs four loop turns (`diagnose → plan_lessons → teach` + a closing turn) and pays for its own per-turn orchestration reasoning on top of the tool calls. Prompt caching recovers part of the repeated-prefix input, but most of the premium is *output/thinking* tokens the loop generates — uncacheable. The agent reaches the same decisions; it spends more tokens getting there.
+- **The honest cost of an agent: ~1.8× per case** ($0.168 vs $0.092, prompt caching on). The agent runs four loop turns (`diagnose → plan_lessons → teach` + a closing turn) and pays for its own per-turn orchestration reasoning on top of the tool calls. Caching recovered ~22% of its cost (the repeated-prefix input); the rest is *output/thinking* tokens the loop generates — uncacheable. The agent reaches the same decisions; it spends more tokens getting there.
 - **So why pay it? Flexibility — the control flow is the model's to choose.** The fixed pipeline always runs the same `diagnose → plan → generate`, no matter what the learner does. The agent owns the sequence, so it can do things the pipeline structurally *cannot* without a code change: re-diagnose mid-session when an answer reveals a deeper gap, **backfill a prerequisite** before retrying the target, **switch modality** after a concept fails twice (reading → Socratic), skip planning when the next step is obvious, or **end early on mastery**. That headroom matters most in messy, multi-turn sessions — and here is the honest caveat: **these six golden cases are single first-turn decisions, so they do _not_ exercise that flexibility.** What the eval proves is the floor — that handing the loop to the model costs *nothing in decision quality* on the cases a rigid pipeline also handles. The flexibility is the upside the eval can't yet measure; a multi-turn suite that forces re-diagnosis and prerequisite backfills is the next thing worth building (see *Roadmap*).
 
 The judges were **not** changed, tuned, or forked at any point — same functions, thresholds, and prompts throughout; only the agent prompt was improved between runs. The fixed pipeline remains in the repo as a reproducible baseline you can re-run any time (`python run_evals.py --mode workflow`), which is exactly why the agent's score is trustworthy: it was earned against a known-good yardstick, not graded on its own curve.
@@ -364,6 +364,7 @@ adaptive-learning-agent/
 ## Roadmap (intentionally out of scope for V1)
 
 - **Multi-turn eval suite** — the six golden cases score a single first-turn decision, where a fixed pipeline keeps pace. A multi-turn suite (a learner answers, the agent must re-diagnose, backfill a prerequisite, switch modality on repeated failure, or end on mastery) would measure the agent's *flexibility* advantage that V1's single-turn cases can't.
+- **Repeated-run variance + judge calibration** — every case runs once today, and `case_06` showed the pinned judge can flip a borderline call across runs (0.7 ↔ 0.3, i.e. pass ↔ fail). Running each case N times for pass-rate error bars, and spot-checking the judges against human labels, would tell us which score differences are signal and which are noise.
 - **Video modality** — expensive; reading / interactive / Socratic only for V1.
 - **Open-model backend** — note as a future branch; Claude is the frontier baseline that makes the evals bulletproof.
 - **Multi-user crowdsourcing UI for graphs** — graphs are reusable internally already; no community UI yet.
