@@ -11,7 +11,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -164,10 +164,32 @@ Artifact = ReadingArtifact | InteractiveArtifact | SocraticArtifact
 # ---------------------------------------------------------------------------
 
 
+JudgeVerdict = Literal["pass", "fail", "abstain"]
+
+
 class JudgeResult(BaseModel):
-    judge_name: str
-    score: float = Field(ge=0.0, le=1.0)
-    rationale: str
+    """A binary judge verdict. Per the evals research (Hamel; Anthropic), graders
+    make a pass/fail DECISION rather than a 0-1 rating — a continuous score
+    thresholded at 0.6 is what made `case_06` flip across runs. `abstain` is the
+    "not enough to call it" escape hatch (Anthropic) — counted as not-pass and
+    flagged for review, never silently dropped.
+
+    `score` is a 0 / 0.5 / 1 projection of the verdict, kept so existing
+    score-based aggregation and tables keep working unchanged."""
+
+    judge_name: str = ""
+    verdict: JudgeVerdict = "fail"
+    rationale: str = ""
+    score: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _derive_score(self) -> "JudgeResult":
+        self.score = {"pass": 1.0, "abstain": 0.5, "fail": 0.0}[self.verdict]
+        return self
+
+    @property
+    def passed(self) -> bool:
+        return self.verdict == "pass"
 
 
 class EvalCase(BaseModel):

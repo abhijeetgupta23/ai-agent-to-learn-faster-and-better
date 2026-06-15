@@ -132,9 +132,12 @@ _MISSING_REASONS = {
 
 
 def _missing(judge_name: str, missing: str) -> JudgeResult:
+    # A structurally missing artifact is a fail (the mode didn't produce the
+    # decision the judge measures) — not an `abstain`, which is for borderline
+    # calls the judge could see but couldn't confidently decide.
     return JudgeResult(
         judge_name=judge_name,
-        score=0.0,
+        verdict="fail",
         rationale="[no artifact] " + _MISSING_REASONS[judge_name].format(missing=missing),
     )
 

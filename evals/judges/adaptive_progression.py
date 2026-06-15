@@ -12,8 +12,9 @@ from src.llm import JUDGE_MODEL, complete_json
 from src.schemas import GapEstimate, JudgeResult, LearnerModel
 
 SYSTEM = """\
-You are an evaluator scoring whether the suggested difficulty level adapts
-correctly to the learner's recent performance.
+You are an evaluator deciding whether the suggested difficulty level adapts
+correctly to the learner's recent performance. Return a BINARY verdict, not a
+rating.
 
 Adaptive-difficulty principles:
   - If the learner has 2+ struggling concepts at the current difficulty_level,
@@ -24,14 +25,14 @@ Adaptive-difficulty principles:
   - Otherwise, suggested_difficulty should be at or within 1 of difficulty_level.
   - suggested_difficulty must stay in [1, 5] — no trivializing, no overwhelming.
 
-Score in [0,1]:
-  1.0 — suggested difficulty is exactly right per the principles above.
-  0.7 — suggested difficulty is within 1 of right per the principles.
-  0.3 — suggested difficulty violates a principle (e.g. raised difficulty for
-        a struggling learner).
-  0.0 — suggested difficulty is outside [1, 5] or wildly mismatched.
+Verdict (choose exactly one):
+  - "pass" — suggested difficulty obeys the principles above (exactly right, or
+    within 1 of right with no principle violated).
+  - "fail" — it violates a principle (e.g. raised difficulty for a struggling
+    learner), or falls outside [1, 5].
+  - "abstain" — genuinely borderline or insufficient information. Use sparingly.
 
-Cite the specific learner-state signal in your rationale.
+Cite the specific learner-state signal in your rationale, then give the verdict.
 """
 
 
@@ -54,11 +55,13 @@ def judge_adaptive_progression(
         f"Recent turns ({len(recent)} total): {recent_correct} correct\n"
         f"Expected difficulty band for this case: {expected_band}\n"
         f"Suggested difficulty is in expected band: {in_band}\n\n"
-        "Score the adaptive-progression decision. Return a JudgeResult with "
+        "Decide the adaptive-progression call. Return a JudgeResult with a "
+        "binary verdict (pass / fail / abstain) and "
         "judge_name='adaptive_progression'."
     )
     result = complete_json(
-        SYSTEM, user, JudgeResult, label="judge:adaptive_progression", model=JUDGE_MODEL, max_tokens=3000
+        SYSTEM, user, JudgeResult, label="judge:adaptive_progression", model=JUDGE_MODEL,
+        max_tokens=3000, deterministic=True,
     )
     result.judge_name = "adaptive_progression"
     return result

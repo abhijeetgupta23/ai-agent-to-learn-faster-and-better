@@ -43,6 +43,10 @@ JUDGE_MODEL = os.environ.get("ADAPTIVE_LEARNING_JUDGE_MODEL", "claude-sonnet-4-6
 # ADAPTIVE_LEARNING_THINKING=off to disable (faster/cheaper, opaque).
 THINKING_ENABLED = os.environ.get("ADAPTIVE_LEARNING_THINKING", "on").lower() != "off"
 _THINKING = {"type": "adaptive", "display": "summarized"} if THINKING_ENABLED else {"type": "disabled"}
+# Judges run deterministically: thinking OFF so we can pin temperature to 0
+# (Anthropic rejects temperature != 1 while extended thinking is on). A judge
+# should give the same verdict on the same input — see complete_json(deterministic=True).
+_THINKING_OFF = {"type": "disabled"}
 
 
 # When set, streaming deltas are forwarded here as they arrive, so a caller
@@ -99,33 +103,49 @@ def _maybe_wrap_langsmith(client: anthropic.Anthropic) -> anthropic.Anthropic:
         return client
 
 
-def _generate(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
+def _generate(
+    *, model: str, max_tokens: int, system: str, user: str,
+    thinking_cfg: dict | None = None, temperature: float | None = None,
+) -> tuple[str, str, dict]:
     """
     One LLM round-trip, streamed; provider chosen by model name. Streaming
     (vs create) avoids HTTP timeouts on long generations and lets us forward
     thinking deltas to the active sink the moment they arrive.
 
+    `thinking_cfg`/`temperature` let callers run deterministically (thinking off,
+    temperature 0) — used by judges. Default keeps adaptive thinking on.
+
     Returns (text, summarized_thinking, usage_dict) — provider-normalized.
     """
     if model.startswith("deepseek"):
-        return _generate_deepseek(model=model, max_tokens=max_tokens, system=system, user=user)
-    return _generate_anthropic(model=model, max_tokens=max_tokens, system=system, user=user)
+        return _generate_deepseek(
+            model=model, max_tokens=max_tokens, system=system, user=user, temperature=temperature
+        )
+    return _generate_anthropic(
+        model=model, max_tokens=max_tokens, system=system, user=user,
+        thinking_cfg=thinking_cfg, temperature=temperature,
+    )
 
 
-def _generate_anthropic(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
+def _generate_anthropic(
+    *, model: str, max_tokens: int, system: str, user: str,
+    thinking_cfg: dict | None = None, temperature: float | None = None,
+) -> tuple[str, str, dict]:
     sink = _thinking_sink.get()
+    thinking_cfg = _THINKING if thinking_cfg is None else thinking_cfg
     # Cache the system block: it's constant across every call with this label
     # (e.g. all six diagnose calls share one system prompt), so from the second
     # call inside the 5-min window onward the prefix is a cache read at 0.10x.
     # Below the model's min cacheable length the breakpoint is simply ignored.
     system_blocks = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
-    with get_client().messages.stream(
-        model=model,
-        max_tokens=max_tokens,
-        thinking=_THINKING,
-        system=system_blocks,
-        messages=[{"role": "user", "content": user}],
-    ) as stream:
+    kwargs: dict = dict(
+        model=model, max_tokens=max_tokens, thinking=thinking_cfg,
+        system=system_blocks, messages=[{"role": "user", "content": user}],
+    )
+    # Temperature is only legal when thinking is disabled.
+    if temperature is not None and thinking_cfg.get("type") == "disabled":
+        kwargs["temperature"] = temperature
+    with get_client().messages.stream(**kwargs) as stream:
         for event in stream:
             if sink is None or event.type != "content_block_delta":
                 continue
@@ -165,14 +185,18 @@ def get_deepseek_client():
     return _deepseek_client
 
 
-def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
+def _generate_deepseek(
+    *, model: str, max_tokens: int, system: str, user: str, temperature: float | None = None,
+) -> tuple[str, str, dict]:
     sink = _thinking_sink.get()
     # DeepSeek caps output tokens per model (chat: 8K, reasoner: 64K); requests
     # above the cap are rejected outright, so clamp rather than fail.
     max_tokens = min(max_tokens, 8192 if model == "deepseek-chat" else 65536)
+    extra = {} if temperature is None else {"temperature": temperature}
     stream = get_deepseek_client().chat.completions.create(
         model=model,
         max_tokens=max_tokens,
+        **extra,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -251,6 +275,7 @@ def complete_json(
     label: str = "llm_call",
     model: str = DEFAULT_MODEL,
     max_tokens: int = 8000,
+    deterministic: bool = False,
 ) -> T:
     """
     Ask Claude for JSON conforming to a Pydantic schema.
@@ -262,7 +287,12 @@ def complete_json(
 
     `label` identifies which decision this call drives (e.g. "diagnose",
     "plan") and shows up in the trace.
+
+    `deterministic=True` turns thinking off and pins temperature to 0 — for
+    judges/graders, which should return the same verdict on the same input.
     """
+    thinking_cfg = _THINKING_OFF if deterministic else None
+    temperature = 0.0 if deterministic else None
     schema_json = json.dumps(schema.model_json_schema(), indent=2)
     system_full = (
         f"{system}\n\n"
@@ -278,7 +308,8 @@ def complete_json(
         # backoff; wraps permanent ones in ExternalCallError. See src/harness/retry.py.
         text, thinking, usage = call_with_retries(
             lambda: _generate(
-                model=model, max_tokens=max_tokens, system=system_full, user=attempt_user
+                model=model, max_tokens=max_tokens, system=system_full, user=attempt_user,
+                thinking_cfg=thinking_cfg, temperature=temperature,
             ),
             label=f"llm:{label}{attempt}",
         )

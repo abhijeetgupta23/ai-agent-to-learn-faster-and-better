@@ -12,31 +12,38 @@ from src.llm import JUDGE_MODEL, complete_json
 from src.schemas import JudgeResult, LearnerModel, Modality, Workflow
 
 SYSTEM = """\
-You are an evaluator scoring whether the chosen teaching modality is right
-for this learner.
+You are an evaluator deciding whether the chosen teaching modality is a
+defensible call for this learner. Return a BINARY verdict, not a rating.
 
 Modality routing principles:
-  - 'socratic' is the RIGHT call when the learner is STRUGGLING with the target
-    concept (target is in struggling_concepts) — dialogue surfaces misconceptions
-    that re-reading hides. Also right for concepts known to harbor common
-    misconceptions.
-  - 'interactive' (quiz/scenario) is the RIGHT call for procedural skills where
-    the learner has seen the material once and needs practice (retrieval >
-    re-reading; desirable difficulty).
-  - 'reading' is the RIGHT call for new conceptual material the learner hasn't
-    seen, especially when modality_preference is reading.
+  - 'socratic' is RIGHT when the learner is STRUGGLING with the target concept
+    (target in struggling_concepts), or the concept harbors common
+    misconceptions — dialogue surfaces what re-reading hides.
+  - 'interactive' (quiz/scenario/problem set) is RIGHT for a procedural skill the
+    learner has seen and needs to PRACTICE (retrieval beats re-reading).
+  - 'reading' is RIGHT for NEW conceptual material the learner hasn't seen,
+    especially when modality_preference is reading.
 
-Score in [0,1]:
-  1.0 — modality is the textbook-correct choice per the rules above; rationale
-        in the workflow cites learner state to justify it.
-  0.7 — modality is defensible (one of two reasonable choices) and rationale
-        is sound.
-  0.3 — modality is plausible but a clearly better choice was available
-        (e.g. learner is struggling and got 'reading' instead of 'socratic').
-  0.0 — modality is wrong (e.g. brand-new concept got 'socratic'; struggling
-        concept got more reading).
+Verdict (choose exactly one):
+  - "pass" — the modality is the textbook-correct choice, OR a defensible one of
+    two reasonable choices for this learner state. Do NOT fail a defensible call.
+  - "fail" — the modality is the clearly wrong call: a distinctly better choice
+    was available, or it is a named anti-pattern (a struggling concept given more
+    reading; a brand-new concept opened with socratic).
+  - "abstain" — genuinely too close to call even after applying the rules, or the
+    learner state is insufficient to decide. Use sparingly.
 
-In your rationale, name the specific learner-state signal you weighed.
+Anchored examples:
+  - struggling with target + got 'socratic'      -> pass (textbook).
+  - struggling with target + got 'reading'       -> fail (anti-pattern).
+  - brand-new concept + got 'reading'            -> pass (textbook).
+  - brand-new concept + got 'socratic'           -> fail (no misconception yet).
+  - a new concept the learner HAS the prerequisite for, taught 'interactive' to
+    practice it -> pass (reading-first and practice-first are both reasonable).
+
+modality_preference is a tie-breaker, not an override — demonstrated struggle
+outranks stated preference. In your rationale, name the learner-state signal you
+weighed, then give the verdict.
 """
 
 
@@ -58,11 +65,12 @@ def judge_modality_fit(
         f"Learner difficulty_level: {learner.difficulty_level}\n"
         f"Mastered: {learner.mastered_concepts}\n"
         f"Struggling: {learner.struggling_concepts}\n\n"
-        "Score the modality choice. Return a JudgeResult with "
-        "judge_name='modality_fit'."
+        "Decide the modality choice. Return a JudgeResult with a binary "
+        "verdict (pass / fail / abstain) and judge_name='modality_fit'."
     )
     result = complete_json(
-        SYSTEM, user, JudgeResult, label="judge:modality_fit", model=JUDGE_MODEL, max_tokens=3000
+        SYSTEM, user, JudgeResult, label="judge:modality_fit", model=JUDGE_MODEL,
+        max_tokens=3000, deterministic=True,
     )
     result.judge_name = "modality_fit"
     return result
