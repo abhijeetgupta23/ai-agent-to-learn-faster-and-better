@@ -93,6 +93,25 @@ def test_transient_classification():
     assert not is_transient(KeyError("missing"))
 
 
+def _anthropic_status_error(status: int, error_type: str):
+    import anthropic
+
+    req = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    resp = httpx.Response(status, request=req)
+    body = {"type": "error", "error": {"type": error_type, "message": error_type}}
+    return anthropic.APIStatusError(error_type, response=resp, body=body)
+
+
+def test_overloaded_midstream_is_transient():
+    # Anthropic overload arrives as an error event inside a 200 stream, so the
+    # exception carries status 200, not 529 — must still be retried (regression).
+    assert is_transient(_anthropic_status_error(200, "overloaded_error"))
+    # A genuine 529 (status-based) is also transient.
+    assert is_transient(_anthropic_status_error(529, "overloaded_error"))
+    # A real 400 client error stays permanent.
+    assert not is_transient(_anthropic_status_error(400, "invalid_request_error"))
+
+
 def test_error_payload_is_structured():
     err = ExternalCallError("llm:plan", attempts=3, transient=True, cause=TimeoutError("t"))
     payload = err.to_payload()

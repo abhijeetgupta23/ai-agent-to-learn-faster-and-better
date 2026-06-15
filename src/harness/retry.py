@@ -6,9 +6,10 @@ Anthropic API, and API calls fail in two distinct ways that deserve distinct
 handling:
 
   - *Transient* failures (timeouts, connection resets, 429 rate limits,
-    5xx server errors) usually succeed on a retry. We retry these — at most
-    twice, with linear backoff (1s, then 2s). Anything more aggressive risks
-    amplifying an outage; anything less leaves easy wins on the table.
+    5xx server errors, and Anthropic "overloaded" events — which can arrive
+    mid-stream with a 200 status) usually succeed on a retry. We retry these —
+    at most twice, with linear backoff (1s, then 2s). Anything more aggressive
+    risks amplifying an outage; anything less leaves easy wins on the table.
   - *Permanent* failures (401 bad key, 400 malformed request, schema
     validation bugs) will fail identically on every retry. Retrying these
     only adds latency and cost, so we don't.
@@ -32,6 +33,22 @@ R = TypeVar("R")
 # Linear backoff per the failure-handling policy: first retry after 1s,
 # second after 2s. Length of this tuple == max retries.
 BACKOFF_SECONDS: tuple[float, ...] = (1.0, 2.0)
+
+# Anthropic surfaces an overload as an error EVENT inside a 200 stream, so the
+# exception can carry status_code 200 instead of 529 — a status-code check alone
+# then misreads it as permanent. These body error `type`s are transient
+# regardless of the HTTP status. ('rate_limit_error' is already caught by 429.)
+_TRANSIENT_API_ERROR_TYPES = {"overloaded_error", "api_error"}
+
+
+def _anthropic_error_type(exc: "anthropic.APIStatusError") -> str:
+    """The inner `error.type` from an Anthropic error body, or '' if absent."""
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        err = body.get("error")
+        if isinstance(err, dict):
+            return err.get("type", "") or ""
+    return ""
 
 
 class ExternalCallError(Exception):
@@ -77,9 +94,12 @@ def is_transient(exc: Exception) -> bool:
     # Anthropic SDK: connection errors (including timeouts) have no status.
     if isinstance(exc, anthropic.APIConnectionError):
         return True
-    # Status-bearing SDK errors: retry rate limits and server-side failures.
+    # Status-bearing SDK errors: retry rate limits and server-side failures,
+    # plus overloaded/api_error events that arrive mid-stream with a 200 status.
     if isinstance(exc, anthropic.APIStatusError):
-        return exc.status_code == 429 or exc.status_code >= 500
+        if exc.status_code == 429 or exc.status_code >= 500:
+            return True
+        return _anthropic_error_type(exc) in _TRANSIENT_API_ERROR_TYPES
     # Raw httpx (future URL fetches go through this same wrapper).
     if isinstance(exc, (httpx.TimeoutException, httpx.TransportError)):
         return True
