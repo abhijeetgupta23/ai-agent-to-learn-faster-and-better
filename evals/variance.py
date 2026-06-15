@@ -26,7 +26,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from evals.autonomous_eval import run_autonomous_case, score_with_judges
+from evals.autonomous_eval import run_autonomous_case, score_with_judges, write_trace
 from evals.runner import _load_graph, load_cases
 from src.memory.store import MemoryStore
 from src.schemas import EvalCase, LearningGraph
@@ -36,10 +36,13 @@ OUT_MD = Path(__file__).parent / "results_variance.md"
 OUT_JSON = Path(__file__).parent / "results_variance.json"
 
 
-def _trial(case: EvalCase, graph: LearningGraph, store: MemoryStore) -> dict:
+def _trial(case: EvalCase, graph: LearningGraph, store: MemoryStore,
+           trace_dir: Path | None = None, trial_idx: int = 0) -> dict:
     """One Trial: run the agent once, score it with the (deterministic) judges."""
     cap = run_autonomous_case(case.model_copy(deep=True), graph, store)
     judges = score_with_judges(cap.gap, cap.teach_workflow, case, graph)
+    if trace_dir is not None:
+        write_trace(case, cap, trace_dir, judges, name=f"{case.case_id}_t{trial_idx + 1}")
     return {
         "passed": all(j.passed for j in judges),
         "verdicts": {j.judge_name: j.verdict for j in judges},
@@ -50,7 +53,7 @@ def _trial(case: EvalCase, graph: LearningGraph, store: MemoryStore) -> dict:
     }
 
 
-def run_variance(k: int) -> dict:
+def run_variance(k: int, trace_dir: Path | None = None) -> dict:
     cases = load_cases()
     if not cases:
         print("No golden cases found in evals/golden/", file=sys.stderr)
@@ -63,7 +66,7 @@ def run_variance(k: int) -> dict:
         trials = []
         for i in range(k):
             print(f"  [{case.case_id}] trial {i + 1}/{k} ...", file=sys.stderr)
-            trials.append(_trial(case, graph, store))
+            trials.append(_trial(case, graph, store, trace_dir=trace_dir, trial_idx=i))
 
         n_pass = sum(1 for t in trials if t["passed"])
         judge_stats = {}
@@ -165,9 +168,10 @@ def render_markdown(data: dict) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--k", type=int, default=3, help="Trials per case (default 3).")
+    ap.add_argument("--trace", type=Path, help="Write a readable per-trial trace to this dir.")
     args = ap.parse_args()
     print(f"Running variance harness: {args.k} trials per case...", file=sys.stderr)
-    data = run_variance(args.k)
+    data = run_variance(args.k, trace_dir=args.trace)
     OUT_JSON.write_text(json.dumps(data, indent=2), encoding="utf-8")
     OUT_MD.write_text(render_markdown(data), encoding="utf-8")
     agg = data["aggregate"]

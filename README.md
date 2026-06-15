@@ -225,9 +225,23 @@ export ANTHROPIC_API_KEY=sk-ant-...
 python run_evals.py --verbose
 ```
 
-A case **passes** when all three judges score ≥ 0.6. Verbose mode prints the per-case rationale — strangers can read why each judge gave the score it did.
+The three judges return a **binary verdict** — `pass`, `fail`, or `abstain` — run deterministically (thinking off, temperature 0). A case passes when all three return `pass`. We moved off a 0–1 score thresholded at 0.6 because that continuous scale is what made one borderline case flip across runs (the variance note below); a binary decision with anchored rubric examples and an `abstain` escape hatch is the eval-research consensus (Hamel; Anthropic). Verbose mode prints each judge's verdict and rationale.
 
-Add `--trace docs/traces` to capture a full reasoning trace per case (prompt + the model's summarized thinking + parsed output), written as readable `.md` and machine-readable `.json`. Two example traces are checked in under [`docs/traces/`](docs/traces/).
+### Repeated trials — a single run isn't a result
+
+Agents are non-deterministic, so one run is a point estimate with no error bar. `python run_variance.py --k 5` runs each case over *k* trials and reports, into [`evals/results_variance.md`](evals/results_variance.md):
+
+- **`pass^k`** — fraction of cases where **all k trials pass**. For a learner-facing tutor, consistency *is* the product, so this is the headline (Anthropic recommends `pass^k` for customer-facing agents).
+- **`pass@k`** — at least one trial passes (capability).
+- **flippy cases** — pass some trials, fail others; their single-run number is unreliable.
+- **per-judge stability** — with the judges now deterministic, this isolates the remaining spread as the *agent's* run-to-run variance.
+
+### Observability
+
+Reading traces is non-negotiable — "error analysis is the most important activity in evals" (Hamel). Two layers, no required external service:
+
+- **Local traces (default).** `--trace <dir>` on the variance and eval runners writes a readable `.md` and a full-event `.json` per trial: every tool call, the diagnosis, the lesson taught, the agent's closing note, and the judge verdicts. Diffable, CI-friendly, and what you actually read when a case fails.
+- **LangSmith (optional).** Set `LANGSMITH_TRACING=true` + `LANGSMITH_API_KEY` and the Anthropic client is wrapped automatically ([`src/llm.py`](src/llm.py)) — zero code change — for the hosted UI and production/online monitoring. Free Developer tier; off by default.
 
 ### How the agent earned this score
 

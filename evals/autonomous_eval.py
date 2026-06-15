@@ -64,6 +64,10 @@ class AutonomousCapture:
     tool_calls: int = 0
     tool_sequence: list[str] = field(default_factory=list)
     cost_usd: float = 0.0
+    # Observability: the ordered stream of everything the agent emitted this turn
+    # (tool calls, results, gap, workflow, artifact, final text) — the trace we
+    # read for error analysis.
+    events: list[dict] = field(default_factory=list)
 
 
 def _synthesize_teach_workflow(
@@ -97,6 +101,7 @@ def run_autonomous_case(case: EvalCase, graph: LearningGraph, store: MemoryStore
     }
 
     def emit(event: str, payload: dict) -> None:
+        cap.events.append({"event": event, "payload": payload})
         if event == "tool_call":
             cap.tool_calls += 1
             cap.tool_sequence.append(payload.get("tool", "?"))
@@ -170,3 +175,74 @@ def score_with_judges(
         j_prog = _missing("adaptive_progression", "diagnosis")
 
     return [j_gap, j_mod, j_prog]
+
+
+# ---------------------------------------------------------------------------
+# Observability — render a captured turn as a readable trace for error analysis
+# (Hamel: "error analysis is the most important activity in evals"). Local files;
+# no external service. LangSmith remains available behind the LANGSMITH_TRACING
+# env var (src/llm.py) for anyone who wants the hosted UI.
+# ---------------------------------------------------------------------------
+
+def render_transcript(case: EvalCase, cap: AutonomousCapture, judges: list[JudgeResult] | None = None) -> str:
+    """Human-readable trace of one agent turn: what it called, what it decided,
+    what it taught, and (optionally) how the judges ruled."""
+    L: list[str] = [f"# Trace — {case.case_id}", "", f"_{case.description}_", ""]
+    L.append(f"Tool path: `{' -> '.join(cap.tool_sequence) or '(none)'}` · "
+             f"cost ${cap.cost_usd:.4f}")
+    L.append("")
+    L.append("## What the agent did")
+    L.append("")
+    for ev in cap.events:
+        e, p = ev["event"], ev["payload"]
+        if e == "tool_call":
+            L.append(f"- **calls** `{p.get('tool')}` {json.dumps(p.get('args', {}))[:160]}")
+        elif e == "tool_result":
+            mark = "ok" if p.get("ok") else f"ERROR: {p.get('error', '')}"
+            L.append(f"  - result: {p.get('tool')} — {mark}")
+        elif e == "gap":
+            g = p.get("gap", {})
+            L.append(f"  - diagnosis: target=`{g.get('target_concept_id')}` "
+                     f"difficulty={g.get('suggested_difficulty')} — {g.get('rationale', '')[:200]}")
+        elif e == "workflow":
+            w = p.get("workflow", {})
+            L.append(f"  - plan: modality=`{w.get('modality')}`, {len(w.get('steps', []))} steps")
+        elif e == "artifact":
+            s = p.get("step", {})
+            L.append(f"  - **teaches** `{s.get('concept_id')}` / `{s.get('modality')}` "
+                     f"(principle: {s.get('pedagogy_principle')})")
+    if cap.final_text:
+        L.append("")
+        L.append(f"**Agent to learner:** {cap.final_text.strip()}")
+    if judges:
+        L.append("")
+        L.append("## Judge verdicts")
+        L.append("")
+        for j in judges:
+            L.append(f"- **{j.judge_name}**: `{j.verdict}` — {j.rationale}")
+    L.append("")
+    return "\n".join(L)
+
+
+def write_trace(case: EvalCase, cap: AutonomousCapture, out_dir, judges: list[JudgeResult] | None = None, name: str | None = None) -> None:
+    """Write <name>.md (readable) + <name>.json (full event stream) for a turn.
+    `name` defaults to the case id; pass a per-trial name to avoid collisions."""
+    from pathlib import Path
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    stem = name or case.case_id
+    (out / f"{stem}.md").write_text(render_transcript(case, cap, judges), encoding="utf-8")
+    (out / f"{stem}.json").write_text(
+        json.dumps({
+            "case_id": case.case_id,
+            "tool_sequence": cap.tool_sequence,
+            "cost_usd": cap.cost_usd,
+            "final_text": cap.final_text,
+            "gap": cap.gap.model_dump(mode="json") if cap.gap else None,
+            "teach_workflow": cap.teach_workflow.model_dump(mode="json") if cap.teach_workflow else None,
+            "judges": [j.model_dump(mode="json") for j in judges] if judges else None,
+            "events": cap.events,
+        }, indent=2),
+        encoding="utf-8",
+    )
