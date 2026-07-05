@@ -1,5 +1,15 @@
 # How it works
 
+> **Which architecture does this describe?** This document walks the **fixed
+> workflow pipeline** (`src/agent/loop.py`) — the deterministic
+> `diagnose → plan → generate` sequence that is now **retired from the product
+> and kept as the eval baseline**. The shipping product is the **autonomous
+> agent** (`src/agent/autonomous.py`), where the model owns the loop and decides
+> which tool to call and when to stop — see the README's *Architecture* section.
+> Everything below still matters: **both modes share the same five tools, the
+> same validation, and the same trace layer**, so the call-by-call anatomy here
+> is exactly what the autonomous agent executes when it chooses a tool.
+
 No framework, no hidden agent runtime. The system is a sequence of typed Python
 function calls, five of which happen to ask Claude a question. This document
 walks through one real request end-to-end so you can see exactly what happens at
@@ -28,7 +38,9 @@ diagnose_learner ──▶ plan_workflow ──▶ generate_artifact ──▶ (
 ```
 
 That's the whole machine. There is no orchestration layer making hidden
-decisions — these five functions, called in order, are the agent.
+decisions — in workflow mode, these five functions, called in order, are the
+whole system. (In the autonomous product, the model chooses when to call each
+of these same functions instead of code sequencing them.)
 
 ---
 
