@@ -25,6 +25,12 @@ Modality routing principles:
     re-reading; desirable difficulty).
   - 'reading' is the RIGHT call for new conceptual material the learner hasn't
     seen, especially when modality_preference is reading.
+  - 'visual' is the RIGHT call for structural, spatial, or quantitative concepts
+    a diagram carries better than prose (a process, comparison, distribution, or
+    transformation), or when modality_preference is visual and the concept has a
+    natural figure (dual-coding). It is the WRONG call for a struggling learner
+    who needs their misconception surfaced (socratic) or for purely definitional
+    material with nothing to depict.
 
 Score in [0,1]:
   1.0 — modality is the textbook-correct choice per the rules above; rationale

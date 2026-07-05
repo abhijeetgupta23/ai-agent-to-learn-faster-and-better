@@ -11,6 +11,7 @@ from src.schemas import (
     Modality,
     ReadingArtifact,
     SocraticArtifact,
+    VisualArtifact,
     WorkflowStep,
 )
 
@@ -39,6 +40,28 @@ should consist of 4-7 alternating turns where the AGENT asks a guiding question
 and a LEARNER_PROMPT slot indicates what the learner is asked to respond.
 The dialogue must lead the learner to an INSIGHT — the target_insight — not
 just to a fact. Surface and challenge common misconceptions explicitly.
+"""
+
+VISUAL_SYSTEM = """\
+You are an expert tutor designing a VISUAL lesson: the diagram carries the
+teaching, and prose only frames and annotates it (dual-coding — a picture plus
+words beats words alone). Choose a visual whose *structure* mirrors the
+concept's structure: a process as a flow, a comparison as grouped bars, a
+distribution as a curve, a transformation as before/after.
+
+Return:
+  - `overview`: 2-4 sentences (markdown) telling the learner what the figure
+    shows and why it matters — not the whole explanation, just the frame.
+  - `chart_brief`: a concrete, self-contained description of the ONE figure to
+    render — what goes on each axis or in each region, what the shape/trend is,
+    and the realistic illustrative values that make the point. Write it so
+    someone could build the chart from this sentence alone.
+  - `annotations`: 3-5 short labelled callouts, each pointing at one part of the
+    figure ("the steep left tail = …", "the gap between the two bars = …").
+  - `key_takeaways`: 3-5 one-line conclusions the learner should leave with.
+
+Calibrate depth to the learner's difficulty_level (1=novice, 5=expert). Keep it
+to a single, uncluttered figure — a teaching aid, not a report.
 """
 
 # Appended to the system prompt when source passages are supplied. This is what
@@ -122,5 +145,10 @@ def generate_artifact(
         return complete_json(
             SOCRATIC_SYSTEM + grounding, user_context, SocraticArtifact,
             label=f"generate:socratic{label_suffix}", max_tokens=5000,
+        )
+    if modality == Modality.VISUAL:
+        return complete_json(
+            VISUAL_SYSTEM + grounding, user_context, VisualArtifact,
+            label=f"generate:visual{label_suffix}", max_tokens=5000,
         )
     raise ValueError(f"Unknown modality: {modality}")

@@ -122,6 +122,7 @@
   .pill.reading { background: #eef2ff; color: #4f46e5; }
   .pill.socratic { background: #fdf2f8; color: #be185d; }
   .pill.interactive { background: #ecfdf5; color: #047857; }
+  .pill.visual { background: #fff7ed; color: #c2410c; }
   .progress { display: flex; gap: 5px; align-items: center; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #dfe3ee; }
   .dot.done { background: var(--accent); }
@@ -311,6 +312,7 @@
   body[data-theme="terminal"] .pill.reading { background: #1c2333; color: #79b8ff; }
   body[data-theme="terminal"] .pill.socratic { background: #2a1a24; color: #f88fb9; }
   body[data-theme="terminal"] .pill.interactive { background: #12261a; color: #3fb950; }
+  body[data-theme="terminal"] .pill.visual { background: #2a1e12; color: #e3a008; }
   body[data-theme="terminal"] .dot { background: #30363d; }
   body[data-theme="terminal"] .dot.cur { box-shadow: 0 0 0 3px #12261a; }
 
@@ -820,6 +822,7 @@ const MODALITY_PLAIN = {
   reading: "a reading passage",
   interactive: "hands-on questions",
   socratic: "a back-and-forth dialogue",
+  visual: "a diagram-led lesson",
 };
 function humanizeConcept(id) { return (id || "").replace(/_/g, " "); }
 
@@ -1276,6 +1279,21 @@ function renderLesson(a, step) {
     card.innerHTML = inner;
     feed.appendChild(card);
     renderQuiz(card, a, step, stepNo);
+  } else if (a.type === "visual") {
+    // The figure itself streams in later via the "chart" event and slots in
+    // right after .body; overview frames it, annotations + takeaways follow.
+    inner += `<div class="body">${mdToHtml(a.overview || "")}</div>`;
+    if ((a.annotations || []).length) {
+      inner += `<div class="takeaways"><div class="h">In the figure</div><ul>` +
+        a.annotations.map(k => `<li>${inline(k)}</li>`).join("") + `</ul></div>`;
+    }
+    if ((a.key_takeaways || []).length) {
+      inner += `<div class="takeaways"><div class="h">Key takeaways</div><ul>` +
+        a.key_takeaways.map(k => `<li>${inline(k)}</li>`).join("") + `</ul></div>`;
+    }
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    addRespond(card, step, a);
   }
   card.scrollIntoView({ behavior: "smooth", block: "start" });
 }

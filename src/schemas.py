@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 #   - Rohrer & Taylor (2007) — interleaving
 #   - Bjork & Bjork (2011) — desirable difficulties
 #   - Sweller (1988) — cognitive load theory
+#   - Paivio (1971) dual-coding, Mayer (2001) multimedia learning — visual
 # ---------------------------------------------------------------------------
 
 
@@ -28,6 +29,7 @@ class Modality(str, Enum):
     READING = "reading"
     INTERACTIVE = "interactive"  # quiz, scenario, problem set
     SOCRATIC = "socratic"  # dialogue-driven inquiry
+    VISUAL = "visual"  # diagram / chart-centric lesson (dual-coding)
 
 
 class RelationshipType(str, Enum):
@@ -156,7 +158,22 @@ class SocraticArtifact(BaseModel):
     target_insight: str
 
 
-Artifact = ReadingArtifact | InteractiveArtifact | SocraticArtifact
+class VisualArtifact(BaseModel):
+    """A diagram-centric lesson: the visual carries the teaching, prose only
+    frames and annotates it. The actual figure is rendered from `chart_brief`
+    via the hosted code-execution sandbox (src/tools/charts.py) at teach time —
+    grounded in dual-coding theory (Paivio 1971), where a picture plus words
+    beats words alone."""
+
+    type: Literal["visual"] = "visual"
+    title: str
+    overview: str  # markdown, 2-4 sentences framing what the visual shows
+    chart_brief: str  # what the figure must depict — drives chart generation
+    annotations: list[str]  # labelled callouts explaining parts of the visual
+    key_takeaways: list[str]
+
+
+Artifact = ReadingArtifact | InteractiveArtifact | SocraticArtifact | VisualArtifact
 
 
 # ---------------------------------------------------------------------------
