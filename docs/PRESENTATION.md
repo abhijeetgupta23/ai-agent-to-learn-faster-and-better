@@ -29,6 +29,10 @@ flowchart LR
 Three things to point at:
 
 1. **Left:** it works on *any* source material — the curriculum isn't hand-built.
+   *(Honesty note: bring-your-own-document works through the API today —
+   `source_text` on the session endpoints — but the demo UI only offers the
+   preset subjects. If asked "can I upload my own doc?", the answer is "the
+   engine does it; the upload box isn't in the demo UI yet.")*
 2. **Middle:** the decision is three-dimensional. Everyone else adapts *what* you
    see; this also adapts *how* you're taught.
 3. **The loop back:** your answer changes the path. It remembers you across sessions.
