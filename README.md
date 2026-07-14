@@ -265,18 +265,15 @@ python run_server.py        # localhost:8000
 ```
 
 ```bash
-# Stream a session over SSE
-curl -N -X POST http://localhost:8000/sessions/start_stream \
+# Kick off a session — the agent owns the loop and streams each decision
+# (diagnose → plan → teach) over SSE. The final session_ready event carries
+# the session_id to reuse below.
+curl -N -X POST http://localhost:8000/agent/sessions/start_stream \
   -H "Content-Type: application/json" \
   -d '{"user_id": "alice", "domain_id": "cognitive_biases"}'
 
-# Or get the same content as one JSON response
-curl -X POST http://localhost:8000/sessions/start \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "alice", "domain_id": "cognitive_biases"}'
-
-# Respond to the current artifact
-curl -X POST http://localhost:8000/sessions/<session_id>/respond \
+# Respond to the current lesson — the agent decides what happens next.
+curl -N -X POST http://localhost:8000/agent/sessions/<session_id>/respond_stream \
   -H "Content-Type: application/json" \
   -d '{"correct": true, "notes": "got it on first try"}'
 ```
@@ -345,7 +342,7 @@ adaptive-learning-agent/
 │   ├── llm.py                 # Anthropic SDK wrapper + JSON-schema parsing + tracing
 │   ├── trace.py               # Observability: capture prompt/reasoning/output per call
 │   ├── harness/               # Failure handling: retries, structured errors, iteration cap
-│   ├── agent/loop.py          # ASSESS → PLAN → GENERATE → OBSERVE → ADAPT
+│   ├── agent/autonomous.py    # Model-owned tool loop (the only runtime orchestrator)
 │   ├── tools/                 # The 5 tools (§6)
 │   ├── graph/extractor.py     # Domain → LearningGraph (LLM-extracted, cached)
 │   ├── memory/store.py        # File-backed store (vector-store-shaped interface)

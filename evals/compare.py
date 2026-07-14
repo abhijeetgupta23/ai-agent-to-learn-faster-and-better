@@ -39,7 +39,7 @@ from evals.judges import (
 from evals.runner import load_cases, _load_graph, run_workflow_case
 from src.harness import ExternalCallError
 from src.memory.store import MemoryStore
-from src.schemas import EvalCase, JudgeResult, LearningGraph
+from src.schemas import JudgeResult, LearningGraph
 
 PASS_THRESHOLD = 0.6  # identical to EvalResult.passed — NOT a judge change.
 JUDGE_ORDER = ["gap_to_pedagogy", "modality_fit", "adaptive_progression"]

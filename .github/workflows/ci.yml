@@ -38,7 +38,7 @@ jobs:
 
       - name: Import smoke test (no API key required)
         run: |
-          python -c "import src.schemas, src.graph.retriever, src.graph.extractor, src.harness, src.agent.loop, src.memory.store, src.server.app, src.llm, evals.runner"
+          python -c "import src.schemas, src.graph.retriever, src.graph.extractor, src.harness, src.agent.autonomous, src.memory.store, src.server.app, src.llm, evals.runner"
 
       - name: Offline unit tests
         run: pytest tests/ -v
