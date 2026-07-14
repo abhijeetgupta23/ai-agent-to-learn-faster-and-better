@@ -1,17 +1,18 @@
 """
 FastAPI server with SSE streaming.
 
-Two endpoints make the system demonstrable:
+The model owns the loop — two SSE endpoints make it demonstrable:
 
-  POST /sessions/start         — kick off a session; returns session_id + first
-                                  artifact (no SSE; one round-trip).
-  POST /sessions/{id}/respond  — submit a learner response; returns next event
-                                  stream until the next observation point or
-                                  end of workflow.
+  POST /agent/sessions/start_stream         — kick off a session; the agent
+                                               diagnoses, plans, and teaches,
+                                               streaming each decision live.
+  POST /agent/sessions/{id}/respond_stream  — submit a learner response; the
+                                               agent decides what happens next.
 
-The simpler shape (vs full SSE through a long-running coroutine) was chosen
-because it's easier to demo with curl and integrates more cleanly with the
-eval harness, which runs the same tools synchronously.
+Each streams the agent's tool calls, summarized reasoning, and generated
+lesson as Server-Sent Events, so a UI can render the loop as it unfolds. The
+retired fixed-pipeline ("workflow") routes have been removed; the autonomous
+agent is the only runtime path. See src/agent/autonomous.py.
 """
 
 from __future__ import annotations
@@ -30,8 +31,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.graph.extractor import extract_learning_graph
-from src.graph.retriever import ground_context
-from src.tools.charts import chart_data_url
 from src.harness import ExternalCallError, cost
 from src.agent.autonomous import kickoff_message, observation_message, run_agent_turn
 from src.llm import thinking_sink
@@ -48,15 +47,7 @@ from src.server.guards import (
 from src.schemas import (
     LearnerModel,
     LearningGraph,
-    Modality,
     SessionTurn,
-    WorkflowStep,
-)
-from src.tools import (
-    diagnose_learner,
-    generate_artifact,
-    plan_workflow,
-    update_learner_model,
 )
 
 app = FastAPI(title="Adaptive Learning Agent", version="0.1.0")
@@ -165,93 +156,6 @@ def get_evals():
     }
 
 
-@app.post("/sessions/start")
-def start_session(req: StartSessionRequest, request: Request):
-    # Demo guards: daily global budget, then per-IP creation rate limit.
-    if daily_budget_exhausted():
-        return budget_exhausted_response()
-    if not rate_limiter.check(client_ip(request)):
-        return rate_limited_response()
-
-    # Account everything this request spends against the session's budget.
-    with cost.meter() as session_meter:
-        return _run_start(req, session_meter)
-
-
-def _run_start(req: StartSessionRequest, session_meter: cost.CostMeter) -> JSONResponse:
-    # 1. Get-or-extract the graph.
-    graph: LearningGraph | None = None
-    domain_path = Path("domains") / f"{req.domain_id}.md"
-    if req.source_text:
-        graph = extract_learning_graph(
-            req.source_text, req.domain_title or req.domain_id, store
-        )
-    elif domain_path.exists():
-        graph = extract_learning_graph(
-            domain_path.read_text(encoding="utf-8"),
-            req.domain_title or req.domain_id.replace("_", " "),
-            store,
-        )
-    else:
-        # Fall back to a previously stored graph for this domain_id.
-        for entry in store.list_graphs():
-            if entry["domain_id"] == req.domain_id:
-                graph = store.get_graph_by_source_hash(entry["source_hash"])
-                break
-    if graph is None:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"No graph for domain '{req.domain_id}'. Pass source_text in the "
-                f"request body or add domains/{req.domain_id}.md."
-            ),
-        )
-
-    # 2. Get-or-create the learner (or use an explicit seed).
-    learner = _seeded_learner(req)
-    if learner is not None:
-        store.save_learner(learner)
-    else:
-        learner = store.get_learner(req.user_id, req.domain_id)
-        if learner is None:
-            learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
-            store.save_learner(learner)
-
-    # 3. ASSESS + PLAN.
-    gap = diagnose_learner(learner, graph)
-    workflow = plan_workflow(gap, learner, graph)
-
-    # 4. GENERATE the first artifact (grounded in retrieved source passages).
-    step = workflow.steps[0]
-    concept = graph.node_by_id(step.concept_id)
-    artifact = generate_artifact(
-        step, concept, learner, source_context=ground_context(concept, graph, store, learner=learner)
-    )
-
-    session_id = uuid.uuid4().hex[:12]
-    SESSIONS[session_id] = {
-        "user_id": req.user_id,
-        "domain_id": req.domain_id,
-        "graph": graph,
-        "learner": learner,
-        "gap": gap,
-        "workflow": workflow,
-        "current_step_index": 0,
-        "cost_usd": session_meter.total_usd,
-    }
-
-    return JSONResponse(
-        {
-            "session_id": session_id,
-            "gap": gap.model_dump(mode="json"),
-            "workflow": workflow.model_dump(mode="json"),
-            "current_step": step.model_dump(mode="json"),
-            "artifact": artifact.model_dump(mode="json"),
-            "cost": _cost_summary(session_meter.total_usd),
-        }
-    )
-
-
 def _cost_summary(session_usd: float) -> dict:
     """Per-session spend so far + how much of the cap remains."""
     return {
@@ -312,237 +216,6 @@ def _thinking_events(phase: str, fn: Callable[[], Any], meter: cost.CostMeter):
     if "error" in out:
         raise out["error"]
     return out["value"]
-
-
-@app.post("/sessions/start_stream")
-def start_session_stream(req: StartSessionRequest, request: Request):
-    """
-    SSE variant of /sessions/start.
-
-    Streams each agent-loop phase (assess → plan → generate) as it happens, so
-    a UI can render incrementally. The final 'session_ready' event carries the
-    session_id to use for subsequent /sessions/{id}/respond calls.
-    """
-    # Demo guards before opening the stream (same as /sessions/start).
-    if daily_budget_exhausted():
-        return budget_exhausted_response()
-    if not rate_limiter.check(client_ip(request)):
-        return rate_limited_response()
-
-    def event_stream():
-        # Per-session spend accumulator. Deliberately NOT cost.meter():
-        # Starlette iterates this sync generator via a threadpool where each
-        # next() runs in a fresh context copy, so a contextvar set here would
-        # not survive across iterations. The meter object is passed explicitly
-        # to each phase worker instead (see _thinking_events).
-        session_meter = cost.CostMeter()
-        try:
-            # 1. Graph.
-            domain_path = Path("domains") / f"{req.domain_id}.md"
-            yield _sse_event("phase", {"name": "load_graph"})
-            graph: LearningGraph | None = None
-            if req.source_text:
-                graph = yield from _thinking_events(
-                    "load_graph",
-                    lambda: extract_learning_graph(
-                        req.source_text, req.domain_title or req.domain_id, store
-                    ),
-                    session_meter,
-                )
-            elif domain_path.exists():
-                source = domain_path.read_text(encoding="utf-8")
-                graph = yield from _thinking_events(
-                    "load_graph",
-                    lambda: extract_learning_graph(
-                        source,
-                        req.domain_title or req.domain_id.replace("_", " "),
-                        store,
-                    ),
-                    session_meter,
-                )
-            else:
-                for entry in store.list_graphs():
-                    if entry["domain_id"] == req.domain_id:
-                        graph = store.get_graph_by_source_hash(entry["source_hash"])
-                        break
-            if graph is None:
-                yield _sse_event(
-                    "error", {"message": f"No graph for domain '{req.domain_id}'."}
-                )
-                return
-            yield _sse_event(
-                "graph",
-                {
-                    "domain_id": graph.domain_id,
-                    "n_nodes": len(graph.nodes),
-                    # Compact node list so the UI can draw the live concept
-                    # graph and animate the agent's decisions onto it.
-                    "nodes": [
-                        {
-                            "id": n.concept_id,
-                            "name": n.name,
-                            "difficulty": n.difficulty,
-                            "prerequisites": n.prerequisites,
-                        }
-                        for n in graph.nodes
-                    ],
-                },
-            )
-
-            # 2. Learner (or an explicit seed, for reproducible demo decisions).
-            learner = _seeded_learner(req)
-            if learner is not None:
-                store.save_learner(learner)
-            else:
-                learner = store.get_learner(req.user_id, req.domain_id)
-                if learner is None:
-                    learner = LearnerModel(
-                        user_id=req.user_id, domain_id=req.domain_id
-                    )
-                    store.save_learner(learner)
-            yield _sse_event("learner", {"learner": learner.model_dump(mode="json")})
-
-            # 3. ASSESS.
-            yield _sse_event("phase", {"name": "assess"})
-            gap = yield from _thinking_events(
-                "assess", lambda: diagnose_learner(learner, graph), session_meter
-            )
-            yield _sse_event("gap", {"gap": gap.model_dump(mode="json")})
-
-            # 4. PLAN.
-            yield _sse_event("phase", {"name": "plan"})
-            workflow = yield from _thinking_events(
-                "plan", lambda: plan_workflow(gap, learner, graph), session_meter
-            )
-            yield _sse_event(
-                "workflow", {"workflow": workflow.model_dump(mode="json")}
-            )
-
-            # 5. GENERATE first artifact.
-            yield _sse_event("phase", {"name": "generate"})
-            step = workflow.steps[0]
-            concept = graph.node_by_id(step.concept_id)
-            artifact = yield from _thinking_events(
-                "generate",
-                lambda: generate_artifact(
-                    step,
-                    concept,
-                    learner,
-                    source_context=ground_context(concept, graph, store, learner=learner),
-                ),
-                session_meter,
-            )
-
-            session_id = uuid.uuid4().hex[:12]
-            SESSIONS[session_id] = {
-                "user_id": req.user_id,
-                "domain_id": req.domain_id,
-                "graph": graph,
-                "learner": learner,
-                "gap": gap,
-                "workflow": workflow,
-                "current_step_index": 0,
-                "cost_usd": session_meter.total_usd,
-            }
-            yield _sse_event(
-                "artifact",
-                {
-                    "step": step.model_dump(mode="json"),
-                    "artifact": artifact.model_dump(mode="json"),
-                },
-            )
-            # Session is usable now — emit ready first so the respond UI works
-            # immediately, then stream the chart in (it takes ~30s and must
-            # never block the session or the lesson).
-            yield _sse_event(
-                "session_ready",
-                {"session_id": session_id, "cost": _cost_summary(session_meter.total_usd)},
-            )
-            # Teaching chart (model-written code — model writes+runs matplotlib in
-            # Anthropic's hosted sandbox; no code runs on our infra).
-            if artifact.type == "reading":
-                durl = chart_data_url(concept, artifact.title, step.objective)
-                if durl:
-                    yield _sse_event(
-                        "chart", {"step_number": step.step_number, "chart": durl}
-                    )
-        except ExternalCallError as e:
-            yield _sse_event("error", e.to_payload())
-        except Exception as e:
-            yield _sse_event(
-                "error", {"message": str(e), "type": type(e).__name__}
-            )
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
-
-
-@app.post("/sessions/{session_id}/respond")
-def respond(session_id: str, req: RespondRequest):
-    state = SESSIONS.get(session_id)
-    if state is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    graph: LearningGraph = state["graph"]
-    workflow = state["workflow"]
-    learner: LearnerModel = state["learner"]
-    idx = state["current_step_index"]
-    step: WorkflowStep = workflow.steps[idx]
-    modality = step.modality if isinstance(step.modality, Modality) else Modality(step.modality)
-
-    # OBSERVE + ADAPT.
-    turn = SessionTurn(
-        concept_id=step.concept_id,
-        modality=modality,
-        correct=req.correct,
-        notes=req.notes,
-    )
-    learner = update_learner_model(learner, turn, store)
-    state["learner"] = learner
-
-    # Advance.
-    next_idx = idx + 1
-    if next_idx >= len(workflow.steps):
-        return JSONResponse(
-            {
-                "session_id": session_id,
-                "status": "workflow_complete",
-                "learner": learner.model_dump(mode="json"),
-                "note": "Call /sessions/start again to author a new workflow from the updated learner state.",
-                "cost": _cost_summary(state.get("cost_usd", 0.0)),
-            }
-        )
-
-    # Per-session budget cap: if this session has already spent its allowance,
-    # terminate gracefully rather than generating another (paid) artifact.
-    if state.get("cost_usd", 0.0) >= PER_SESSION_USD_CAP:
-        return JSONResponse(
-            {
-                "session_id": session_id,
-                "status": "session_budget_reached",
-                "learner": learner.model_dump(mode="json"),
-                "note": "This session reached its cost cap. Start a new session to continue.",
-                "cost": _cost_summary(state.get("cost_usd", 0.0)),
-            }
-        )
-
-    state["current_step_index"] = next_idx
-    next_step = workflow.steps[next_idx]
-    concept = graph.node_by_id(next_step.concept_id)
-    with cost.meter() as step_meter:
-        artifact = generate_artifact(
-            next_step, concept, learner, source_context=ground_context(concept, graph, store, learner=learner)
-        )
-    state["cost_usd"] = state.get("cost_usd", 0.0) + step_meter.total_usd
-    return JSONResponse(
-        {
-            "session_id": session_id,
-            "status": "in_progress",
-            "current_step": next_step.model_dump(mode="json"),
-            "artifact": artifact.model_dump(mode="json"),
-            "learner": learner.model_dump(mode="json"),
-            "cost": _cost_summary(state["cost_usd"]),
-        }
-    )
 
 
 # ---------------------------------------------------------------------------

@@ -578,7 +578,7 @@
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
   <div class="theme-note" id="theme-note"></div>
-  <div class="theme-note">Orchestration: <b id="mode-label"></b> · <a id="mode-switch" href=""></a></div>
+  <div class="theme-note">Orchestration: <b>autonomous agent 🤖</b> — the model owns the loop</div>
 </div>
 
 <!-- Slim bar shown while a session runs (the launcher collapses away). -->
@@ -650,9 +650,9 @@
 </div><!-- /wrap -->
 
 <script>
-// Orchestration mode: "workflow" (fixed pipeline) or "agent" (?mode=agent —
-// the model owns the loop and decides each tool call itself).
-const MODE = new URLSearchParams(location.search).get("mode") === "agent" ? "agent" : "workflow";
+// The model owns the loop and decides each tool call itself. This is the only
+// orchestration mode; the retired fixed-pipeline ("workflow") view is gone.
+const MODE = "agent";
 const DOMAINS = [
   { id: "ai", label: "🤖 AI & LLMs" },
   { id: "cognitive_biases", label: "🧠 Cognitive biases" },
@@ -895,16 +895,6 @@ function renderEvals(d) {
   });
 })();
 applyTheme(document.getElementById("domain").value); // theme the initial view
-
-(function initMode() {
-  const lbl = document.getElementById("mode-label"), sw = document.getElementById("mode-switch");
-  if (!lbl) return;
-  lbl.textContent = MODE === "agent" ? "autonomous agent 🤖" : "workflow (fixed pipeline)";
-  const qs = new URLSearchParams(location.search);
-  if (MODE === "agent") qs.delete("mode"); else qs.set("mode", "agent");
-  sw.href = location.pathname + (qs.toString() ? "?" + qs.toString() : "");
-  sw.textContent = MODE === "agent" ? "switch to workflow mode" : "try autonomous mode →";
-})();
 
 // Demo token for the gated deployment: read once from ?token=… in the page
 // URL (then remembered in localStorage) and sent as X-Demo-Token on session
@@ -1380,33 +1370,8 @@ function submitResponse(correct, notes) {
   setThinking(THINKING.adapt);
   trace("phase-observe", "observe", "Your answer", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
 
-  if (MODE === "agent") {
-    agentLabelSet = false;
-    streamSSE(`/agent/sessions/${currentSessionId}/respond_stream`, { correct, notes }, null);
-    return;
-  }
-
-  fetch(`/sessions/${currentSessionId}/respond`, {
-    method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ correct, notes }),
-  }).then(r => r.json()).then(res => {
-    if (res.detail) { setThinking(null); noteLine("", "error", esc(res.detail)); return; }
-    if (res.learner) {
-      (res.learner.mastered_concepts || []).forEach(id => gvClass(id, "mastered"));
-      renderLearnerTrace(res.learner);
-      noteLine("adapt", "tutor", `Updated your profile — difficulty <b>${res.learner.difficulty_level}/5</b>, `
-        + `${(res.learner.mastered_concepts||[]).length} mastered, ${(res.learner.struggling_concepts||[]).length} to revisit.`);
-    }
-    if (res.current_step && res.current_step.concept_id) gvTarget(res.current_step.concept_id);
-    flowDone("adapt");
-    if (res.status === "workflow_complete") { flowDone("teach"); }
-    else if (res.artifact) { flowActive("teach"); setTimeout(() => { flowDone("teach"); flowActive("observe"); }, 900); }
-    if (res.status === "workflow_complete") { showDone(res); return; }
-    if (res.artifact && res.current_step) {
-      setThinking(THINKING.generate);
-      setTimeout(() => renderLesson(res.artifact, res.current_step), 250);
-    }
-  }).catch(err => { setThinking(null); noteLine("", "error", esc(err.message)); });
+  agentLabelSet = false;
+  streamSSE(`/agent/sessions/${currentSessionId}/respond_stream`, { correct, notes }, null);
 }
 
 function showDone(res) {
@@ -1515,20 +1480,16 @@ function startSession() {
   document.getElementById("session-bar").style.display = "flex";
   const dd = DOMAINS.find(x => x.id === domain);
   document.getElementById("bar-domain").textContent =
-    (dd ? dd.label : domain) + (MODE === "agent" ? " · 🤖 autonomous" : "");
+    (dd ? dd.label : domain) + " · 🤖 autonomous";
   document.getElementById("brain-empty").style.display = "none";
-  if (MODE === "agent") {
-    agentLabelSet = false;
-    const card = document.createElement("div");
-    card.className = "lesson journey";
-    card.innerHTML = "<h3>🤖 Autonomous mode</h3>" +
-      '<div class="body"><p>No fixed pipeline here — the agent decides each move itself ' +
-      "(diagnose, plan, teach, adapt) and can change course based on your answers. " +
-      "Every decision it makes appears in its brain on the right.</p></div>";
-    document.getElementById("feed").appendChild(card);
-  } else {
-    showJourney();
-  }
+  agentLabelSet = false;
+  const card = document.createElement("div");
+  card.className = "lesson journey";
+  card.innerHTML = "<h3>🤖 Autonomous mode</h3>" +
+    '<div class="body"><p>No fixed pipeline here — the agent decides each move itself ' +
+    "(diagnose, plan, teach, adapt) and can change course based on your answers. " +
+    "Every decision it makes appears in its brain on the right.</p></div>";
+  document.getElementById("feed").appendChild(card);
 
   applyTheme(domain);
   setThinking(THINKING.load_graph);
@@ -1537,7 +1498,7 @@ function startSession() {
   if (pendingSeed) { payload.learner = pendingSeed; pendingSeed = null; }
 
   streamSSE(
-    MODE === "agent" ? "/agent/sessions/start_stream" : "/sessions/start_stream",
+    "/agent/sessions/start_stream",
     payload,
     () => { document.getElementById("start").disabled = false; }
   );

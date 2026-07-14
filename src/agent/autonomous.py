@@ -1,13 +1,16 @@
 """
 Autonomous orchestration mode: the model owns the loop.
 
-Workflow mode (src/agent/loop.py + /sessions endpoints) is a fixed pipeline —
-code chains the tools, the LLM fills in the decisions. This module is the
-second orchestration mode: the same capabilities are exposed as REAL tool-use
-tools (Anthropic `tools=` API) and the model decides which to call, in what
-order, and when to stop — inside the same budgets, cost meter, and streaming
-sink as workflow mode. The two modes share everything below the orchestrator,
-so the eval harness can compare them on equal footing.
+The capabilities are exposed as REAL tool-use tools (Anthropic `tools=` API)
+and the model decides which to call, in what order, and when to stop — inside
+a per-turn tool budget, a shared cost meter, and a streaming sink. This is the
+only runtime orchestration path.
+
+An earlier fixed-pipeline ("workflow") mode — code chained the tools, the LLM
+filled in the decisions — has been retired from the runtime. It survives only
+as a comparison baseline in the eval harness (evals/compare.py), which
+reconstructs that pipeline directly from the tools to score both on equal
+footing.
 """
 
 from __future__ import annotations

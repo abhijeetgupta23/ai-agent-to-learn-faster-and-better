@@ -1,5 +1,7 @@
 # Visual walkthrough
 
+> **Historical note.** These screenshots captured the retired fixed-pipeline ("workflow") view, whose `assess → plan → generate` phases are shown below. That runtime path has been removed — the live `/visual` page now streams the **autonomous agent** (the model owns the loop, emitting `tool_call`/`tool_result` events instead of fixed phases). The narrative below is kept as a record of the scaffold the project outgrew; endpoint names have been updated to the live agent routes.
+
 A real session, captured live by Playwright. Six screenshots, one per phase of the loop. Full video at [`visual/screens/full_session.webm`](visual/screens/full_session.webm) (~4 MB).
 
 Reproduce locally:
@@ -12,7 +14,7 @@ python run_server.py
 node scripts/capture_visual.mjs   # writes to docs/visual/screens/
 ```
 
-Or just open `http://localhost:8000/visual/` in a browser — that's the same page Playwright drives. The UI is a single static HTML file ([`visual/index.html`](visual/index.html)) that consumes the existing `/sessions/start_stream` SSE endpoint and renders each event as a card.
+Or just open `http://localhost:8000/visual/` in a browser — that's the same page Playwright drives. The UI is a single static HTML file ([`visual/index.html`](visual/index.html)) that consumes the `/agent/sessions/start_stream` SSE endpoint and renders each event as a card.
 
 ---
 
@@ -20,7 +22,7 @@ Or just open `http://localhost:8000/visual/` in a browser — that's the same pa
 
 ![Initial state](visual/screens/01_initial.png)
 
-Empty UI before anything happens. Two input fields (user_id + domain), one button. No magic — when "Start session" is clicked, the page POSTs to `/sessions/start_stream` and renders each SSE event as it lands.
+Empty UI before anything happens. Two input fields (user_id + domain), one button. No magic — when "Start session" is clicked, the page POSTs to `/agent/sessions/start_stream` and renders each SSE event as it lands.
 
 ---
 
@@ -75,7 +77,7 @@ The agent's rationale explains the modality choice: brand-new concept, no miscon
 
 ![Session ready](visual/screens/06_session_ready.png)
 
-Final `session_ready` event with the session id. The page transitions to the OBSERVE phase — the loop is now paused, waiting for the learner to respond via `POST /sessions/{id}/respond`. That next-turn cycle (OBSERVE → ADAPT → back to ASSESS with updated state) runs on each `/respond` call, the same way.
+Final `session_ready` event with the session id. The page transitions to the OBSERVE phase — the loop is now paused, waiting for the learner to respond via `POST /agent/sessions/{id}/respond_stream`. That next-turn cycle (OBSERVE → ADAPT → back to ASSESS with updated state) runs on each response call, the same way.
 
 ---
 
