@@ -12,6 +12,8 @@
 
 > 👋 **Not an engineer?** Read the plain-English [User Guide](docs/USER_GUIDE.md) instead — what this is and how to use it, no jargon.
 
+> 🎤 **Presenting this to someone?** [`docs/PRESENTATION.md`](docs/PRESENTATION.md) is the presenter's kit — the 60-second pitch, simple diagrams, a 5-minute demo script, the canonical numbers, and honest answers to the hard questions.
+
 ---
 
 ## In a sentence
