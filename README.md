@@ -19,7 +19,7 @@
 | | |
 |---|---|
 | **Input** | A subject (file / URL / paper) + a learner (what they know, what they're stuck on, how hard things should be). |
-| **Output** | The right next lesson for that one person, right now — *what* topic, in *which* format (reading / interactive quiz / Socratic dialogue), at *what* difficulty — plus the actual lesson generated on the spot. |
+| **Output** | The right next lesson for that one person, right now — *what* topic, in *which* format (reading / interactive quiz / Socratic dialogue / visual diagram), at *what* difficulty — plus the actual lesson generated on the spot. |
 | **Proof it's right** | Three independent LLM judges score every decision against the rules above; six golden test cases catch regressions. Currently passing 6/6. |
 | **What it costs** | ~**$0.17** per teaching session, ~**$0.86** per full eval run, ~**$0.11** one-time per domain ingested (then cached forever). [Full cost analysis.](docs/COST_ANALYSIS.md) |
 
@@ -38,7 +38,7 @@ In an era where AI does the heavy lifting (coding, analysis, content), the bottl
 This repo is a public reference implementation that demonstrates four hard things working together:
 
 1. **Learning graph generated from source material** (not hand-curated) via LLM parsing, with named pedagogy metadata on every node and edge.
-2. **Modality adaptation** — the agent personalizes the *medium* (reading / interactive / Socratic), not just content. This is the differentiator vs. existing edtech (Squirrel AI, Khanmigo, Adaptemy), which are mostly rules-based routing or pure dialogue.
+2. **Modality adaptation** — the agent personalizes the *medium* (reading / interactive / Socratic / visual), not just content. This is the differentiator vs. existing edtech (Squirrel AI, Khanmigo, Adaptemy), which are mostly rules-based routing or pure dialogue.
 3. **Agentic orchestration** — the model owns the tool loop, authoring each lesson (concept, modality, pedagogy) from learner state and deciding which tool to call and when to stop.
 4. **Eval harness with rationale per judge** — auditable proof that the adaptive decisions were correct.
 
@@ -112,7 +112,7 @@ Typed capabilities, each returning a Pydantic model. The agent calls them as too
 1. `extract_learning_graph(source) → LearningGraph` — parse paper/URL/file into nodes + edges with pedagogy metadata. Checks the graph cache first; generates + caches on miss.
 2. `diagnose_learner(learner_state, graph) → GapEstimate` — produce a structured gap estimate. *(tool: `diagnose`)*
 3. `plan_workflow(gap, learner_model, graph) → Workflow` — author the multi-step teaching sequence + choose modality. *(tool: `plan_lessons`)*
-4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic) in the chosen modality. *(tool: `teach`)*
+4. `generate_artifact(step, modality) → Artifact` — build the teaching artifact (reading / interactive / Socratic / visual) in the chosen modality. *(tool: `teach`)*
 5. `update_learner_model(response, learner_model) → LearnerModel` — persist the adaptation. *(tool: `record_observation`)*
 
 ### Agent memory
@@ -361,7 +361,7 @@ adaptive-learning-agent/
 ## Roadmap (intentionally out of scope for V1)
 
 - **Multi-turn eval suite** — the six golden cases score a single first-turn decision, where a fixed pipeline keeps pace. A multi-turn suite (a learner answers, the agent must re-diagnose, backfill a prerequisite, switch modality on repeated failure, or end on mastery) would measure the agent's *flexibility* advantage that V1's single-turn cases can't.
-- **Video modality** — expensive; reading / interactive / Socratic only for V1.
+- **Video modality** — expensive; V1 ships reading / interactive / Socratic / visual (diagram), no video yet.
 - **Open-model backend** — note as a future branch; Claude is the frontier baseline that makes the evals bulletproof.
 - **Multi-user crowdsourcing UI for graphs** — graphs are reusable internally already; no community UI yet.
 - **Real vector store backend** — the `MemoryStore` interface is shaped for this; swap `src/memory/store.py` to a Chroma/FAISS/pgvector backend without touching call sites.

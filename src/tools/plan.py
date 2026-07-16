@@ -18,6 +18,10 @@ MODALITY SELECTION — choose the primary modality from:
   - 'socratic': concepts with common misconceptions, or when the learner is
     STRUGGLING with this concept (target is in struggling_concepts). Dialogue
     surfaces the misconception more efficiently than a re-read.
+  - 'visual': structural, spatial, or quantitative concepts a diagram carries
+    better than prose — a process, a comparison, a distribution, a
+    transformation (dual-coding). Also fitting when modality_preference is
+    visual and the concept has a natural figure.
 
 PEDAGOGY PRINCIPLES per step (cite one per step in `pedagogy_principle`):
   - 'spaced_repetition' — revisit a previously-mastered prerequisite

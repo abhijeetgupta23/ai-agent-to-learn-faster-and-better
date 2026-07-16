@@ -70,6 +70,10 @@ learner's STATE, never a default:
     re-reading (desirable difficulty).
   - 'reading' for NEW conceptual material the learner hasn't met, especially
     when their modality_preference is reading.
+  - 'visual' when the concept is inherently structural, spatial, or quantitative
+    — a process, a comparison, a distribution, a transformation — so a diagram
+    carries it better than prose (dual-coding). Also a strong pick when the
+    learner's modality_preference is visual and the concept has a natural figure.
   A struggling learner getting more reading, or a brand-new concept opened with
   socratic, is the classic WRONG call. modality_preference is a tie-breaker,
   not an override — demonstrated struggle outranks stated preference.
@@ -117,13 +121,14 @@ TOOL_SCHEMAS: list[dict] = [
                 "concept_id": {"type": "string", "description": "Concept id from the subject map."},
                 "modality": {
                     "type": "string",
-                    "enum": ["reading", "interactive", "socratic"],
+                    "enum": ["reading", "interactive", "socratic", "visual"],
                     "description": (
                         "Pick from learner state, not a default: 'socratic' for a "
                         "STRUGGLING concept or one with common misconceptions; "
                         "'interactive' to PRACTICE a procedural skill seen once; "
-                        "'reading' for NEW conceptual material. Struggle outranks "
-                        "stated modality_preference."
+                        "'reading' for NEW conceptual material; 'visual' for a "
+                        "structural / quantitative concept a diagram carries best. "
+                        "Struggle outranks stated modality_preference."
                     ),
                 },
                 "objective": {"type": "string", "description": "What this lesson should achieve."},
@@ -243,11 +248,15 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
             "step": step.model_dump(mode="json"),
             "artifact": artifact.model_dump(mode="json"),
         })
-        # Teaching chart (model-written code, hosted sandbox), emitted after the lesson.
-        if artifact.type == "reading":
+        # Teaching chart (model-written code, hosted sandbox), emitted after the
+        # lesson. For a 'visual' lesson the figure IS the lesson, so drive it
+        # from the artifact's chart_brief; for a 'reading' it's a supporting aid
+        # keyed off the step objective.
+        if artifact.type in ("reading", "visual"):
             from src.tools.charts import chart_data_url
 
-            durl = chart_data_url(concept, artifact.title, step.objective)
+            brief = getattr(artifact, "chart_brief", None) or step.objective
+            durl = chart_data_url(concept, artifact.title, brief)
             if durl:
                 emit("chart", {"step_number": step.step_number, "chart": durl})
         return {
