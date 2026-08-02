@@ -107,8 +107,8 @@ def _generate(*, model: str, max_tokens: int, system: str, user: str) -> tuple[s
 
     Returns (text, summarized_thinking, usage_dict) — provider-normalized.
     """
-    if model.startswith("deepseek"):
-        return _generate_deepseek(model=model, max_tokens=max_tokens, system=system, user=user)
+    if provider_for(model) != "anthropic":
+        return _generate_openai_compat(model=model, max_tokens=max_tokens, system=system, user=user)
     return _generate_anthropic(model=model, max_tokens=max_tokens, system=system, user=user)
 
 
@@ -144,41 +144,89 @@ def _generate_anthropic(*, model: str, max_tokens: int, system: str, user: str) 
     return text, thinking, _usage_dict(response)
 
 
-# --- DeepSeek experiment (OpenAI-compatible API) -----------------------------
-# Opt in by setting ADAPTIVE_LEARNING_MODEL=deepseek-chat or deepseek-reasoner
-# plus DEEPSEEK_API_KEY. deepseek-reasoner streams its chain of thought as
+# --- Non-Anthropic providers (OpenAI-compatible APIs) ------------------------
+# Opt in by setting ADAPTIVE_LEARNING_MODEL to a provider's model id plus that
+# provider's API key. Routing is by model-name prefix. Reasoning models
+# (deepseek-reasoner, kimi-*-thinking) stream their chain of thought as
 # `reasoning_content` deltas, which map straight onto the thinking sink.
 
-DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+PROVIDERS: dict[str, dict] = {
+    "deepseek": {
+        "prefixes": ("deepseek",),
+        "key_env": "DEEPSEEK_API_KEY",
+        "base_url_env": "DEEPSEEK_BASE_URL",
+        "default_base_url": "https://api.deepseek.com",
+    },
+    "moonshot": {  # Kimi
+        "prefixes": ("kimi", "moonshot"),
+        "key_env": "MOONSHOT_API_KEY",
+        "base_url_env": "MOONSHOT_BASE_URL",
+        "default_base_url": "https://api.moonshot.ai/v1",
+    },
+    "openai": {  # GPT / o-series
+        "prefixes": ("gpt", "o1", "o3", "o4", "chatgpt"),
+        "key_env": "OPENAI_API_KEY",
+        "base_url_env": "OPENAI_BASE_URL",
+        "default_base_url": None,  # SDK default (api.openai.com)
+    },
+}
 
-_deepseek_client = None
+
+def provider_for(model: str) -> str:
+    """Map a model id to its provider name; 'anthropic' when no prefix matches."""
+    for name, cfg in PROVIDERS.items():
+        if model.startswith(cfg["prefixes"]):
+            return name
+    return "anthropic"
 
 
-def get_deepseek_client():
-    global _deepseek_client
-    if _deepseek_client is None:
+# Per-model hard output caps (requests above them are rejected outright by the
+# provider, so clamp rather than fail). Prefix-matched; unlisted models pass
+# max_tokens through untouched.
+_OUTPUT_CAPS: dict[str, int] = {
+    "deepseek-chat": 8192,
+    "deepseek-reasoner": 65536,
+}
+
+_openai_compat_clients: dict[str, object] = {}
+
+
+def get_openai_compat_client(provider: str):
+    """One cached OpenAI-SDK client per non-Anthropic provider."""
+    if provider not in _openai_compat_clients:
         from openai import OpenAI  # lazy: optional dependency, experiments only
 
-        _deepseek_client = OpenAI(
-            api_key=os.environ["DEEPSEEK_API_KEY"], base_url=DEEPSEEK_BASE_URL
+        cfg = PROVIDERS[provider]
+        base_url = os.environ.get(cfg["base_url_env"]) or cfg["default_base_url"]
+        _openai_compat_clients[provider] = OpenAI(
+            api_key=os.environ[cfg["key_env"]], base_url=base_url
         )
-    return _deepseek_client
+    return _openai_compat_clients[provider]
 
 
-def _generate_deepseek(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
+def _clamp_output_tokens(model: str, max_tokens: int) -> int:
+    for prefix, cap in _OUTPUT_CAPS.items():
+        if model.startswith(prefix):
+            return min(max_tokens, cap)
+    return max_tokens
+
+
+def _generate_openai_compat(*, model: str, max_tokens: int, system: str, user: str) -> tuple[str, str, dict]:
     sink = _thinking_sink.get()
-    # DeepSeek caps output tokens per model (chat: 8K, reasoner: 64K); requests
-    # above the cap are rejected outright, so clamp rather than fail.
-    max_tokens = min(max_tokens, 8192 if model == "deepseek-chat" else 65536)
-    stream = get_deepseek_client().chat.completions.create(
+    provider = provider_for(model)
+    max_tokens = _clamp_output_tokens(model, max_tokens)
+    # OpenAI's newer models (gpt-5, o-series) reject `max_tokens` in favor of
+    # `max_completion_tokens`; the other providers still speak `max_tokens`.
+    token_param = "max_completion_tokens" if provider == "openai" else "max_tokens"
+    stream = get_openai_compat_client(provider).chat.completions.create(
         model=model,
-        max_tokens=max_tokens,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
         stream=True,
         stream_options={"include_usage": True},
+        **{token_param: max_tokens},
     )
     text_parts: list[str] = []
     thinking_parts: list[str] = []

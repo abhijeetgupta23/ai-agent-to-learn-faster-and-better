@@ -4,6 +4,7 @@ fastapi>=0.110
 uvicorn[standard]>=0.27
 python-dotenv>=1.0
 httpx>=0.27
-# Optional provider experiment: DeepSeek via its OpenAI-compatible API
-# (only used when ADAPTIVE_LEARNING_MODEL=deepseek-*).
+# Optional provider experiments: DeepSeek / Kimi (Moonshot) / GPT via their
+# OpenAI-compatible APIs (only used when ADAPTIVE_LEARNING_MODEL is deepseek-*,
+# kimi-*/moonshot-*, or gpt-*/o*-series).
 openai>=1.50

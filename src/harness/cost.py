@@ -35,17 +35,40 @@ PRICING: dict[str, dict[str, float]] = {
     "claude-sonnet-4-6": {"in": 3.00, "out": 15.00},
     "claude-haiku-4-5": {"in": 1.00, "out": 5.00},
     "claude-haiku-4-5-20251001": {"in": 1.00, "out": 5.00},
-    # DeepSeek (experiment) — list prices at time of writing; verify before
-    # relying on these for budget math.
+    # Non-Anthropic providers (experiments) — list prices at time of writing;
+    # verify before relying on these for budget math.
     "deepseek-chat": {"in": 0.27, "out": 1.10},
     "deepseek-reasoner": {"in": 0.55, "out": 2.19},
+    # Kimi (Moonshot)
+    "kimi-k2-thinking": {"in": 0.60, "out": 2.50},
+    "kimi-k2-turbo": {"in": 2.40, "out": 10.00},
+    "kimi-k2": {"in": 0.60, "out": 2.50},
+    # OpenAI
+    "gpt-5-mini": {"in": 0.25, "out": 2.00},
+    "gpt-5-nano": {"in": 0.05, "out": 0.40},
+    "gpt-5": {"in": 1.25, "out": 10.00},
+    "gpt-4.1": {"in": 2.00, "out": 8.00},
+    "gpt-4o": {"in": 2.50, "out": 10.00},
 }
 # Fall back to Opus pricing for an unknown model id — never under-count spend.
 _FALLBACK = PRICING["claude-opus-4-8"]
 
 
+def price_for(model: str) -> dict[str, float]:
+    """Exact match first, then longest-prefix match (so dated ids like
+    'kimi-k2-0905-preview' or 'gpt-5-2025-08-07' price correctly), then the
+    never-under-count fallback."""
+    if model in PRICING:
+        return PRICING[model]
+    best = None
+    for known, p in PRICING.items():
+        if model.startswith(known) and (best is None or len(known) > len(best[0])):
+            best = (known, p)
+    return best[1] if best else _FALLBACK
+
+
 def usd_for(usage: dict, model: str) -> float:
-    p = PRICING.get(model, _FALLBACK)
+    p = price_for(model)
     inp = usage.get("input_tokens", 0)
     out = usage.get("output_tokens", 0)
     cache_read = usage.get("cache_read_input_tokens", 0)
