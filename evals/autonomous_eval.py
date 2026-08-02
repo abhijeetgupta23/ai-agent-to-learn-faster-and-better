@@ -84,9 +84,14 @@ def _synthesize_teach_workflow(
     )
 
 
-def run_autonomous_case(case: EvalCase, graph: LearningGraph, store: MemoryStore) -> AutonomousCapture:
+def run_autonomous_case(
+    case: EvalCase, graph: LearningGraph, store: MemoryStore, *, model: str | None = None
+) -> AutonomousCapture:
     """Run ONE autonomous kickoff turn over the case learner and capture the
-    judge-facing artifacts, plus cost and tool-call count."""
+    judge-facing artifacts, plus cost and tool-call count.
+
+    `model` overrides the orchestrator model for this run (multi-model sweeps);
+    None keeps the configured AGENT_MODEL. Judges are pinned separately."""
     cap = AutonomousCapture(case_id=case.case_id)
 
     state: dict = {
@@ -95,6 +100,8 @@ def run_autonomous_case(case: EvalCase, graph: LearningGraph, store: MemoryStore
         "graph": graph,
         "store": store,
     }
+    if model:
+        state["model"] = model
 
     def emit(event: str, payload: dict) -> None:
         if event == "tool_call":

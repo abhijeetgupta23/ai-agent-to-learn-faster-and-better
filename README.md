@@ -100,7 +100,7 @@ flowchart LR
 ### Stack
 
 - **Orchestration:** an autonomous agent — the five tools (§6 below) exposed via the Anthropic tools API, with the model owning the loop: it decides which tool to call, in what order, and when to stop, inside a per-turn tool budget and a shared cost meter. Prompt caching is on for the orchestrator's repeated prefix. Chart generation additionally uses Anthropic's code-execution sandbox: the model writes and runs matplotlib; no code executes on our infrastructure.
-- **LLM:** Claude `claude-sonnet-4-6` by default (eval-validated; override via `ADAPTIVE_LEARNING_MODEL`) with adaptive thinking. (An open-model branch is planned — see *Roadmap*.)
+- **LLM:** Claude `claude-sonnet-4-6` by default (eval-validated; override via `ADAPTIVE_LEARNING_MODEL`) with adaptive thinking. Non-Anthropic models — DeepSeek (`deepseek-*`), Kimi (`kimi-*`), GPT (`gpt-*`) — run the same agent through an OpenAI-compatible tool loop, routed by model-name prefix ([`src/llm.py`](src/llm.py)); compare them head-to-head with `python -m evals.multi_model` (judges stay pinned to Claude so scores are comparable).
 - **Memory / persistence:** file-backed JSON store, lookup by ID. The interface is shaped so a real vector store (Chroma, FAISS, pgvector) is a one-file swap.
 - **I/O:** Pydantic-validated everywhere — every tool returns a typed model; the agent fails fast on malformed LLM output.
 - **Streaming:** FastAPI with Server-Sent Events for incremental artifact rendering.
@@ -362,7 +362,7 @@ adaptive-learning-agent/
 
 - **Multi-turn eval suite** — the six golden cases score a single first-turn decision, where a fixed pipeline keeps pace. A multi-turn suite (a learner answers, the agent must re-diagnose, backfill a prerequisite, switch modality on repeated failure, or end on mastery) would measure the agent's *flexibility* advantage that V1's single-turn cases can't.
 - **Video modality** — expensive; reading / interactive / Socratic only for V1.
-- **Open-model backend** — note as a future branch; Claude is the frontier baseline that makes the evals bulletproof.
+- ~~**Open-model backend**~~ — shipped: DeepSeek / Kimi / GPT drive the full autonomous tool loop via their OpenAI-compatible APIs, with a multi-model eval sweep (`evals/multi_model.py`) scored by the same pinned Claude judges.
 - **Multi-user crowdsourcing UI for graphs** — graphs are reusable internally already; no community UI yet.
 - **Real vector store backend** — the `MemoryStore` interface is shaped for this; swap `src/memory/store.py` to a Chroma/FAISS/pgvector backend without touching call sites.
 

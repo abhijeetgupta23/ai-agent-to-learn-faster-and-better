@@ -22,7 +22,14 @@ from typing import Any, Callable
 from src.graph.retriever import ground_context
 from src.harness import cost
 from src.harness.retry import call_with_retries
-from src.llm import _THINKING, DEFAULT_MODEL, _thinking_sink, get_client
+from src.llm import (
+    _THINKING,
+    DEFAULT_MODEL,
+    _thinking_sink,
+    get_client,
+    get_openai_compat_client,
+    provider_for,
+)
 from src.memory.store import MemoryStore
 from src.schemas import (
     LearnerModel,
@@ -318,7 +325,17 @@ def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], N
     Returns the model's final text. Thinking/text deltas stream to the active
     thinking sink (same contextvar workflow mode uses), tool activity and
     results stream via `emit`.
+
+    The orchestrator model defaults to AGENT_MODEL but can be overridden per
+    session via state["model"] (the multi-model eval driver uses this). A
+    non-Anthropic model routes to the OpenAI-compatible tool loop; the message
+    history formats differ between the two, so a session must stay on one
+    provider throughout.
     """
+    model = state.get("model") or AGENT_MODEL
+    if provider_for(model) != "anthropic":
+        return _run_agent_turn_openai_compat(state, user_message, emit, model=model)
+
     client = get_client()
     messages: list = state["messages"]
     messages.append({"role": "user", "content": user_message})
@@ -329,7 +346,7 @@ def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], N
     while True:
         def _call():
             with client.messages.stream(
-                model=AGENT_MODEL,
+                model=model,
                 max_tokens=6000,
                 thinking=_THINKING,
                 system=_SYSTEM_BLOCKS,
@@ -346,7 +363,7 @@ def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], N
                 return s.get_final_message()
 
         response = call_with_retries(_call, label="llm:agent_orchestrator")
-        cost.record(AGENT_MODEL, _usage(response))
+        cost.record(model, _usage(response))
         # Append raw blocks — thinking blocks must round-trip verbatim.
         messages.append({"role": "assistant", "content": response.content})
 
@@ -386,6 +403,154 @@ def run_agent_turn(state: dict, user_message: str, emit: Callable[[str, dict], N
                 }
             ]
         messages.append({"role": "user", "content": user_content})
+
+    if final_text:
+        emit("agent_text", {"text": final_text})
+    return final_text
+
+
+# ---------------------------------------------------------------------------
+# OpenAI-compatible tool loop (DeepSeek / Kimi / GPT experiments).
+#
+# Same tools, same budget, same emit/sink contract as the Anthropic loop above
+# — only the wire format differs: `tools=[{"type":"function",...}]`, tool calls
+# arrive as streamed argument-string deltas keyed by index, and results go back
+# as role="tool" messages. Reasoning models (deepseek-reasoner, kimi-*-thinking)
+# stream `reasoning_content` deltas, forwarded to the thinking sink.
+# ---------------------------------------------------------------------------
+
+def openai_tool_schemas() -> list[dict]:
+    """TOOL_SCHEMAS translated to OpenAI function-calling format."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t["description"],
+                "parameters": t["input_schema"],
+            },
+        }
+        for t in TOOL_SCHEMAS
+    ]
+
+
+def merge_tool_call_delta(pending: dict[int, dict], delta_tool_calls) -> None:
+    """Fold one chunk's tool_calls deltas into `pending` (keyed by index).
+    OpenAI-compatible streams send each call's id/name once and its JSON
+    arguments as string fragments; this accumulates them into complete calls."""
+    for tc in delta_tool_calls or ():
+        slot = pending.setdefault(tc.index, {"id": "", "name": "", "arguments": ""})
+        if tc.id:
+            slot["id"] = tc.id
+        fn = getattr(tc, "function", None)
+        if fn is not None:
+            if getattr(fn, "name", None):
+                slot["name"] = fn.name
+            if getattr(fn, "arguments", None):
+                slot["arguments"] += fn.arguments
+
+
+def _run_agent_turn_openai_compat(
+    state: dict, user_message: str, emit: Callable[[str, dict], None], *, model: str
+) -> str:
+    provider = provider_for(model)
+    client = get_openai_compat_client(provider)
+    messages: list = state["messages"]
+    messages.append({"role": "user", "content": user_message})
+    sink = _thinking_sink.get()
+    tools = openai_tool_schemas()
+    # gpt-5/o-series reject `max_tokens`; everyone else still speaks it.
+    token_param = "max_completion_tokens" if provider == "openai" else "max_tokens"
+
+    tool_calls = 0
+    final_text = ""
+    while True:
+        def _call():
+            stream = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "system", "content": AGENT_SYSTEM}] + messages,
+                tools=tools,
+                stream=True,
+                stream_options={"include_usage": True},
+                **{token_param: 6000},
+            )
+            text_parts: list[str] = []
+            reasoning_parts: list[str] = []
+            pending: dict[int, dict] = {}
+            usage = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0}
+            for chunk in stream:
+                if chunk.choices:
+                    delta = chunk.choices[0].delta
+                    reasoning = getattr(delta, "reasoning_content", None)
+                    if reasoning:
+                        reasoning_parts.append(reasoning)
+                        if sink is not None:
+                            sink("thinking", reasoning)
+                    if delta.content:
+                        text_parts.append(delta.content)
+                        if sink is not None:
+                            sink("text", delta.content)
+                    merge_tool_call_delta(pending, delta.tool_calls)
+                if chunk.usage:
+                    details = getattr(chunk.usage, "prompt_tokens_details", None)
+                    usage = {
+                        "input_tokens": chunk.usage.prompt_tokens,
+                        "output_tokens": chunk.usage.completion_tokens,
+                        "cache_read_input_tokens": getattr(details, "cached_tokens", 0) or 0,
+                    }
+            calls = [pending[i] for i in sorted(pending)]
+            return "".join(text_parts), "".join(reasoning_parts), calls, usage
+
+        text, reasoning, calls, usage = call_with_retries(_call, label="llm:agent_orchestrator")
+        cost.record(model, usage)
+
+        assistant: dict = {"role": "assistant", "content": text or None}
+        if calls:
+            assistant["tool_calls"] = [
+                {
+                    "id": c["id"],
+                    "type": "function",
+                    "function": {"name": c["name"], "arguments": c["arguments"]},
+                }
+                for c in calls
+            ]
+        # Kimi's thinking models require reasoning_content to round-trip through
+        # multi-step tool calls; DeepSeek rejects it in input messages.
+        if reasoning and provider == "moonshot":
+            assistant["reasoning_content"] = reasoning
+        messages.append(assistant)
+
+        if not calls:
+            final_text = text
+            break
+
+        for c in calls:
+            tool_calls += 1
+            try:
+                args = json.loads(c["arguments"]) if c["arguments"].strip() else {}
+            except json.JSONDecodeError as e:
+                args, exec_error = {}, f"unparseable tool arguments: {e}"
+            else:
+                exec_error = None
+            emit("tool_call", {"tool": c["name"], "args": args})
+            if exec_error is None:
+                try:
+                    out = _execute_tool(c["name"], args, state, emit)
+                    content = json.dumps(out)[:4000]
+                    emit("tool_result", {"tool": c["name"], "ok": True})
+                except Exception as e:  # surfaced to the model so it can adapt
+                    content = f"error: {e}"
+                    emit("tool_result", {"tool": c["name"], "ok": False, "error": str(e)})
+            else:
+                content = f"error: {exec_error}"
+                emit("tool_result", {"tool": c["name"], "ok": False, "error": exec_error})
+            messages.append({"role": "tool", "tool_call_id": c["id"], "content": content})
+
+        if tool_calls >= MAX_TOOL_CALLS_PER_TURN:
+            messages.append({
+                "role": "user",
+                "content": "[tool budget for this turn is exhausted — wrap up in text now]",
+            })
 
     if final_text:
         emit("agent_text", {"text": final_text})
