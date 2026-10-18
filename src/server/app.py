@@ -26,12 +26,19 @@ from pathlib import Path
 from typing import Any, Callable
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from src.graph.extractor import extract_learning_graph
 from src.harness import ExternalCallError, cost
+from src.ingestion import (
+    MAX_SOURCE_BYTES,
+    IngestedSource,
+    SourceIngestionError,
+    fetch_url,
+    parse_source_bytes,
+)
 from src.agent.autonomous import kickoff_message, observation_message, run_agent_turn
 from src.llm import thinking_sink
 from src.memory.store import MemoryStore
@@ -65,6 +72,14 @@ def external_call_error_handler(request, exc: ExternalCallError):
     """
     return JSONResponse(status_code=502, content=exc.to_payload())
 
+
+@app.exception_handler(SourceIngestionError)
+def source_ingestion_error_handler(request, exc: SourceIngestionError):
+    return JSONResponse(
+        status_code=422,
+        content={"error": exc.code, "message": str(exc)},
+    )
+
 # Visual demo — see docs/visual/index.html. Mount at /visual.
 _VISUAL_DIR = Path(__file__).resolve().parents[2] / "docs" / "visual"
 if _VISUAL_DIR.exists():
@@ -85,23 +100,34 @@ SESSIONS: dict[str, dict[str, Any]] = {}
 
 class StartSessionRequest(BaseModel):
     user_id: str
-    domain_id: str
-    # One of these must be set:
+    domain_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,79}$")
+    # Custom sources are mutually exclusive. Neither means use a preset/cached domain.
     source_text: str | None = None  # raw material to extract a graph from
+    source_url: str | None = None
     domain_title: str | None = None
     # Optional: seed the learner state (mastered/struggling/difficulty/history)
     # so a demo can reproduce a specific adaptive decision (e.g. a prereq gap).
     learner: dict | None = None
 
+    @model_validator(mode="after")
+    def validate_custom_source(self):
+        if self.source_text and self.source_url:
+            raise ValueError("Provide source_text or source_url, not both.")
+        if self.source_text and len(self.source_text.encode("utf-8")) > MAX_SOURCE_BYTES:
+            raise ValueError(f"source_text exceeds the {MAX_SOURCE_BYTES // (1024 * 1024)} MB limit.")
+        return self
 
-def _seeded_learner(req: "StartSessionRequest") -> LearnerModel | None:
+
+def _seeded_learner(
+    req: "StartSessionRequest", *, domain_id: str | None = None
+) -> LearnerModel | None:
     """Build a LearnerModel from an explicit seed in the request, if present."""
     if not req.learner:
         return None
     seed = req.learner
     return LearnerModel(
         user_id=req.user_id,
-        domain_id=req.domain_id,
+        domain_id=domain_id or req.domain_id,
         mastered_concepts=seed.get("mastered_concepts", []),
         struggling_concepts=seed.get("struggling_concepts", []),
         modality_preference=seed.get("modality_preference", "reading"),
@@ -123,6 +149,31 @@ def health():
 @app.get("/graphs")
 def list_graphs():
     return {"graphs": store.list_graphs()}
+
+
+@app.post("/sources/parse")
+async def parse_uploaded_source(request: Request, filename: str = "source.txt"):
+    """Parse a raw file upload without requiring multipart form dependencies."""
+    chunks: list[bytes] = []
+    size = 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > MAX_SOURCE_BYTES:
+            raise SourceIngestionError(
+                f"The source exceeds the {MAX_SOURCE_BYTES // (1024 * 1024)} MB limit.",
+                code="source_too_large",
+            )
+        chunks.append(chunk)
+    source = parse_source_bytes(
+        b"".join(chunks),
+        filename=filename,
+        content_type=request.headers.get("content-type"),
+    )
+    return {
+        "source_text": source.text,
+        "domain_title": source.title,
+        "source_type": source.source_type,
+    }
 
 
 @app.get("/evals")
@@ -283,11 +334,23 @@ def agent_start_session_stream(req: StartSessionRequest, request: Request):
             domain_path = Path("domains") / f"{req.domain_id}.md"
             yield _sse_event("phase", {"name": "load_graph"})
             graph: LearningGraph | None = None
-            if req.source_text:
+            custom_source: IngestedSource | None = None
+            if req.source_url:
+                custom_source = fetch_url(req.source_url)
+            elif req.source_text:
+                custom_source = IngestedSource(
+                    text=req.source_text,
+                    title=req.domain_title or req.domain_id.replace("_", " "),
+                    source_type="text",
+                )
+
+            if custom_source is not None:
                 graph = yield from _thinking_events(
                     "load_graph",
                     lambda: extract_learning_graph(
-                        req.source_text, req.domain_title or req.domain_id, store
+                        custom_source.text,
+                        req.domain_title or custom_source.title,
+                        store,
                     ),
                     session_meter,
                 )
@@ -312,6 +375,7 @@ def agent_start_session_stream(req: StartSessionRequest, request: Request):
                     "error", {"message": f"No graph for domain {req.domain_id!r}."}
                 )
                 return
+            effective_domain_id = graph.domain_id
             yield _sse_event(
                 "graph",
                 {
@@ -329,13 +393,13 @@ def agent_start_session_stream(req: StartSessionRequest, request: Request):
                 },
             )
 
-            learner = _seeded_learner(req)
+            learner = _seeded_learner(req, domain_id=effective_domain_id)
             if learner is not None:
                 store.save_learner(learner)
             else:
-                learner = store.get_learner(req.user_id, req.domain_id)
+                learner = store.get_learner(req.user_id, effective_domain_id)
                 if learner is None:
-                    learner = LearnerModel(user_id=req.user_id, domain_id=req.domain_id)
+                    learner = LearnerModel(user_id=req.user_id, domain_id=effective_domain_id)
                     store.save_learner(learner)
             yield _sse_event("learner", {"learner": learner.model_dump(mode="json")})
 
@@ -350,7 +414,7 @@ def agent_start_session_stream(req: StartSessionRequest, request: Request):
             SESSIONS[session_id] = {
                 "mode": "agent",
                 "user_id": req.user_id,
-                "domain_id": req.domain_id,
+                "domain_id": effective_domain_id,
                 "state": agent_state,
                 "cost_usd": 0.0,
             }

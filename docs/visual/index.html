@@ -66,6 +66,17 @@
     padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
     font-size: 14px; background: #fff; min-width: 160px;
   }
+  textarea, input[type=file] {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+    font: inherit; font-size: 14px; background: #fff; color: var(--ink); width: 100%;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  .source-box { border-top: 1px solid var(--border); margin: 16px 0; padding-top: 14px; }
+  .source-box .chips { margin-bottom: 10px; }
+  .source-panel { display: none; max-width: 760px; }
+  .source-panel.show { display: block; }
+  .source-panel input[type=text] { width: 100%; box-sizing: border-box; }
+  .source-help { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
   input:focus, .chip:focus { outline: 2px solid #c7d2fe; outline-offset: 1px; }
   button.primary {
     background: var(--accent); color: white; border: none; padding: 11px 22px;
@@ -569,6 +580,26 @@
   <p>Pick a subject and we’ll start a session tailored to where you are.</p>
   <div class="field-label">Subject</div>
   <div class="chips" id="domain-chips"></div>
+  <div class="source-box">
+    <div class="field-label">Or bring your own source</div>
+    <div class="chips" id="source-chips">
+      <button class="chip" type="button" onclick="setSourceMode('url', this)">🔗 Web URL</button>
+      <button class="chip" type="button" onclick="setSourceMode('file', this)">📄 File</button>
+      <button class="chip" type="button" onclick="setSourceMode('text', this)">✍️ Paste text</button>
+    </div>
+    <div class="source-panel" id="source-url-panel">
+      <input type="text" id="source-url" placeholder="https://example.com/article" />
+      <div class="source-help">Public web pages and direct PDF links, up to 5 MB.</div>
+    </div>
+    <div class="source-panel" id="source-file-panel">
+      <input type="file" id="source-file" accept=".pdf,.md,.markdown,.txt,.html,.htm,text/plain,text/markdown,text/html,application/pdf" />
+      <div class="source-help">PDF, Markdown, HTML, or plain text, up to 5 MB.</div>
+    </div>
+    <div class="source-panel" id="source-text-panel">
+      <input type="text" id="source-title" placeholder="Source title (optional)" />
+      <textarea id="source-text" placeholder="Paste notes, an article, or study material…"></textarea>
+    </div>
+  </div>
   <div class="row">
     <div>
       <div class="field-label">Your name</div>
@@ -669,9 +700,23 @@ let currentSessionId = null;
 let lastStep = null;
 let totalSteps = 0;
 let curriculumItems = {};
+let sourceMode = "preset";
 
 function humanize(id) { return (id || "").replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase()); }
 function prettyPrinciple(p) { return (p || "").replace(/_/g, " "); }
+
+function setSourceMode(mode, button) {
+  sourceMode = mode;
+  document.querySelectorAll("#source-chips .chip").forEach(c => c.classList.remove("active"));
+  document.querySelectorAll(".source-panel").forEach(p => p.classList.remove("show"));
+  if (button) button.classList.add("active");
+  if (mode !== "preset") {
+    document.querySelectorAll("#domain-chips .chip").forEach(c => c.classList.remove("active"));
+    document.getElementById("source-" + mode + "-panel").classList.add("show");
+    document.getElementById("domain").value = "custom_source";
+    applyTheme("custom_source");
+  }
+}
 
 // The agent routes each subject to a curated visual register.
 const TOPIC_THEME = {
@@ -888,6 +933,7 @@ function renderEvals(d) {
     el.onclick = () => {
       document.querySelectorAll("#domain-chips .chip").forEach(c => c.classList.remove("active"));
       el.classList.add("active");
+      setSourceMode("preset", null);
       document.getElementById("domain").value = d.id;
       applyTheme(d.id);
     };
@@ -1462,8 +1508,50 @@ function renderLearnerTrace(learner) {
 }
 
 // ================= SSE start =================
-function startSession() {
+async function customSourcePayload() {
+  if (sourceMode === "preset") return {};
+  if (sourceMode === "url") {
+    const sourceUrl = document.getElementById("source-url").value.trim();
+    if (!sourceUrl) throw new Error("Paste a web URL first.");
+    try { new URL(sourceUrl); } catch (_) { throw new Error("Enter a valid http:// or https:// URL."); }
+    return { source_url: sourceUrl };
+  }
+  if (sourceMode === "text") {
+    const sourceText = document.getElementById("source-text").value.trim();
+    if (!sourceText) throw new Error("Paste some source material first.");
+    return {
+      source_text: sourceText,
+      domain_title: document.getElementById("source-title").value.trim() || "Custom source",
+    };
+  }
+  const file = document.getElementById("source-file").files[0];
+  if (!file) throw new Error("Choose a file first.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("That file is larger than the 5 MB limit.");
+  let response;
+  try {
+    response = await fetch("/sources/parse?filename=" + encodeURIComponent(file.name), {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": file.type || "application/octet-stream" }),
+      body: file,
+    });
+  } catch (_) {
+    throw new Error("Could not reach the server. Restart it and try the upload again.");
+  }
+  const parsed = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(parsed.message || parsed.detail || "The file could not be read.");
+  return { source_text: parsed.source_text, domain_title: parsed.domain_title };
+}
+
+async function startSession() {
   document.getElementById("start").disabled = true;
+  let sourcePayload;
+  try {
+    sourcePayload = await customSourcePayload();
+  } catch (error) {
+    document.getElementById("start").disabled = false;
+    alert(error.message);
+    return;
+  }
   document.getElementById("feed").innerHTML = "";
   document.getElementById("trace").innerHTML = "";
   GV_NODES = null; // the map card lives in the feed, which was just cleared
@@ -1494,7 +1582,7 @@ function startSession() {
   applyTheme(domain);
   setThinking(THINKING.load_graph);
 
-  const payload = { user_id: user, domain_id: domain };
+  const payload = { user_id: user, domain_id: domain, ...sourcePayload };
   if (pendingSeed) { payload.learner = pendingSeed; pendingSeed = null; }
 
   streamSSE(
@@ -1533,7 +1621,8 @@ function streamSSE(url, payload, onDone) {
     }
     if (onDone) onDone();
   }).catch((err) => {
-    setThinking(null); setStatus("error: " + err.message);
+    setThinking(null); setStatus("error");
+    noteLine("", "error", "Could not reach the server. Restart it and try again.");
     if (onDone) onDone();
   });
 }
