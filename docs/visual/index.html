@@ -168,10 +168,13 @@
 
   /* Socratic */
   .turn { display: flex; gap: 10px; margin-bottom: 12px; }
-  .turn .who { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
-    color: var(--muted); min-width: 64px; padding-top: 3px; }
+  dl.args { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 4px 0 0; font-size: 12px; }
+  dl.args dt { color: #7d8bab; }
+  dl.args dd { margin: 0; color: #d6def0; overflow-wrap: anywhere; }
+  .turn .who { font-size: 12px; font-weight: 600; color: var(--muted); min-width: 64px; padding-top: 3px; }
   .turn .bubble { background: #f5f6fc; border-radius: 12px; padding: 10px 14px; flex: 1; }
-  .turn.learner_prompt .bubble { background: #eef2ff; }
+  .turn.learner_prompt .bubble { background: transparent; border: 1px dashed var(--border);
+    color: var(--muted); font-style: italic; }
 
   /* Quiz */
   .q { margin-bottom: 18px; }
@@ -429,7 +432,10 @@
   .gedge { stroke: #233152; stroke-width: 1.4; fill: none; transition: stroke .3s; }
   .gedge.path { stroke: #60a5fa; stroke-width: 2.2; }
   .gnode circle { fill: #1c2742; stroke: #3b4a6e; stroke-width: 1.6; transition: all .3s; }
-  .gnode text { fill: #93a4c8; font-size: 11px; }
+  .gnode text { fill: #a9b7d6; font-size: 17px; }
+  /* On phones the map keeps a readable size and scrolls sideways inside its card. */
+  .gv-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 600px) { .gv-scroll svg { min-width: 560px; } }
   .gnode.mastered circle { fill: #12361f; stroke: #2ea043; }
   .gnode.mastered text { fill: #7ee2a8; }
   .gnode.planned circle { stroke: #fbbf24; stroke-dasharray: 3 2; }
@@ -476,7 +482,7 @@
   .featured:hover { border-color: var(--accent); transform: translateY(-1px); }
   .featured .play { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: #fff;
     display: grid; place-items: center; font-size: 13px; }
-  .featured .fk { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+  .featured .fk { font-size: 12px; font-weight: 600; color: var(--accent); }
   .featured .ft { font-size: 13px; margin-top: 3px; line-height: 1.45; }
   .featured code { background: #00000010; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
   @media (max-width: 900px) { .featured-row { grid-template-columns: 1fr; } }
@@ -546,7 +552,7 @@
   <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
   <button id="nav-evals" onclick="showView('evals')">Eval harness</button>
   <span class="grow"></span>
-  <span class="badge-pass" id="nav-pass">6/6 ✓</span>
+  <span class="badge-pass" id="nav-pass" title="Hand-written golden cases on one subject, one run each">6 of 6 test cases pass</span>
 </div>
 
 <div id="learn-view">
@@ -555,21 +561,21 @@
   <div class="featured" onclick="runFeatured(0)">
     <div class="play">▶</div>
     <div>
-      <div class="fk">Featured · AI &amp; LLMs</div>
+      <div class="fk">AI &amp; LLMs</div>
       <div class="ft">A learner keeps failing the same lesson. The agent <b>refuses to explain it a third time</b> — failing twice means a building block is missing. It works out which one they were never taught, and teaches that first.</div>
     </div>
   </div>
   <div class="featured" onclick="runFeatured(1)">
     <div class="play">▶</div>
     <div>
-      <div class="fk">Featured · Cognitive biases</div>
+      <div class="fk">Cognitive biases</div>
       <div class="ft">Says they learn best by reading — but failed the same probability trap twice. The agent <b>overrides their stated preference</b> and switches to Socratic questioning.</div>
     </div>
   </div>
   <div class="featured" onclick="runFeatured(2)">
     <div class="play">▶</div>
     <div>
-      <div class="fk">Featured · Cognitive biases</div>
+      <div class="fk">Cognitive biases</div>
       <div class="ft">Studying at expert level and failing everything. The agent <b>steps the difficulty down</b> instead of pushing them forward.</div>
     </div>
   </div>
@@ -608,8 +614,7 @@
     <input type="text" id="domain" value="ai" style="display:none;" />
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
-  <div class="theme-note" id="theme-note"></div>
-  <div class="theme-note">Orchestration: <b>autonomous agent 🤖</b> — the model owns the loop</div>
+  <div class="theme-note" id="theme-note" hidden></div>
 </div>
 
 <!-- Slim bar shown while a session runs (the launcher collapses away). -->
@@ -622,7 +627,7 @@
 <!-- Split: the learner's experience on the left, the tutor's brain on the
      right — reasoning streams live in the rail and the receipts accumulate
      there, always in view. -->
-<div class="split">
+<div class="split" id="split" style="display:none;">
   <div class="main-col">
     <div id="feed"></div>
   </div>
@@ -884,7 +889,7 @@ function loadEvals() {
 function renderEvals(d) {
   evalsLoaded = true;
   document.getElementById("ev-pct").textContent = `${d.n_pass} of ${d.n_total}`;
-  document.getElementById("nav-pass").textContent = `${d.n_pass}/${d.n_total} ✓`;
+  document.getElementById("nav-pass").textContent = `${d.n_pass} of ${d.n_total} test cases pass`;
   const host = document.getElementById("ev-cases");
   host.innerHTML = "";
   d.cases.forEach(c => {
@@ -1017,7 +1022,7 @@ function renderGraphViz(nodes) {
   const maxD = Math.max(...nodes.map(n => depth[n.id]), 0);
   const cols = [];
   nodes.forEach(n => { (cols[depth[n.id]] = cols[depth[n.id]] || []).push(n); });
-  const W = 720, PADX = 64, rowH = 46, PADY = 34;
+  const W = 720, PADX = 74, rowH = 70, PADY = 52;
   const maxRows = Math.max(...cols.map(c => c ? c.length : 0));
   const H = Math.max(PADY * 2 + (maxRows - 1) * rowH + 24, 150);
   const pos = {};
@@ -1038,9 +1043,11 @@ function renderGraphViz(nodes) {
   nodes.forEach(n => {
     const q = pos[n.id];
     const name = n.name || n.id;
-    const label = name.length > 26 ? name.slice(0, 25) + "…" : name;
-    dots += `<g class="gnode" id="gn-${n.id}"><circle cx="${q.x}" cy="${q.y}" r="7"/>` +
-            `<text x="${q.x}" y="${q.y - 13}" text-anchor="middle">${esc(label)}</text></g>`;
+    const lines = wrapLabel(name, 15);
+    const y0 = q.y - 14 - (lines.length - 1) * 18;
+    const tspans = lines.map((l, i) => `<tspan x="${q.x}" y="${y0 + i * 18}">${esc(l)}</tspan>`).join("");
+    dots += `<g class="gnode" id="gn-${n.id}"><circle cx="${q.x}" cy="${q.y}" r="8"/>` +
+            `<text text-anchor="middle">${tspans}</text></g>`;
   });
   // Full-width card in the lesson column, right after the journey card.
   let card = document.getElementById("graph-viz");
@@ -1054,7 +1061,7 @@ function renderGraphViz(nodes) {
   }
   card.innerHTML =
     `<div class="gv-h">🗺️ Subject map — what the agent sees</div>` +
-    `<svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg>` +
+    `<div class="gv-scroll"><svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg></div>` +
     `<div class="gv-legend">` +
     `<span><span class="sw" style="background:#2ea043;"></span>you’ve mastered</span>` +
     `<span><span class="sw" style="background:#1d4ed8;box-shadow:0 0 4px #60a5fa;"></span>teaching next</span>` +
@@ -1176,6 +1183,15 @@ const THINKING = {
 };
 
 // ---- tiny markdown renderer (bold / italic / code / headings / lists / paras) ----
+function wrapLabel(text, max) {
+  const words = String(text).split(/\s+/), lines = [""];
+  for (const w of words) {
+    const cur = lines[lines.length - 1];
+    if (cur && (cur + " " + w).length > max && lines.length < 2) lines.push(w);
+    else lines[lines.length - 1] = cur ? cur + " " + w : w;
+  }
+  return lines;
+}
 function esc(s) { return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function inline(s) {
   return esc(s)
@@ -1212,7 +1228,7 @@ function progressDots(current) {
 // ---- render the curriculum / table of contents (user-facing plan) ----
 function renderCurriculum(w) {
   setThinking(null);
-  curriculumItems = {};
+  curriculumItems = {}; taughtSteps.clear();
   const steps = w.steps || [];
   const feed = document.getElementById("feed");
   const card = document.createElement("div");
@@ -1264,13 +1280,17 @@ function attachChart(stepNo, dataUrl) {
   if (body) body.after(fig); else card.appendChild(fig);
 }
 
+// Only steps actually delivered count as done: the agent may skip refresher
+// steps and teach the key step first, so "earlier number" doesn't mean "taught".
+const taughtSteps = new Set();
 function markCurriculum(stepNo) {
   Object.entries(curriculumItems).forEach(([n, el]) => {
     if (!el) return;
     el.classList.remove("cur", "done");
-    if (+n < stepNo) el.classList.add("done");
-    else if (+n === stepNo) el.classList.add("cur");
+    if (+n === stepNo) el.classList.add("cur");
+    else if (taughtSteps.has(+n)) el.classList.add("done");
   });
+  taughtSteps.add(stepNo);
 }
 
 // ---- render a lesson (the user-facing artifact) ----
@@ -1302,7 +1322,7 @@ function renderLesson(a, step) {
   } else if (a.type === "socratic") {
     inner += `<div class="body"><p>${inline(a.opening || "")}</p></div>`;
     inner += (a.dialogue || []).map(t =>
-      `<div class="turn ${t.role}"><div class="who">${t.role === "agent" ? "Tutor" : "You"}</div>
+      `<div class="turn ${t.role}"><div class="who">${t.role === "agent" ? "Tutor" : "Your turn"}</div>
        <div class="bubble">${inline(t.text)}</div></div>`).join("");
     card.innerHTML = inner;
     feed.appendChild(card);
@@ -1442,6 +1462,8 @@ function showDone(res) {
 
 // ================= Under the hood (trace) =================
 // Agent-mode tool → flowchart node / labels
+const ARG_LABELS = { concept_id: "concept", modality: "format", objective: "goal",
+  pedagogy_principle: "technique" };
 const TOOL_FLOW = { diagnose: "assess", plan_lessons: "plan", teach: "teach",
                     record_observation: "adapt", view_learner: "adapt" };
 const TOOL_TITLES = {
@@ -1568,16 +1590,10 @@ async function startSession() {
   document.getElementById("session-bar").style.display = "flex";
   const dd = DOMAINS.find(x => x.id === domain);
   document.getElementById("bar-domain").textContent =
-    (dd ? dd.label : domain) + " · 🤖 autonomous";
+    (dd ? dd.label : domain);
   document.getElementById("brain-empty").style.display = "none";
   agentLabelSet = false;
-  const card = document.createElement("div");
-  card.className = "lesson journey";
-  card.innerHTML = "<h3>🤖 Autonomous mode</h3>" +
-    '<div class="body"><p>No fixed pipeline here — the agent decides each move itself ' +
-    "(diagnose, plan, teach, adapt) and can change course based on your answers. " +
-    "Every decision it makes appears in its brain on the right.</p></div>";
-  document.getElementById("feed").appendChild(card);
+  document.getElementById("split").style.display = "";
 
   applyTheme(domain);
   setThinking(THINKING.load_graph);
@@ -1678,7 +1694,9 @@ function dispatch(event, p) {
     setThinking("🤖 " + (TOOL_RUN[p.tool] || "running " + p.tool) + "…");
     agentLabelSet = true;
     const args = p.args && Object.keys(p.args).length
-      ? `<code>${esc(JSON.stringify(p.args)).slice(0, 260)}</code>` : "(no arguments)";
+      ? `<dl class="args">${Object.entries(p.args).map(([k, v]) =>
+          `<dt>${esc(ARG_LABELS[k] || k.replace(/_/g, " "))}</dt><dd>${esc(String(v)).slice(0, 160)}</dd>`).join("")}</dl>`
+      : "No inputs: it reads the learner state directly.";
     trace("phase-" + (node || "assess"), p.tool + "()", TOOL_TITLES[p.tool] || p.tool, args);
     return;
   }

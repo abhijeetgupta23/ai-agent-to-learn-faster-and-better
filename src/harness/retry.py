@@ -64,6 +64,17 @@ class ExternalCallError(Exception):
             "cause": f"{type(self.cause).__name__}: {self.cause}",
         }
 
+    def public_payload(self) -> dict:
+        """Client-safe shape: no raw upstream error text (that goes to the server log)."""
+        payload = self.to_payload()
+        payload.pop("cause", None)
+        payload["message"] = (
+            "The model provider didn't respond. Try again in a minute."
+            if self.transient
+            else "This session couldn't start because the model call failed."
+        )
+        return payload
+
 
 def is_transient(exc: Exception) -> bool:
     """

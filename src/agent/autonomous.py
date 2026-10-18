@@ -197,6 +197,33 @@ def _usage(response) -> dict:
     }
 
 
+
+def _plan_step_number(state: dict, concept_id: str, modality: str) -> int:
+    """Number the taught lesson by the plan step it delivers, so the UI's plan
+    highlight matches the lesson on screen. Prefers an exact concept+modality
+    match among untaught steps, then a concept match, then falls back to a
+    running count (no plan, or the agent taught off-plan)."""
+    taught = state.setdefault("taught_steps", set())
+    workflow = state.get("last_workflow")
+    if workflow is not None:
+        steps = [s for s in workflow.steps if s.step_number not in taught]
+        mod = modality.value if hasattr(modality, "value") else str(modality)
+        for match in (
+            lambda s: s.concept_id == concept_id and _mod(s.modality) == mod,
+            lambda s: s.concept_id == concept_id,
+        ):
+            hit = next((s for s in steps if match(s)), None)
+            if hit is not None:
+                taught.add(hit.step_number)
+                return hit.step_number
+    n = state.get("steps_taught", 0) + 1
+    taught.add(n)
+    return n
+
+
+def _mod(m) -> str:
+    return m.value if hasattr(m, "value") else str(m)
+
 def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict], None]) -> Any:
     """Run one tool against the session state. Returns the payload sent back to
     the model (kept compact — the learner-facing artifact goes out via emit,
@@ -227,7 +254,7 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
                 f"Unknown concept_id '{args['concept_id']}' — use an id from the subject map."
             )
         step = WorkflowStep(
-            step_number=state.get("steps_taught", 0) + 1,
+            step_number=_plan_step_number(state, concept.concept_id, args["modality"]),
             concept_id=concept.concept_id,
             modality=Modality(args["modality"]),
             objective=args["objective"],
@@ -237,7 +264,7 @@ def _execute_tool(name: str, args: dict, state: dict, emit: Callable[[str, dict]
             step, concept, learner,
             source_context=ground_context(concept, graph, store, learner=learner),
         )
-        state["steps_taught"] = step.step_number
+        state["steps_taught"] = state.get("steps_taught", 0) + 1
         state["current_step"] = step
         emit("artifact", {
             "step": step.model_dump(mode="json"),

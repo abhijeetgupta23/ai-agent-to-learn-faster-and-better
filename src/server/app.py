@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import contextvars
 import json
+import logging
 import queue
 import threading
 import uuid
@@ -61,6 +62,7 @@ app = FastAPI(title="Adaptive Learning Agent", version="0.1.0")
 app.add_middleware(DemoTokenMiddleware)  # gates session endpoints if DEMO_TOKEN set
 store = MemoryStore()
 rate_limiter = RateLimiter()
+log = logging.getLogger("adaptive_learning.server")
 
 
 @app.exception_handler(ExternalCallError)
@@ -70,7 +72,8 @@ def external_call_error_handler(request, exc: ExternalCallError):
     502 instead of an opaque 500. The SSE path handles this inline instead
     (an error event mid-stream), since headers are already sent by then.
     """
-    return JSONResponse(status_code=502, content=exc.to_payload())
+    log.error("external call failed: %s", exc)
+    return JSONResponse(status_code=502, content=exc.public_payload())
 
 
 @app.exception_handler(SourceIngestionError)
@@ -433,9 +436,12 @@ def agent_start_session_stream(req: StartSessionRequest, request: Request):
                 },
             )
         except ExternalCallError as e:
-            yield _sse_event("error", e.to_payload())
-        except Exception as e:
-            yield _sse_event("error", {"message": str(e), "type": type(e).__name__})
+            log.error("external call failed: %s", e)
+            yield _sse_event("error", e.public_payload())
+        except Exception:
+            log.exception("session stream failed")
+            yield _sse_event("error", {"error": "internal_error",
+                                       "message": "Something went wrong on our side. Start a new session."})
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -470,8 +476,11 @@ def agent_respond_stream(session_id: str, req: RespondRequest):
                 {"status": "awaiting_learner", "cost": _cost_summary(sess["cost_usd"])},
             )
         except ExternalCallError as e:
-            yield _sse_event("error", e.to_payload())
-        except Exception as e:
-            yield _sse_event("error", {"message": str(e), "type": type(e).__name__})
+            log.error("external call failed: %s", e)
+            yield _sse_event("error", e.public_payload())
+        except Exception:
+            log.exception("session stream failed")
+            yield _sse_event("error", {"error": "internal_error",
+                                       "message": "Something went wrong on our side. Start a new session."})
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
