@@ -1,0 +1,45 @@
+name: Story
+description: One testable user outcome. The spec every agent works from.
+labels: [story]
+body:
+  - type: textarea
+    id: who
+    attributes:
+      label: Who and state
+      description: Who is the user, and where are they when this happens?
+      placeholder: A learner partway through a lesson plan.
+    validations:
+      required: true
+  - type: textarea
+    id: action
+    attributes:
+      label: Action
+      description: What does the user (or system) do?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What observably changes? Avoid vague words like "better".
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: Checkable lines. Each becomes at least one test. Include failure cases, not just the happy path.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] (failure case) 
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      description: "S: small fix, no new behaviour (stages 5-7). M: new behaviour in one module (all stages). L: cross-cutting / new module / data model change (all stages + you approve the plan)."
+      options: [S, M, L]
+    validations:
+      required: true
