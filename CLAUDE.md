@@ -7,6 +7,7 @@ Prefer visuals over prose in every response. Prose is boring — **especially** 
 - For architecture / data-flow / system-design questions, render an actual diagram (visualize `show_widget` tool or an Artifact) — don't describe it in sentences.
 - When explaining code, show structure visually (boxes/arrows/tables) rather than narrating it line-by-line.
 - Keep any accompanying prose short and summary-first.
+- **Default to the `eli5` skill** (`.claude/skills/eli5`) for any explanation: concepts, code, architecture, PRs, errors, results. Skip it only for status updates, one-line answers, and routine git/CI chores.
 <!-- vester:visual-first:end -->
 
 # How we work: SDLC workflow
