@@ -21,11 +21,27 @@ flowchart TD
 
 ## Tiers
 
-| Tier | Looks like | Stages |
-|------|-----------|--------|
-| S | Small fix in one area, no new behaviour | 5, 6, 7 |
-| M | New behaviour inside one module | All |
-| L | Cross-cutting, new module, or data model change | All + you approve the plan before tests |
+| Tier | Any of these makes it this tier | Stages | Merge |
+|------|-----------|--------|-------|
+| L | Touches `.github/sensitive-paths.txt` · more than one `src/` package · new module or data model change | All + you approve the plan before tests | On your instruction, after Claude checks CI + Codex |
+| M | New behaviour a user can notice · new `src/` file · over 150 changed lines | All | On your instruction, after Claude checks CI + Codex |
+| S | None of the above | 5, 6, 7 | Auto-merge once Codex threads are resolved and checks are green |
+
+```mermaid
+flowchart TD
+  D[PR diff] --> Q1{Sensitive path?<br/>2+ src packages?}
+  Q1 -- yes --> L[min tier L]
+  Q1 -- no --> Q2{New src file?<br/>over 150 lines?}
+  Q2 -- yes --> M[min tier M]
+  Q2 -- no --> S[min tier S]
+  L & M & S --> C{label below min?}
+  C -- yes --> F[tier-check fails]
+  C -- no --> P[tier-check passes]
+```
+
+The check (`.github/workflows/tier.yml` → `.github/scripts/check_tier.py`) sets a
+floor from the diff. Behaviour changes it cannot see are judgement: the planner
+raises the tier, never lowers it.
 
 ## Where state lives
 
@@ -69,5 +85,7 @@ pytest tests/
 - Labels: `stage:research`, `stage:plan`, `stage:tests`, `stage:code`, `stage:review`,
   `tier:S`, `tier:M`, `tier:L`, `story`, `tech`, `cleanup`
   (`for l in research plan tests code review; do gh label create "stage:$l"; done`).
-- Branch protection on `main`: require the CI `test` checks to pass.
+- Branch protection on `main`: require the `test (py3.10/3.11/3.12)` and `tier-check`
+  checks, and "Require conversation resolution before merging" (so Codex threads block).
+- Settings → General → "Allow auto-merge" (needed for tier S).
 - Enable the Codex GitHub reviewer for `@codex review`.

@@ -8,6 +8,10 @@ Read the plan comment on the issue (`gh issue view <n> --comments`, or
 `mcp__github__issue_read` method `get_comments`) and implement only the step you
 are given. Do not edit tests/.
 
+Before editing, check the files against `.github/sensitive-paths.txt` and the
+tier rubric in CLAUDE.md. If the step needs a sensitive file or a second `src/`
+package and the issue is not `tier:L`, stop and return that as a question.
+
 Run `ruff check .` and `pytest tests/` after changes. If a product or design
 question comes up, stop and return the question instead of guessing.
 

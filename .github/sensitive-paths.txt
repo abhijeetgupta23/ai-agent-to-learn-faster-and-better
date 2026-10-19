@@ -1,0 +1,36 @@
+# Any PR touching one of these paths must be tier:L (checked by .github/workflows/tier.yml).
+# Globs: ** = any depth, * = within one directory. One per line; # starts a comment.
+# Adding a path here is itself a tier:L change, because this file is listed below.
+
+# Money: spend caps, cost accounting, rate limits, demo token
+src/harness/cost.py
+src/server/guards.py
+
+# User data and its shape
+src/memory/**
+src/schemas.py
+**/migrations/**
+
+# Secrets and model access
+src/llm.py
+.env.example
+
+# Untrusted-input boundary (prompt-injection defences and their red-team tests)
+src/graph/extractor.py
+tests/test_redteam_*.py
+
+# Auth, payments, billing (none yet: L from the first line)
+src/auth/**
+src/billing/**
+src/payments/**
+
+# Deploy, dependencies, CI, and these rules
+Dockerfile
+fly.toml
+railway.json
+Procfile
+requirements.txt
+pyproject.toml
+.github/workflows/**
+.github/sensitive-paths.txt
+.github/scripts/check_tier.py

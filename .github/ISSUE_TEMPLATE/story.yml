@@ -35,11 +35,21 @@ body:
         - [ ] (failure case) 
     validations:
       required: true
+  - type: checkboxes
+    id: sensitive
+    attributes:
+      label: Sensitive areas
+      description: Ticking any box makes this tier L. Full list in .github/sensitive-paths.txt.
+      options:
+        - label: Money (spend caps, cost, rate limits), auth or payments
+        - label: User data or its shape (memory store, schemas, migrations)
+        - label: Secrets, model access, or prompt-injection defences
+        - label: Deploy, dependencies, or CI
   - type: dropdown
     id: tier
     attributes:
       label: Tier
-      description: "S: small fix, no new behaviour (stages 5-7). M: new behaviour in one module (all stages). L: cross-cutting / new module / data model change (all stages + you approve the plan)."
+      description: "Pick the highest that fits; when unsure go up. L: any sensitive box ticked, more than one src/ package, or a new module / data model change. M: new behaviour a user can notice, or a new src/ file. S: a fix or tweak in one area, no new behaviour (auto-merges). CI enforces the minimum."
       options: [S, M, L]
     validations:
       required: true

@@ -1,0 +1,25 @@
+name: Tier
+
+# Separate from CI so adding or removing a label re-runs only this check.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  tier-check:
+    name: tier-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Diff must not be labelled below its minimum tier
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: python .github/scripts/check_tier.py --base "$BASE_SHA" --labels "$LABELS"
