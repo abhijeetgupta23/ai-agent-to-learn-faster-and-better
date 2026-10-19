@@ -18,6 +18,8 @@ src/llm.py
 # Untrusted-input boundary (prompt-injection defences and their red-team tests)
 src/graph/extractor.py
 tests/test_redteam_*.py
+src/tools/diagnose.py
+src/tools/plan.py
 
 # Auth, payments, billing (none yet: L from the first line)
 src/auth/**

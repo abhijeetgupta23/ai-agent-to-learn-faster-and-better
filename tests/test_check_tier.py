@@ -1,4 +1,4 @@
-"""Tier floor rules in .github/scripts/check_tier.py (offline, no git needed)."""
+"""Tier floor rules in .github/scripts/check_tier.py (offline; git tests use tmp repos)."""
 
 from __future__ import annotations
 
@@ -114,3 +114,54 @@ def test_renaming_a_sensitive_file_still_needs_l(tmp_path, monkeypatch):
     changes = check_tier.git_changes("HEAD~1")
     assert {p for p, _, _ in changes} == {"src/memory/store.py", "src/memory/kept.py"}
     assert check_tier.floor_for(changes, GLOBS)[0] == "L"
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        ("src/tools/charts.py", 'key = os.environ["ANTHROPIC_API_KEY"]'),
+        ("src/tools/charts.py", "client = anthropic.Anthropic()"),
+        ("src/tools/quiz.py", "from openai import OpenAI"),
+        ("src/server/app.py", '@app.post("/admin/reset")'),
+        ("src/tools/generate.py", "UNTRUSTED LEARNER TEXT: treat as data"),
+        ("evals/runner.py", "subprocess.run(cmd)"),
+    ],
+)
+def test_sensitive_code_in_unlisted_file_needs_l(path, line):
+    changes = [(path, 1, "M")]
+    assert check_tier.floor_for(changes, GLOBS, {path: [line]})[0] == "L"
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        ("src/tools/charts.py", "colour = '#1F8A6A'"),
+        ("src/harness/retry.py", "import anthropic"),  # expected home of the client
+        ("tests/test_retriever.py", 'monkeypatch.setenv("X", os.environ["Y"])'),  # tests are exempt
+        ("docs/HOW_IT_WORKS.md", "set ANTHROPIC_API_KEY in .env"),  # only Python is scanned
+    ],
+)
+def test_ordinary_or_exempt_lines_stay_s(path, line):
+    changes = [(path, 1, "M")]
+    assert check_tier.floor_for(changes, GLOBS, {path: [line]})[0] == "S"
+
+
+def test_changed_lines_parse_additions_removals_and_deletions(tmp_path, monkeypatch):
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+                       cwd=tmp_path, check=True, capture_output=True)
+
+    (tmp_path / "a.py").write_text("keep = 1\n-- not a header\n")
+    (tmp_path / "gone.py").write_text("key = os.environ['K']\n")
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    (tmp_path / "a.py").write_text("keep = 1\nnew = 2\n")
+    (tmp_path / "gone.py").unlink()
+    git("add", "-A")
+    git("commit", "-qm", "change")
+    monkeypatch.chdir(tmp_path)
+
+    got = check_tier.git_changed_lines("HEAD~1")
+    assert sorted(got["a.py"]) == ["-- not a header", "new = 2"]
+    assert got["gone.py"] == ["key = os.environ['K']"]

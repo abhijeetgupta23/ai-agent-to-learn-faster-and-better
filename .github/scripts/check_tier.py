@@ -7,9 +7,13 @@ It also blocks a merge while the PR carries a `hold` label, or while GitHub
 auto-merge is on for anything but tier S (so promoting a queued S PR can't
 slip it through).
 
-Usage (CI): python check_tier.py --base <sha> --labels "a,b" --auto-merge true|false
-CI runs this from the base branch (pull_request_target): the PR's commits are
-only diffed, never executed, so a PR cannot change how it is graded.
+Two kinds of rule set the floor: which files changed (sensitive-paths.txt,
+package spread, size) and what the changed lines say (CONTENT_RULES), so a
+sensitive change in an unlisted file still needs tier L.
+
+Usage (CI): python check_tier.py --base <sha> --head <sha> --labels "a,b" --auto-merge true|false
+CI runs this from the default branch (the Tier workflow, via workflow_run): the
+PR's commits are only diffed, never executed, so a PR cannot change how it is graded.
 Stdlib only, so the workflow needs no install step.
 """
 
@@ -26,6 +30,35 @@ RULES_FILE = Path(__file__).resolve().parents[1] / "sensitive-paths.txt"
 
 # S means a small fix in one area; above this many changed lines it is at least M.
 S_MAX_LINES = 150
+
+
+# Patterns in added or removed lines of non-test Python that force tier L.
+# (name, regex, paths where the pattern is expected and so ignored)
+CONTENT_RULES = [
+    ("reads environment config or secrets",
+     re.compile(r"\bos\.environ\b|\bgetenv\(|api[_-]?key|\bsecret", re.I), ()),
+    ("calls a model client outside src/llm.py (skips the cost meter)",
+     re.compile(r"\b(?:import|from) (?:anthropic|openai)\b|\b(?:Anthropic|OpenAI)\("), ("src/llm.py", "src/harness/")),
+    ("adds or changes an HTTP route",
+     re.compile(r"^\s*@\w+\.(?:get|post|put|patch|delete|route|websocket|api_route)\("), ()),
+    ("edits a prompt-injection (UNTRUSTED) defence", re.compile(r"UNTRUSTED"), ()),
+    ("runs commands or code", re.compile(r"\bsubprocess\b|\bos\.system\(|\beval\(|\bexec\("), ()),
+]
+
+
+def content_reasons(changed_lines: dict[str, list[str]]) -> list[str]:
+    """changed_lines: path -> added/removed line texts. Returns tier-L reasons."""
+    reasons = []
+    for name, rx, allowed in CONTENT_RULES:
+        hits = sorted(
+            p for p, lines in changed_lines.items()
+            if p.endswith(".py") and not p.startswith("tests/")
+            and not any(p == a or (a.endswith("/") and p.startswith(a)) for a in allowed)
+            and any(rx.search(ln) for ln in lines)
+        )
+        if hits:
+            reasons.append(f"{name}: " + ", ".join(hits))
+    return reasons
 
 
 def load_globs(path: Path = RULES_FILE) -> list[str]:
@@ -60,8 +93,13 @@ def src_area(path: str) -> str | None:
     return parts[1] if len(parts) > 2 else "<src root>"
 
 
-def floor_for(changes: list[tuple[str, int, str]], globs: list[str]) -> tuple[str, list[str]]:
-    """changes: (path, changed_lines, git status letter). Returns (floor tier, reasons)."""
+def floor_for(
+    changes: list[tuple[str, int, str]],
+    globs: list[str],
+    changed_lines: dict[str, list[str]] | None = None,
+) -> tuple[str, list[str]]:
+    """changes: (path, changed_lines, git status letter); changed_lines: path ->
+    added/removed line texts. Returns (floor tier, reasons)."""
     patterns = [(g, glob_to_regex(g)) for g in globs]
     l_reasons: list[str] = []
     m_reasons: list[str] = []
@@ -69,6 +107,8 @@ def floor_for(changes: list[tuple[str, int, str]], globs: list[str]) -> tuple[st
     sensitive = sorted({p for p, _, _ in changes for g, rx in patterns if rx.match(p)})
     if sensitive:
         l_reasons.append("touches sensitive paths: " + ", ".join(sensitive))
+
+    l_reasons += content_reasons(changed_lines or {})
 
     areas = sorted({a for p, _, _ in changes if (a := src_area(p))})
     if len(areas) > 1:
@@ -110,10 +150,11 @@ def policy_errors(tier: str, labels: list[str], auto_merge: bool) -> list[str]:
     return errors
 
 
-def git_changes(base: str, head: str = "HEAD") -> list[tuple[str, int, str]]:
-    def git(*args: str) -> str:
-        return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
+def git(*args: str) -> str:
+    return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
+
+def git_changes(base: str, head: str = "HEAD") -> list[tuple[str, int, str]]:
     lines = {}
     for row in git("diff", "--numstat", "--no-renames", f"{base}...{head}").splitlines():
         added, deleted, path = row.split("\t", 2)
@@ -124,6 +165,24 @@ def git_changes(base: str, head: str = "HEAD") -> list[tuple[str, int, str]]:
         s, path = row.split("\t", 1)
         status[path] = s[0]
     return [(p, n, status.get(p, "M")) for p, n in lines.items()]
+
+
+def git_changed_lines(base: str, head: str = "HEAD") -> dict[str, list[str]]:
+    """Added and removed line texts per file, without the +/- marker."""
+    out: dict[str, list[str]] = {}
+    path, in_hunk = None, False
+    for row in git("diff", "-U0", "--no-renames", "--no-color", f"{base}...{head}").splitlines():
+        if row.startswith("diff --git "):
+            path, in_hunk = None, False
+        elif not in_hunk and row.startswith("--- a/"):
+            path = row[6:]  # kept for deleted files, whose +++ side is /dev/null
+        elif not in_hunk and row.startswith("+++ b/"):
+            path = row[6:]
+        elif row.startswith("@@"):
+            in_hunk = True
+        elif in_hunk and path and row[:1] in "+-":
+            out.setdefault(path, []).append(row[1:])
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -137,7 +196,9 @@ def main(argv: list[str] | None = None) -> int:
 
     labels = [lb.strip() for lb in args.labels.split(",") if lb.strip()]
     tier, err = tier_label(labels)
-    floor, reasons = floor_for(git_changes(args.base, args.head), load_globs(args.rules))
+    floor, reasons = floor_for(
+        git_changes(args.base, args.head), load_globs(args.rules), git_changed_lines(args.base, args.head)
+    )
 
     print(f"Minimum tier for this diff: {floor}")
     for r in reasons:
