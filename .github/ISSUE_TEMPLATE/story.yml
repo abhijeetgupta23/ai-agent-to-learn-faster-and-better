@@ -3,6 +3,16 @@ description: One testable user outcome. The spec every agent works from.
 labels: [story]
 body:
   - type: textarea
+    id: plain
+    attributes:
+      label: In plain words
+      description: Explain it like I'm 5. Two or three short sentences and a tiny before/after picture. No file names or jargon; the details go below.
+      placeholder: |
+        Learners get stuck when they type an answer and nothing tells them if it's right.
+        We'll add a "Your turn" check after each lesson step: right answer → next step, wrong → a hint, then try again.
+    validations:
+      required: true
+  - type: textarea
     id: who
     attributes:
       label: Who and state

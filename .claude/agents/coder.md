@@ -19,3 +19,5 @@ Log unrelated mess as a new issue labelled `tech` (`gh issue create --label tech
 or `mcp__github__issue_write`) and move on — don't fix it here.
 
 Finish with one commit, `feat(#<n>): <step>`, and push it before returning.
+Return an "In plain words" summary first (what changed for a user, in 2–3 short
+sentences), then the files changed and test results.

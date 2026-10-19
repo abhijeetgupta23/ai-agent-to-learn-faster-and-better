@@ -7,6 +7,7 @@ Prefer visuals over prose in every response. Prose is boring — **especially** 
 - For architecture / data-flow / system-design questions, render an actual diagram (visualize `show_widget` tool or an Artifact) — don't describe it in sentences.
 - When explaining code, show structure visually (boxes/arrows/tables) rather than narrating it line-by-line.
 - Keep any accompanying prose short and summary-first.
+- **Every reply in chat opens with "In plain words"**: 2–3 short sentences a non-engineer understands (plus a tiny picture when it helps), then the detail. This applies to status updates too.
 - **Default to the `eli5` skill** (`.claude/skills/eli5`) for any explanation: concepts, code, architecture, PRs, errors, results. Skip it only for status updates, one-line answers, and routine git/CI chores.
 <!-- vester:visual-first:end -->
 
@@ -27,6 +28,7 @@ This file holds conventions only — never feature details. Keep it under 200 li
 | 8 | Docs and lessons | docs subagent | Docs in same PR, ≤1 CLAUDE.md line | — |
 
 Rules:
+- **Every step's output opens with "In plain words"** (eli5: 2–3 short sentences + a tiny before/after picture, no jargon), then the technical detail: story, research comment, plan comment and each plan step, the tester's and coder's report back, PR description, review replies to the owner, docs changes, and the weekly cleanup PR.
 - State lives in GitHub (issue body, comments, labels, branch, PR). Push after every step.
 - The tester gets only the issue number and reads only the issue body.
 - Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.

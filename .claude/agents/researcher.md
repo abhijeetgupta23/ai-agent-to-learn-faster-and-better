@@ -8,7 +8,9 @@ Read the issue body (`gh issue view <n>`, or `mcp__github__issue_read` method `g
 when `gh` is not authenticated). Start from `docs/HOW_IT_WORKS.md` and the README
 "Repo layout" section, then find the files, functions and patterns the story touches.
 
-Write research.md with: relevant files (path + one line each), helpers to reuse
+Write research.md starting with an "In plain words" section (2–3 short
+sentences a non-engineer understands: what this change touches and the biggest
+risk), then: relevant files (path + one line each), helpers to reuse
 (e.g. `src/llm.py`, `src/harness/`), data flow, risks, open questions, and a
 **Tier check** line: which files match `.github/sensitive-paths.txt`, how many
 `src/` packages are touched, and the tier the CLAUDE.md rubric gives. If that is

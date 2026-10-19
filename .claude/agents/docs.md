@@ -6,5 +6,5 @@ model: sonnet
 ---
 Read `git diff main...HEAD` and the affected docs (`docs/*.md`, README.md).
 Update them to describe the merged behaviour, not the coding journey. Short,
-plain words; prefer tables and diagrams over prose (see CLAUDE.md). Do not touch
-code. Commit `docs(#<n>): <summary>` and push.
+plain words; prefer tables and diagrams over prose (see CLAUDE.md). Each changed doc section opens with an "In plain words" line or two
+before the detail. Do not touch code. Commit `docs(#<n>): <summary>` and push.

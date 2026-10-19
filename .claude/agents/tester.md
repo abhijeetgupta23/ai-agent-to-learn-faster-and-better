@@ -14,4 +14,6 @@ the API. Edit only files under tests/ (follow tests/CLAUDE.md).
 
 Run `pytest tests/` and confirm the new tests fail because the feature is missing,
 not because of a typo or import error in the test. Commit
-`test(#<n>): <story>` and push. Return the test paths and a one-line summary per test.
+`test(#<n>): <story>` and push. Return an "In plain words"
+summary first (what the tests check, in 2–3 sentences a non-engineer understands),
+then the test paths and a one-line summary per test.
