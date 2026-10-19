@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -79,3 +80,37 @@ def test_tier_label(labels, tier, has_error):
     got, err = check_tier.tier_label(labels)
     assert got == tier
     assert (err is not None) == has_error
+
+
+@pytest.mark.parametrize(
+    ("tier", "labels", "auto_merge", "blocked"),
+    [
+        ("S", ["tier:S"], True, False),
+        ("M", ["tier:M"], False, False),
+        ("M", ["tier:M"], True, True),  # S promoted to M with auto-merge still queued
+        ("L", ["tier:L"], True, True),
+        ("S", ["tier:S", "hold"], True, True),
+    ],
+)
+def test_merge_policy(tier, labels, auto_merge, blocked):
+    assert bool(check_tier.policy_errors(tier, labels, auto_merge)) == blocked
+
+
+def test_renaming_a_sensitive_file_still_needs_l(tmp_path, monkeypatch):
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+                       cwd=tmp_path, check=True, capture_output=True)
+
+    store = tmp_path / "src" / "memory" / "store.py"
+    store.parent.mkdir(parents=True)
+    store.write_text("x = 1\n")
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    git("mv", "src/memory/store.py", "src/memory/kept.py")
+    git("commit", "-qm", "rename")
+    monkeypatch.chdir(tmp_path)
+
+    changes = check_tier.git_changes("HEAD~1")
+    assert {p for p, _, _ in changes} == {"src/memory/store.py", "src/memory/kept.py"}
+    assert check_tier.floor_for(changes, GLOBS)[0] == "L"

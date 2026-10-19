@@ -40,7 +40,9 @@ flowchart TD
 ```
 
 The check (`.github/workflows/tier.yml` → `.github/scripts/check_tier.py`) sets a
-floor from the diff. Behaviour changes it cannot see are judgement: the planner
+floor from the diff. It runs the base branch's copy of the checker and rules, so a
+PR cannot loosen its own grading. It also fails while a PR has the `hold` label,
+or while auto-merge is on for an M or L PR. Behaviour changes it cannot see are judgement: the planner
 raises the tier, never lowers it.
 
 ## Where state lives

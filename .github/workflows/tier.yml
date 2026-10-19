@@ -3,7 +3,7 @@ name: Tier
 # Separate from CI so adding or removing a label re-runs only this check.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled, auto_merge_enabled, auto_merge_disabled]
 
 jobs:
   tier-check:
@@ -18,8 +18,27 @@ jobs:
         with:
           python-version: "3.12"
 
+      # A PR must not be able to grade itself: run the checker and rules as
+      # they are on the base branch, against the PR's diff.
+      - name: Load checker and rules from the base branch
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/tier"
+          if git cat-file -e "$BASE_SHA:.github/scripts/check_tier.py" 2>/dev/null; then
+            git show "$BASE_SHA:.github/scripts/check_tier.py" > "$RUNNER_TEMP/tier/check_tier.py"
+            git show "$BASE_SHA:.github/sensitive-paths.txt" > "$RUNNER_TEMP/tier/sensitive-paths.txt"
+          else
+            echo "::notice::Base branch has no tier checker yet (bootstrap PR); using this PR's copy."
+            cp .github/scripts/check_tier.py .github/sensitive-paths.txt "$RUNNER_TEMP/tier/"
+          fi
+
       - name: Diff must not be labelled below its minimum tier
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        run: python .github/scripts/check_tier.py --base "$BASE_SHA" --labels "$LABELS"
+          AUTO_MERGE: ${{ github.event.pull_request.auto_merge != null }}
+        run: >
+          python -I "$RUNNER_TEMP/tier/check_tier.py"
+          --base "$BASE_SHA" --labels "$LABELS" --auto-merge "$AUTO_MERGE"
+          --rules "$RUNNER_TEMP/tier/sensitive-paths.txt"

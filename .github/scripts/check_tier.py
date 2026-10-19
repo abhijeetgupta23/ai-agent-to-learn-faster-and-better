@@ -3,7 +3,12 @@
 The label can always be raised by judgement (e.g. new behaviour makes a small
 diff M); this check only stops a diff from being labelled *below* its floor.
 
-Usage (CI): python .github/scripts/check_tier.py --base <sha> --labels "a,b"
+It also blocks a merge while the PR carries a `hold` label, or while GitHub
+auto-merge is on for anything but tier S (so promoting a queued S PR can't
+slip it through).
+
+Usage (CI): python check_tier.py --base <sha> --labels "a,b" --auto-merge true|false
+CI runs the base branch's copy of this script and rules, never the PR's own.
 Stdlib only, so the workflow needs no install step.
 """
 
@@ -94,12 +99,22 @@ def tier_label(labels: list[str]) -> tuple[str | None, str | None]:
     return tiers[0], None
 
 
+def policy_errors(tier: str, labels: list[str], auto_merge: bool) -> list[str]:
+    errors = []
+    if "hold" in labels:
+        errors.append("PR has the hold label: remove it to allow merging.")
+    if auto_merge and tier != "S":
+        errors.append(f"Auto-merge is on for a tier:{tier} PR: only tier S may auto-merge. "
+                      "Disable auto-merge; M and L merge on the owner's instruction.")
+    return errors
+
+
 def git_changes(base: str) -> list[tuple[str, int, str]]:
     def git(*args: str) -> str:
         return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
     lines = {}
-    for row in git("diff", "--numstat", f"{base}...HEAD").splitlines():
+    for row in git("diff", "--numstat", "--no-renames", f"{base}...HEAD").splitlines():
         added, deleted, path = row.split("\t", 2)
         # binary files report "-": count them as one line so they still register
         lines[path] = (int(added) if added != "-" else 1) + (int(deleted) if deleted != "-" else 0)
@@ -114,10 +129,13 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True, help="base commit to diff against")
     ap.add_argument("--labels", default="", help="comma-separated PR labels")
+    ap.add_argument("--auto-merge", default="false", help="true if GitHub auto-merge is on")
+    ap.add_argument("--rules", type=Path, default=RULES_FILE, help="sensitive-paths file")
     args = ap.parse_args(argv)
 
-    tier, err = tier_label([lb.strip() for lb in args.labels.split(",") if lb.strip()])
-    floor, reasons = floor_for(git_changes(args.base), load_globs())
+    labels = [lb.strip() for lb in args.labels.split(",") if lb.strip()]
+    tier, err = tier_label(labels)
+    floor, reasons = floor_for(git_changes(args.base), load_globs(args.rules))
 
     print(f"Minimum tier for this diff: {floor}")
     for r in reasons:
@@ -128,6 +146,11 @@ def main(argv: list[str] | None = None) -> int:
     if TIERS.index(tier) < TIERS.index(floor):
         print(f"::error::Labelled tier:{tier} but the diff needs at least tier:{floor}. "
               f"Relabel the PR and its issue tier:{floor}.")
+        return 1
+    errors = policy_errors(tier, labels, args.auto_merge.lower() == "true")
+    for e in errors:
+        print(f"::error::{e}")
+    if errors:
         return 1
     print(f"OK: labelled tier:{tier}.")
     return 0
