@@ -45,7 +45,10 @@ Python: reading env vars or secrets, a model client outside `src/llm.py`, a new
 HTTP route, `UNTRUSTED` prompt text, or running commands all force L, whatever the
 file. The grading workflow (`tier.yml`) runs from the default branch via
 `workflow_run`, triggered by the no-op `tier-trigger.yml`, and the PR's commits
-are only diffed, never run, so a PR cannot loosen its own grading. Edits to the workflow, checker or rules take
+are only diffed, never run, so a PR cannot loosen its own grading. The trigger
+itself is loaded from the PR, so tier-check fails any PR whose `tier-trigger.yml`
+differs from the default branch's (a changed trigger could stop label or
+auto-merge changes from being re-graded); a deliberate change merges as an admin. Edits to the workflow, checker or rules take
 effect only after they merge. It also fails while a PR has the `hold` label,
 or while auto-merge is on for an M or L PR. Behaviour changes it cannot see are judgement: the planner
 raises the tier, never lowers it.

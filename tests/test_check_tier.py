@@ -165,3 +165,27 @@ def test_changed_lines_parse_additions_removals_and_deletions(tmp_path, monkeypa
     got = check_tier.git_changed_lines("HEAD~1")
     assert sorted(got["a.py"]) == ["-- not a header", "new = 2"]
     assert got["gone.py"] == ["key = os.environ['K']"]
+
+
+def test_changed_trigger_file_is_tampering(tmp_path, monkeypatch):
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+                       cwd=tmp_path, check=True, capture_output=True)
+
+    trig = tmp_path / ".github" / "workflows" / "tier-trigger.yml"
+    trig.parent.mkdir(parents=True)
+    trig.write_text("types: [opened, synchronize, labeled, unlabeled]\n")
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-qm", "main")
+    git("tag", "main")
+    (tmp_path / "README.md").write_text("docs\n")
+    git("add", ".")
+    git("commit", "-qm", "untouched trigger")
+    git("tag", "ok")
+    trig.write_text("types: [opened, synchronize]\n")  # drops the label events
+    git("commit", "-qam", "tampered trigger")
+    monkeypatch.chdir(tmp_path)
+
+    assert not check_tier.trigger_tampered("main", "ok")
+    assert check_tier.trigger_tampered("main", "HEAD")

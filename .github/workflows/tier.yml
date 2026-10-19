@@ -73,7 +73,7 @@ jobs:
           AUTO_MERGE: ${{ steps.pr.outputs.auto_merge }}
         run: |
           set +e
-          python -I .github/scripts/check_tier.py --base "$BASE_SHA" --head "$HEAD_SHA" \
+          python -I .github/scripts/check_tier.py --base "$BASE_SHA" --head "$HEAD_SHA" --trusted HEAD \
             --labels "$LABELS" --auto-merge "$AUTO_MERGE" | tee "$RUNNER_TEMP/tier.log"
           code=${PIPESTATUS[0]}
           echo "summary=$(tail -n 1 "$RUNNER_TEMP/tier.log" | sed 's/^::error:://' | cut -c1-140)" >> "$GITHUB_OUTPUT"

@@ -167,6 +167,24 @@ def git_changes(base: str, head: str = "HEAD") -> list[tuple[str, int, str]]:
     return [(p, n, status.get(p, "M")) for p, n in lines.items()]
 
 
+TRIGGER_FILE = ".github/workflows/tier-trigger.yml"
+
+
+def trigger_tampered(trusted: str, head: str) -> bool:
+    """True if the PR's copy of the Tier trigger differs from the trusted one.
+
+    GitHub loads the trigger from the PR itself, so a PR could drop the label or
+    auto-merge events and keep a stale green tier-check. It must match main's.
+    """
+    def show(ref: str) -> str | None:
+        try:
+            return git("show", f"{ref}:{TRIGGER_FILE}")
+        except subprocess.CalledProcessError:
+            return None
+
+    return show(trusted) != show(head)
+
+
 def git_changed_lines(base: str, head: str = "HEAD") -> dict[str, list[str]]:
     """Added and removed line texts per file, without the +/- marker."""
     out: dict[str, list[str]] = {}
@@ -192,6 +210,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--labels", default="", help="comma-separated PR labels")
     ap.add_argument("--auto-merge", default="false", help="true if GitHub auto-merge is on")
     ap.add_argument("--rules", type=Path, default=RULES_FILE, help="sensitive-paths file")
+    ap.add_argument("--trusted", help="default-branch commit whose Tier trigger the PR must match")
     args = ap.parse_args(argv)
 
     labels = [lb.strip() for lb in args.labels.split(",") if lb.strip()]
@@ -211,6 +230,9 @@ def main(argv: list[str] | None = None) -> int:
               f"Relabel the PR and its issue tier:{floor}.")
         return 1
     errors = policy_errors(tier, labels, args.auto_merge.lower() == "true")
+    if args.trusted and trigger_tampered(args.trusted, args.head):
+        errors.append(f"PR changes {TRIGGER_FILE}; it must match the default branch so label and "
+                      "auto-merge changes are re-graded. Revert it, or have the owner merge it as an admin.")
     for e in errors:
         print(f"::error::{e}")
     if errors:
