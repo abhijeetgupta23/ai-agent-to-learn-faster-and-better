@@ -50,7 +50,7 @@ Pick the **highest** row that matches. When unsure, go one tier up.
 - The PR carries the same `tier:*` label as its issue. If tier-check raises it, relabel both.
 - Auto-merge for S: Claude enables GitHub auto-merge only after Codex has reviewed and every thread is resolved. GitHub then merges when the required checks are green.
 - To stop a merge, add the `hold` label: tier-check fails while it is on. tier-check also fails if auto-merge is on for an M or L PR, so promoting a queued S PR blocks it; Claude then disables auto-merge.
-- tier-check runs the checker and `.github/sensitive-paths.txt` from the base branch, so a PR can't loosen its own grading.
+- tier-check runs entirely from the base branch (`pull_request_target`; the PR's commits are diffed, never run), so a PR can't loosen its own grading. Its own edits apply only after merge.
 - Claude never merges M or L without your instruction, and never enables auto-merge on them.
 
 # Code conventions

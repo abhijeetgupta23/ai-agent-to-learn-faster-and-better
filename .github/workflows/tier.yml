@@ -1,37 +1,34 @@
 name: Tier
 
-# Separate from CI so adding or removing a label re-runs only this check.
+# pull_request_target runs THIS file as it is on the base branch, so a PR can't
+# rewrite the gate that grades it. The PR's commits are fetched as data and only
+# diffed; nothing from the PR is executed. Separate from CI so label changes
+# re-run only this check.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, labeled, unlabeled, auto_merge_enabled, auto_merge_disabled]
+
+permissions:
+  contents: read
 
 jobs:
   tier-check:
     name: tier-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the base branch (trusted checker and rules)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Fetch the PR's commits (diffed only, never run)
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: git fetch --no-tags origin "+refs/pull/${PR}/head:refs/remotes/pr/head"
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      # A PR must not be able to grade itself: run the checker and rules as
-      # they are on the base branch, against the PR's diff.
-      - name: Load checker and rules from the base branch
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/tier"
-          if git cat-file -e "$BASE_SHA:.github/scripts/check_tier.py" 2>/dev/null; then
-            git show "$BASE_SHA:.github/scripts/check_tier.py" > "$RUNNER_TEMP/tier/check_tier.py"
-            git show "$BASE_SHA:.github/sensitive-paths.txt" > "$RUNNER_TEMP/tier/sensitive-paths.txt"
-          else
-            echo "::notice::Base branch has no tier checker yet (bootstrap PR); using this PR's copy."
-            cp .github/scripts/check_tier.py .github/sensitive-paths.txt "$RUNNER_TEMP/tier/"
-          fi
 
       - name: Diff must not be labelled below its minimum tier
         env:
@@ -39,6 +36,6 @@ jobs:
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           AUTO_MERGE: ${{ github.event.pull_request.auto_merge != null }}
         run: >
-          python -I "$RUNNER_TEMP/tier/check_tier.py"
-          --base "$BASE_SHA" --labels "$LABELS" --auto-merge "$AUTO_MERGE"
-          --rules "$RUNNER_TEMP/tier/sensitive-paths.txt"
+          python -I .github/scripts/check_tier.py
+          --base "$BASE_SHA" --head refs/remotes/pr/head
+          --labels "$LABELS" --auto-merge "$AUTO_MERGE"

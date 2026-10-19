@@ -40,8 +40,10 @@ flowchart TD
 ```
 
 The check (`.github/workflows/tier.yml` → `.github/scripts/check_tier.py`) sets a
-floor from the diff. It runs the base branch's copy of the checker and rules, so a
-PR cannot loosen its own grading. It also fails while a PR has the `hold` label,
+floor from the diff. The whole workflow runs from the base branch
+(`pull_request_target`), and the PR's commits are only diffed, never run, so a PR
+cannot loosen its own grading. Edits to the workflow, checker or rules take
+effect only after they merge. It also fails while a PR has the `hold` label,
 or while auto-merge is on for an M or L PR. Behaviour changes it cannot see are judgement: the planner
 raises the tier, never lowers it.
 
@@ -85,7 +87,7 @@ pytest tests/
 ## One-time setup (manual)
 
 - Labels: `stage:research`, `stage:plan`, `stage:tests`, `stage:code`, `stage:review`,
-  `tier:S`, `tier:M`, `tier:L`, `story`, `tech`, `cleanup`
+  `tier:S`, `tier:M`, `tier:L`, `story`, `tech`, `cleanup`, `hold` (blocks any merge while applied)
   (`for l in research plan tests code review; do gh label create "stage:$l"; done`).
 - Branch protection on `main`: require the `test (py3.10/3.11/3.12)` and `tier-check`
   checks, and "Require conversation resolution before merging" (so Codex threads block).

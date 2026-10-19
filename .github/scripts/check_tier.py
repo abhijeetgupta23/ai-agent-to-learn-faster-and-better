@@ -8,7 +8,8 @@ auto-merge is on for anything but tier S (so promoting a queued S PR can't
 slip it through).
 
 Usage (CI): python check_tier.py --base <sha> --labels "a,b" --auto-merge true|false
-CI runs the base branch's copy of this script and rules, never the PR's own.
+CI runs this from the base branch (pull_request_target): the PR's commits are
+only diffed, never executed, so a PR cannot change how it is graded.
 Stdlib only, so the workflow needs no install step.
 """
 
@@ -109,17 +110,17 @@ def policy_errors(tier: str, labels: list[str], auto_merge: bool) -> list[str]:
     return errors
 
 
-def git_changes(base: str) -> list[tuple[str, int, str]]:
+def git_changes(base: str, head: str = "HEAD") -> list[tuple[str, int, str]]:
     def git(*args: str) -> str:
         return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
     lines = {}
-    for row in git("diff", "--numstat", "--no-renames", f"{base}...HEAD").splitlines():
+    for row in git("diff", "--numstat", "--no-renames", f"{base}...{head}").splitlines():
         added, deleted, path = row.split("\t", 2)
         # binary files report "-": count them as one line so they still register
         lines[path] = (int(added) if added != "-" else 1) + (int(deleted) if deleted != "-" else 0)
     status = {}
-    for row in git("diff", "--name-status", "--no-renames", f"{base}...HEAD").splitlines():
+    for row in git("diff", "--name-status", "--no-renames", f"{base}...{head}").splitlines():
         s, path = row.split("\t", 1)
         status[path] = s[0]
     return [(p, n, status.get(p, "M")) for p, n in lines.items()]
@@ -128,6 +129,7 @@ def git_changes(base: str) -> list[tuple[str, int, str]]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True, help="base commit to diff against")
+    ap.add_argument("--head", default="HEAD", help="PR head commit to grade")
     ap.add_argument("--labels", default="", help="comma-separated PR labels")
     ap.add_argument("--auto-merge", default="false", help="true if GitHub auto-merge is on")
     ap.add_argument("--rules", type=Path, default=RULES_FILE, help="sensitive-paths file")
@@ -135,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
 
     labels = [lb.strip() for lb in args.labels.split(",") if lb.strip()]
     tier, err = tier_label(labels)
-    floor, reasons = floor_for(git_changes(args.base), load_globs(args.rules))
+    floor, reasons = floor_for(git_changes(args.base, args.head), load_globs(args.rules))
 
     print(f"Minimum tier for this diff: {floor}")
     for r in reasons:
