@@ -47,6 +47,30 @@ effect only after they merge. It also fails while a PR has the `hold` label,
 or while auto-merge is on for an M or L PR. Behaviour changes it cannot see are judgement: the planner
 raises the tier, never lowers it.
 
+### Who picks the tier, in plain words
+
+Think of the tier as a size sticker on every change. Two helpers pick it, and
+one rule keeps them honest.
+
+```
+              L ┃  money, user data, secrets, deploy, 2+ src/ packages
+              M ┃  new src/ file, >150 lines, or new behaviour
+- - - - - - - - ┃ - - - - robot's line: nothing goes below it - - - -
+              S ┃  small fix in one area
+```
+
+| Helper | What it looks at | Uses AI? | What it can do |
+|---|---|---|---|
+| The robot (`check_tier.py`) | Which files changed, and how many lines | No. Plain rules: same change, same answer | Draws the line: the lowest tier allowed |
+| The researcher agent, then you | The story: does it change what users see? | Yes, the agent suggests; you set the label | Push the tier **up**, never below the line |
+
+- The robot can't see intent, so it can't tell a risky one-line change from a
+  harmless one. That's why people and the AI helper can raise the tier.
+- The AI helper can be wrong, so it can't lower the tier. If it suggests too
+  low a tier, tier-check fails the PR.
+- The robot and its rules come from `main`, never from the PR being graded,
+  so a change can't rewrite the rules that grade it.
+
 ## Where state lives
 
 | State | Lives in |
