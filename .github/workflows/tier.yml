@@ -1,0 +1,91 @@
+name: Tier
+
+# workflow_run always uses THIS file as it is on the default branch, so a PR
+# can't rewrite the gate that grades it. The PR's commits are fetched as data
+# and only diffed; nothing from the PR is executed. Result: a `tier-check`
+# commit status on the PR head (make it a required check).
+on:
+  workflow_run:
+    workflows: ["Tier trigger"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: tier-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  tier-check:
+    name: tier-check
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      PR: ${{ github.event.workflow_run.pull_requests[0].number }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Check out the default branch (trusted checker and rules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mark tier-check pending
+        run: |
+          gh api "repos/$REPO/statuses/$HEAD_SHA" -f state=pending -f context=tier-check \
+            -f description="Grading this PR's tier" -f target_url="$RUN_URL" > /dev/null
+
+      - name: Read the PR's live labels and auto-merge state
+        id: pr
+        run: |
+          if [ -z "$PR" ]; then
+            # pull_requests is empty for PRs from forks; look the PR up by commit
+            PR=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" --jq '[.[] | select(.state=="open")][0].number // empty')
+          fi
+          if [ -z "$PR" ]; then echo "::error::No open PR found for $HEAD_SHA"; exit 1; fi
+          {
+            echo "number=$PR"
+            echo "base=$(gh api "repos/$REPO/pulls/$PR" --jq .base.sha)"
+            echo "labels=$(gh api "repos/$REPO/pulls/$PR" --jq '[.labels[].name] | join(",")')"
+            echo "auto_merge=$(gh api "repos/$REPO/pulls/$PR" --jq '.auto_merge != null')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the PR's commits (diffed only, never run)
+        env:
+          N: ${{ steps.pr.outputs.number }}
+        run: |
+          git fetch --no-tags origin "+refs/pull/$N/head:refs/remotes/pr/head"
+          git cat-file -e "$HEAD_SHA^{commit}" 2>/dev/null || git fetch --no-tags origin "$HEAD_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Grade the diff
+        id: grade
+        env:
+          BASE_SHA: ${{ steps.pr.outputs.base }}
+          LABELS: ${{ steps.pr.outputs.labels }}
+          AUTO_MERGE: ${{ steps.pr.outputs.auto_merge }}
+        run: |
+          set +e
+          python -I .github/scripts/check_tier.py --base "$BASE_SHA" --head "$HEAD_SHA" --trusted HEAD \
+            --labels "$LABELS" --auto-merge "$AUTO_MERGE" | tee "$RUNNER_TEMP/tier.log"
+          code=${PIPESTATUS[0]}
+          echo "summary=$(tail -n 1 "$RUNNER_TEMP/tier.log" | sed 's/^::error:://' | cut -c1-140)" >> "$GITHUB_OUTPUT"
+          exit $code
+
+      - name: Report tier-check on the PR
+        if: always()
+        env:
+          SUMMARY: ${{ steps.grade.outputs.summary }}
+          OUTCOME: ${{ steps.grade.outcome }}
+        run: |
+          state=failure
+          [ "$OUTCOME" = "success" ] && state=success
+          gh api "repos/$REPO/statuses/$HEAD_SHA" -f state=$state -f context=tier-check \
+            -f description="${SUMMARY:-tier-check could not run; see the log}" -f target_url="$RUN_URL" > /dev/null

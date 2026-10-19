@@ -1,0 +1,17 @@
+name: Tier trigger
+
+# Does nothing itself. Its only job is to finish, so that the Tier workflow
+# (which GitHub always runs from the default branch, via workflow_run) wakes up
+# and grades this PR. A PR can edit this file freely: it holds no logic, and if
+# it stops running, tier-check never reports and the merge stays blocked.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, auto_merge_enabled, auto_merge_disabled]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR ${{ github.event.pull_request.number }} changed; Tier on the default branch will grade it."
