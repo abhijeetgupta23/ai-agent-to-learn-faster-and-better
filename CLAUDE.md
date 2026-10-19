@@ -27,6 +27,7 @@ This file holds conventions only — never feature details. Keep it under 200 li
 | 8 | Docs and lessons | docs subagent | Docs in same PR, ≤1 CLAUDE.md line | — |
 
 Rules:
+- Stories, research comments and plan comments open with an **In plain words** section (eli5: 2–3 short sentences + a tiny before/after picture, no jargon) before the technical detail.
 - State lives in GitHub (issue body, comments, labels, branch, PR). Push after every step.
 - The tester gets only the issue number and reads only the issue body.
 - Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.
