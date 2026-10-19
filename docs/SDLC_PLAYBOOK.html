@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>Claude Code SDLC Playbook</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --paper:#EEF1F4; --sheet:#FFFFFF; --ink:#18212C; --ink-2:#4A5563; --rule:#D3DAE2;
+  --main:#4F3FBF; --main-bg:#ECE9FB; --sub:#0B7563; --sub-bg:#E1F3EE; --you:#5D6673; --you-bg:#E8EBEF;
+  --loop:#9A5B0C; --code-bg:#F4F6F8; --ex-bg:#FBF6EC; --ex-rule:#E8D9BC;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11161D; --sheet:#18202A; --ink:#E6EBF1; --ink-2:#A3AEBB; --rule:#2C3744;
+    --main:#B3A9F5; --main-bg:#2A2550; --sub:#6FD3BD; --sub-bg:#123A33; --you:#B0B9C4; --you-bg:#252E39;
+    --loop:#E7B160; --code-bg:#0E131A; --ex-bg:#221D14; --ex-rule:#4A3D22; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11161D; --sheet:#18202A; --ink:#E6EBF1; --ink-2:#A3AEBB; --rule:#2C3744;
+  --main:#B3A9F5; --main-bg:#2A2550; --sub:#6FD3BD; --sub-bg:#123A33; --you:#B0B9C4; --you-bg:#252E39;
+  --loop:#E7B160; --code-bg:#0E131A; --ex-bg:#221D14; --ex-rule:#4A3D22; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:40px 20px 64px}
+h1{font-size:clamp(34px,7vw,52px);line-height:1.02;letter-spacing:-.025em;font-weight:700;margin:0 0 16px}
+h2{font-size:22px;letter-spacing:-.01em;margin:56px 0 12px;font-weight:600}
+h3{font-size:15px;font-weight:600;margin:18px 0 6px}
+p{margin:0 0 12px;max-width:66ch}
+.lede{font-size:18px;color:var(--ink-2)}
+code,pre{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:not(pre)>code{background:var(--code-bg);border:1px solid var(--rule);border-radius:4px;padding:1px 5px;font-size:12.5px}
+pre{background:var(--code-bg);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;margin:6px 0 12px;overflow-x:auto;line-height:1.55}
+.key{display:flex;flex-wrap:wrap;gap:8px 20px;margin:20px 0 0;font-size:14px;color:var(--ink-2)}
+.key span{display:inline-flex;align-items:center;gap:8px}
+.key i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.track{position:relative;margin:36px 0 0;padding-left:34px}
+.track::before{content:"";position:absolute;left:11px;top:14px;bottom:14px;width:2px;background:var(--rule)}
+.st{position:relative;margin:0 0 12px}
+.st::before{content:attr(data-n);position:absolute;left:-34px;top:13px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 12px/1 "Instrument Sans",sans-serif;background:var(--paper);border:2px solid var(--c);color:var(--c)}
+.st.main{--c:var(--main);--cb:var(--main-bg)} .st.sub{--c:var(--sub);--cb:var(--sub-bg)} .st.you{--c:var(--you);--cb:var(--you-bg)}
+details{background:var(--sheet);border:1px solid var(--rule);border-left:4px solid var(--c);border-radius:0 10px 10px 0}
+summary{list-style:none;cursor:pointer;padding:12px 16px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+.t{font-weight:600;font-size:17px}
+.who{grid-column:1;font-size:14px;color:var(--ink-2)}
+.chev{grid-row:1/3;grid-column:2;width:10px;height:10px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(45deg);transition:transform .15s}
+details[open] .chev{transform:rotate(-135deg)}
+.body{padding:4px 16px 16px;border-top:1px solid var(--rule)}
+.purpose{font-size:16px;margin:12px 0 4px}
+.io{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:10px 0;font-size:14px}
+.io dt{color:var(--ink-2)} .io dd{margin:0}
+ol.steps,ul.plain{padding-left:20px;margin:0 0 8px;font-size:15px} ol.steps li,ul.plain li{margin:0 0 6px}
+.ex{background:var(--ex-bg);border:1px solid var(--ex-rule);border-radius:8px;padding:12px 14px;margin:14px 0 6px;font-size:15px}
+.ex h3{margin-top:0}
+.ex pre{background:var(--sheet)}
+.ex p:last-child,.ex ul:last-child{margin-bottom:0}
+.loop{color:var(--loop);font-size:14px;margin:10px 0 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
+.box{border-radius:6px;padding:10px 12px;font-size:14px}
+.done{background:var(--cb)} .warn{background:var(--code-bg);border:1px solid var(--rule)}
+.box b{display:block;font-weight:600;margin-bottom:2px;font-size:13.5px}
+@media (max-width:540px){.grid2{grid-template-columns:1fr}}
+.skip{font-size:14px;color:var(--loop);margin:-4px 0 12px;padding-left:2px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--sheet);margin:10px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-weight:600;font-size:14px;color:var(--ink-2)}
+ol.rules{padding-left:22px;margin:0} ol.rules li{margin:0 0 8px;max-width:64ch}
+.note{border-left:4px solid var(--loop);background:var(--sheet);padding:10px 14px;margin:20px 0 0;font-size:15px;border-radius:0 8px 8px 0}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--rule);font-size:14px;color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+
+.donel{font-size:14px;margin:8px 0 0;max-width:none}
+.donel b{font-weight:600}
+.stack{display:grid;gap:8px;margin:14px 0 0}
+details.sub,details.sec{border:1px solid var(--rule);border-left:1px solid var(--rule);border-radius:8px;background:var(--paper)}
+details.sec{background:var(--sheet);margin:16px 0 0}
+details.sub>summary,details.sec>summary{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-size:15px;font-weight:500}
+details.sec>summary{font-size:19px;font-weight:600;padding:14px 16px}
+details.sub>summary::after,details.sec>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(45deg);transition:transform .15s;flex:none;margin-left:12px}
+details.sub[open]>summary::after,details.sec[open]>summary::after{transform:rotate(-135deg)}
+details.sub>summary:focus-visible,details.sec>summary:focus-visible{outline:2px solid var(--main);outline-offset:2px}
+.subbody{padding:2px 12px 12px}
+details.sec .subbody{padding:4px 16px 16px}
+.subbody .ex{margin:4px 0 0}
+.subbody pre:last-child,.subbody ol:last-child,.subbody p:last-child{margin-bottom:0}
+.hint{font-size:14px;color:var(--ink-2);margin:12px 0 0}
+@media (prefers-reduced-motion:reduce){details.sub>summary::after,details.sec>summary::after{transition:none}}
+
+.chart{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;padding:16px 8px;margin:24px 0 0}
+.chart svg{display:block;width:100%;max-width:480px;height:auto;margin:0 auto}
+.nd{cursor:pointer;outline:none}
+.nd rect{stroke-width:1.2}
+.nd.main rect{fill:var(--main-bg);stroke:var(--main)} .nd.sub rect{fill:var(--sub-bg);stroke:var(--sub)} .nd.you rect{fill:var(--you-bg);stroke:var(--you)}
+.nd .th{font:600 14px "Instrument Sans",sans-serif;text-anchor:middle;dominant-baseline:central;fill:var(--ink)}
+.nd .ts{font:400 12px "Instrument Sans",sans-serif;text-anchor:middle;dominant-baseline:central;fill:var(--ink-2)}
+.nd:hover rect,.nd:focus-visible rect{stroke-width:2.4}
+.ar{stroke:var(--ink-2);stroke-width:1.2;fill:none}
+.lp{stroke:var(--loop);stroke-dasharray:5 4}
+.tl{font:500 12px "Instrument Sans",sans-serif;fill:var(--loop);dominant-baseline:central}
+.tpl{display:none}
+dialog{border:0;padding:0;border-radius:14px;width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);background:var(--sheet);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(10,14,20,.5)}
+.dlg{display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}
+.dh{display:flex;align-items:flex-start;gap:12px;padding:16px 16px 12px;border-bottom:1px solid var(--rule);border-top:5px solid var(--c)}
+.dh .num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:13px;border:2px solid var(--c);color:var(--c)}
+.dh h2{margin:0;font-size:20px}
+.dh .dwho{font-size:14px;color:var(--ink-2)}
+.dh button{margin-left:auto}
+.db{overflow-y:auto;padding:4px 16px 16px;-webkit-overflow-scrolling:touch}
+.db .dwho{display:none}
+.df{display:flex;justify-content:space-between;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--rule)}
+.btn{font:500 14px "Instrument Sans",sans-serif;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;cursor:pointer}
+.btn:focus-visible{outline:2px solid var(--main);outline-offset:2px}
+.btn[disabled]{opacity:.4;cursor:default}
+.wk rect{stroke-dasharray:6 4} .sep{stroke:var(--rule);stroke-width:1}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Claude Code SDLC playbook</h1>
+<p class="lede">Eugene’s fresh-context discipline, run entirely inside Claude Code. One planner keeps the big picture; every other job is a subagent that starts clean and hands off through files, not chat.</p>
+<p class="lede">Worked example throughout: a “Your turn” checkpoint in Learn Faster, issue #42.</p>
+<div class="key">
+<span><i style="background:var(--main)"></i>Main agent, long-lived</span>
+<span><i style="background:var(--sub)"></i>Subagent, fresh context</span>
+<span><i style="background:var(--you)"></i>You or tooling</span>
+<span><i style="background:var(--loop)"></i>Shortcut or loop</span>
+</div>
+<p class="hint">Tap a box for its summary. Inside, tap a section for steps, commands, files and the example.</p>
+</header>
+<div class="chart"><svg aria-labelledby="fct" role="img" viewbox="0 0 440 800"><title id="fct">Story workflow in 8 stages with a tier S shortcut and two loops, plus a weekly cleanup</title><defs><marker id="ah" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></marker></defs><g aria-label="Open stage 1: Write the story" class="nd you" data-i="0" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="20"></rect><text class="th" x="200" y="39">1. Write the story</text><text class="ts" x="200" y="59">You · GitHub issue</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="76" y2="101"></line><g aria-label="Open stage 2: Tier it" class="nd you" data-i="1" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="104"></rect><text class="th" x="200" y="123">2. Tier it</text><text class="ts" x="200" y="143">S, M or L</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="160" y2="185"></line><g aria-label="Open stage 3: Research" class="nd sub" data-i="2" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="188"></rect><text class="th" x="200" y="207">3. Research</text><text class="ts" x="200" y="227">Subagent · issue comment</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="244" y2="269"></line><g aria-label="Open stage 4: Plan" class="nd main" data-i="3" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="272"></rect><text class="th" x="200" y="291">4. Plan</text><text class="ts" x="200" y="311">Main · Opus · on the issue</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="328" y2="353"></line><g aria-label="Open stage 5: Tests first" class="nd sub" data-i="4" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="356"></rect><text class="th" x="200" y="375">5. Tests first</text><text class="ts" x="200" y="395">Subagent · reads issue only</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="412" y2="437"></line><g aria-label="Open stage 6: Code each step" class="nd sub" data-i="5" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="440"></rect><text class="th" x="200" y="459">6. Code each step</text><text class="ts" x="200" y="479">Subagent · one per step</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="496" y2="521"></line><g aria-label="Open stage 7: Review" class="nd you" data-i="6" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="524"></rect><text class="th" x="200" y="543">7. Review</text><text class="ts" x="200" y="563">CI + Codex · you merge</text></g><line class="ar" marker-end="url(#ah)" x1="200" x2="200" y1="580" y2="605"></line><g aria-label="Open stage 8: Docs and lessons" class="nd sub" data-i="7" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="608"></rect><text class="th" x="200" y="627">8. Docs and lessons</text><text class="ts" x="200" y="647">Subagent · docs + CLAUDE.md</text></g><path class="ar lp" d="M80 132.0 L56 132.0 L56 384.0 L77 384.0" marker-end="url(#ah)"></path><text class="tl" x="8" y="258.0">Tier S</text><path class="ar lp" d="M320 460.0 L360 460.0 L360 300.0 L323 300.0" marker-end="url(#ah)"></path><text class="tl" x="366" y="384.0">questions</text><path class="ar lp" d="M320 552.0 L400 552.0 L400 476.0 L323 476.0" marker-end="url(#ah)"></path><text class="tl" x="406" y="510.0">fixes</text><line class="sep" x1="40" x2="400" y1="686" y2="686"></line><text class="tl" text-anchor="middle" x="200" y="704">Once a week, outside the story flow</text><g aria-label="Open weekly cleanup" class="nd sub wk" data-i="8" role="button" tabindex="0"><rect height="56" rx="8" width="240" x="80" y="724"></rect><text class="th" x="200" y="743">W. Weekly cleanup</text><text class="ts" x="200" y="763">Subagent · whole codebase</text></g></svg></div>
+<div class="tpl"><div class="stage" data-kind="you" data-n="1" data-t="Write the story"><div class="dwho">You, as a GitHub issue</div><p class="purpose">Turn an idea into one testable user outcome. This is the spec every agent downstream works from.</p><dl class="io"><dt>Who</dt><dd>You. Never delegated.</dd><dt>In</dt><dd>A product idea</dd><dt>Out</dt><dd>Issue with who and state, action, outcome, acceptance criteria</dd></dl><p class="donel"><b>Done when:</b> Someone else could write the tests from it without asking you anything.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Open a story from the template so every issue has the same shape.</li>
+<li>Write acceptance criteria as checkable lines. Each one becomes at least one test in stage 5.</li>
+<li>Include the failure cases, not just the happy path.</li>
+<li>Link it under its epic as a sub-issue.</li>
+</ol></div></details><details class="sub"><summary>Commands</summary><div class="subbody"><pre>gh issue create --template story --label story</pre></div></details><details class="sub"><summary>Learn Faster: issue #42</summary><div class="subbody"><div class="ex">
+<p><b>Who and state:</b> a learner partway through a lesson plan.</p>
+<p><b>Action:</b> after each lesson step, the tutor asks one short “Your turn” question. A grader scores the answer and returns a verdict and the gap.</p>
+<p><b>Outcome:</b> a correct answer moves to the next step. A partial or wrong answer gets a re-explanation of the named gap, then the question again.</p>
+<ul class="plain">
+<li>☐ Correct → next step</li>
+<li>☐ Partial or wrong → re-explain the gap, stay on step</li>
+<li>☐ Empty answer → can’t continue, clear message</li>
+<li>☐ Grader fails → friendly message, never a stack trace, step unchanged</li>
+</ul></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>Vague outcomes like “better feedback”. Agents fill gaps with guesses.</p></div></details></div></div><div class="stage" data-kind="you" data-n="2" data-t="Tier it"><div class="dwho">You, one label</div><p class="purpose">Decide how much process the story deserves. The full flow costs six fresh sessions, so spend it where a wrong design would hurt.</p><div class="tbl"><table>
+<tr><th>Tier</th><th>Looks like</th><th>Run stages</th></tr>
+<tr><td>S</td><td>Small fix in one area, no new behaviour</td><td>5, 6, 7</td></tr>
+<tr><td>M</td><td>New behaviour inside one module</td><td>All</td></tr>
+<tr><td>L</td><td>Cross-cutting, new module, or data model change</td><td>All, and you approve the plan before tests</td></tr>
+</table></div><p class="donel"><b>Done when:</b> The issue carries a tier label.</p><div class="stack"><details class="sub"><summary>Commands</summary><div class="subbody"><pre>gh issue edit 42 --add-label tier:M,stage:research
+# tier S skips ahead: --add-label tier:S,stage:tests</pre></div></details><details class="sub"><summary>Learn Faster</summary><div class="subbody"><div class="ex">
+<ul class="plain">
+<li><b>S:</b> the plan-step highlight showing the wrong step.</li>
+<li><b>M:</b> #42, the “Your turn” checkpoint. New behaviour, one tutor loop.</li>
+<li><b>L:</b> “bring your own source” (web URL, file, pasted text). It touches ingestion, storage and the lesson planner.</li>
+</ul></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>Under-tiering anything that changes data shape. Bump it to L.</p></div></details></div></div><div class="stage" data-kind="sub" data-n="3" data-t="Research"><div class="dwho">Subagent <code>researcher</code>, Sonnet, read-only</div><p class="purpose">Map the code the story will touch, so the plan is grounded in what exists rather than guesses.</p><dl class="io"><dt>Tools</dt><dd>Read, Grep, Glob, Bash (for <code>gh</code>). No edits.</dd><dt>In</dt><dd>Issue number</dd><dt>Out</dt><dd>A research comment on the issue, under 150 lines</dd></dl><p class="donel"><b>Done when:</b> Every file the change touches is listed, and open questions are explicit.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Run <code>/research 42</code> from the main session. It spawns the subagent with a clean context.</li>
+<li>Read the comment yourself. Wrong research means a wrong plan.</li>
+<li>Correct anything off by editing the comment, then move on.</li>
+</ol></div></details><details class="sub"><summary>Agent and command files</summary><div class="subbody"><pre>.claude/agents/researcher.md
+---
+name: researcher
+description: Maps the code a GitHub issue will touch. Use before planning.
+tools: Read, Grep, Glob, Bash
+model: sonnet
+---
+Read the issue body with `gh issue view &lt;n&gt;`. Find the files,
+functions and patterns it touches. Write research.md with:
+relevant files (path + one line each), helpers to reuse, data
+flow, risks, open questions. Post it with
+`gh issue comment &lt;n&gt; --body-file research.md`, then run
+`gh issue edit &lt;n&gt; --add-label stage:plan --remove-label stage:research`.
+Do not propose a design. Do not edit code. Under 150 lines.
+
+.claude/commands/research.md
+Use the researcher subagent on issue $ARGUMENTS.</pre></div></details><details class="sub"><summary>Learn Faster: research.md for #42</summary><div class="subbody"><div class="ex">
+<ul class="plain">
+<li>Where the tutor loop advances to the next lesson step</li>
+<li>The existing LLM call helper to reuse, rather than a new one</li>
+<li>How the UI renders step state and messages</li>
+<li>Risk: grader output may not parse; current errors surface raw</li>
+<li>Open question: what happens after repeated misses?</li>
+</ul></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>Research that drifts into design. That is the planner’s job.</p></div></details></div></div><div class="stage" data-kind="main" data-n="4" data-t="Plan"><div class="dwho">Main session, Opus (opusplan), high effort</div><p class="purpose">Settle the design with you, then break it into small steps a fresh coder can do one at a time.</p><dl class="io"><dt>In</dt><dd>Issue and its research comment</dd><dt>Out</dt><dd>A plan comment on the issue</dd></dl><p class="donel"><b>Done when:</b> Each step is small enough for one fresh session and has its own check.</p><p class="loop">↻ Answers questions the coder returns. Requirement changes re-enter here and update the issue.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Start the main session on Opus and point it at the issue and research.</li>
+<li>Debate the design. Push back until the trade-offs are clear.</li>
+<li>Have it write numbered steps, each with files, model and a pass check.</li>
+<li>Post the plan on the issue. In cloud, that’s the only place it survives the session.</li>
+<li>For tier L, approve it before stage 5.</li>
+</ol></div></details><details class="sub"><summary>Commands</summary><div class="subbody"><pre>claude --model opusplan
+&gt; Read issue 42 and its research comment: gh issue view 42 --comments
+&gt; Debate the design with me first. Then write plan.md:
+&gt; numbered steps, each with files, model and a check. Don't implement yet.
+
+gh issue comment 42 --body-file plan.md
+gh issue edit 42 --add-label stage:tests --remove-label stage:plan</pre></div></details><details class="sub"><summary>Learn Faster: plan for #42</summary><div class="subbody"><div class="ex">
+<p><b>Design call:</b> grade with the LLM, since answers are free text, but force structured output so the app never parses prose.</p>
+<pre>1. Sonnet  Checkpoint schema: verdict (correct|partial|wrong)
+           + gap. Check: schema rejects bad input.
+2. Sonnet  Grader call via the existing LLM helper, returns the
+           schema; on failure, a safe error. Check: tests 4-5.
+3. Sonnet  Gate step advance on verdict. Check: tests 1-3.
+4. Sonnet  "Your turn" input and re-explain message in the UI.
+           Check: manual run plus replay script.</pre></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>Opus drifting into writing code. “Don’t implement yet” is the guard.</p></div></details></div></div><div class="stage" data-kind="sub" data-n="5" data-t="Tests first"><div class="dwho">Subagent <code>tester</code>, Sonnet, edits <code>tests/</code> only</div><p class="purpose">Write tests from the story alone, before any code. They check what was asked for, and the red tests become the coder’s target.</p><dl class="io"><dt>In</dt><dd>Issue body only, never the comments where research and plan live</dd><dt>Out</dt><dd>Committed tests that fail for the right reason</dd></dl><p class="donel"><b>Done when:</b> Every acceptance criterion has a red test.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Run <code>/test 42</code>. The command passes only the number, so the planner can’t leak its assumptions.</li>
+<li>One test per acceptance criterion, plus edge cases.</li>
+<li>Mock every LLM call. Tests must not hit the API.</li>
+<li>Run them and confirm they fail because the feature is missing, not because of a typo.</li>
+</ol></div></details><details class="sub"><summary>Agent and command files</summary><div class="subbody"><pre>.claude/agents/tester.md
+---
+name: tester
+description: Writes failing tests from a GitHub issue. Use before implementation.
+tools: Read, Grep, Glob, Edit, Write, Bash
+model: sonnet
+---
+Run `gh issue view &lt;n&gt;` without --comments and write tests from
+the story body only. Never read issue comments: they hold the
+research and plan. Test the public interface. Mock all LLM calls.
+Edit only files under tests/. Run pytest and confirm the new
+tests fail for the right reason. Commit and push. Return the
+test paths and a one-line summary per test.
+
+.claude/commands/test.md
+Use the tester subagent on issue $ARGUMENTS. Pass it only the
+issue number.</pre><pre>.claude/commands/test.md
+Use the tester subagent on issue $ARGUMENTS. Pass it only the
+issue number.</pre></div></details><details class="sub"><summary>Learn Faster: tests for #42</summary><div class="subbody"><div class="ex">
+<ol class="steps">
+<li>Correct verdict → advances to the next step</li>
+<li>Partial verdict → re-explains the gap, stays on step</li>
+<li>Wrong verdict → same as partial</li>
+<li>Empty answer → blocked with a clear message</li>
+<li>Grader returns unparseable output → friendly message, step unchanged</li>
+</ol>
+<pre>git commit -m "test(#42): your-turn checkpoint" &amp;&amp; git push
+gh issue edit 42 --add-label stage:code --remove-label stage:tests</pre></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>Tests that mirror an imagined implementation. Public interface only.</p></div></details></div></div><div class="stage" data-kind="sub" data-n="6" data-t="Code each step"><div class="dwho">Subagent <code>coder</code>, Sonnet, one per step</div><p class="purpose">Implement one plan step at a time in a clean context, until its tests go green.</p><dl class="io"><dt>In</dt><dd>One step from the plan comment</dd><dt>Out</dt><dd>Green tests and one pushed commit per step</dd></dl><p class="donel"><b>Done when:</b> All tests green, one pushed commit per step.</p><p class="loop">↻ Runs until the tests pass. Product questions stop the run and go back to the planner.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Branch once per story.</li>
+<li>Ask the main session to run the coder on one step.</li>
+<li>Read whole files as it works, not just the diff.</li>
+<li>If it returns a question, decide with the planner, update the plan, then rerun the step.</li>
+<li>Commit and push, then the next step in a fresh coder. In cloud, unpushed work dies with the session.</li>
+</ol></div></details><details class="sub"><summary>Commands</summary><div class="subbody"><pre>git switch -c feat/42-your-turn
+&gt; Use the coder subagent for step 3 of the plan on issue 42
+git push -u origin HEAD   # after every step</pre></div></details><details class="sub"><summary>Agent and command files</summary><div class="subbody"><pre>.claude/agents/coder.md
+---
+name: coder
+description: Implements exactly one step of an approved plan.
+tools: Read, Grep, Glob, Edit, Write, Bash
+model: sonnet
+---
+Read the plan comment with `gh issue view &lt;n&gt; --comments` and
+implement only the step you are given. Do not edit tests/. Run
+pytest after changes. If a product or design question comes up,
+stop and return the question instead of guessing. Log unrelated
+mess with `gh issue create --label tech` and move on. Finish with
+one commit, feat(#&lt;n&gt;): &lt;step&gt;, and push it before returning.</pre></div></details><details class="sub"><summary>Learn Faster: a question comes back</summary><div class="subbody"><div class="ex">
+<p>During step 3 the coder stops: “What happens after repeated misses? The learner could loop forever.”</p>
+<p>You decide with the planner: after two misses, show the model answer and move on. The planner updates the plan and adds a criterion to #42. The tester adds one test. The coder reruns step 3.</p>
+<pre>gh issue create --label tech --title "Two LLM helpers with overlapping retries"</pre></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>A coder editing tests to make them pass. Its instructions forbid <code>tests/</code>.</p></div></details></div></div><div class="stage" data-kind="you" data-n="7" data-t="Review"><div class="dwho">CI and Codex, then you merge</div><p class="purpose">An independent check from a different model family, plus CI as the floor. A person always merges.</p><p class="donel"><b>Done when:</b> CI green, Codex comments resolved.</p><p class="loop">↻ Requested changes go back to a coder session on the same branch.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Open the PR and link the issue.</li>
+<li>CI runs lint and tests. Branch protection blocks merging on red.</li>
+<li>Ask Codex to review on the PR.</li>
+<li>Paste its requested changes into a fresh coder on the same branch.</li>
+<li>Merge after stage 8, so docs ship in the same PR.</li>
+</ol></div></details><details class="sub"><summary>Commands</summary><div class="subbody"><pre>git push -u origin HEAD
+gh pr create --fill --body "Closes #42"
+gh issue edit 42 --add-label stage:review --remove-label stage:code
+# comment on the PR
+@codex review
+# after docs land; merging closes #42
+gh pr merge --squash</pre></div></details><details class="sub"><summary>Learn Faster</summary><div class="subbody"><div class="ex">
+<p>Codex flags the hardcoded “two misses” limit and asks for it in config. A coder session moves it; CI goes green again.</p></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>Claude reviewing its own PR. Same blind spots as the author.</p></div></details></div></div><div class="stage" data-kind="sub" data-n="8" data-t="Docs and lessons"><div class="dwho">Subagent <code>docs</code>, plus one line from the planner</div><p class="purpose">Keep the docs true to the merged code, and teach the next story what this one learned.</p><dl class="io"><dt>In</dt><dd>Branch diff</dd><dt>Out</dt><dd>Updated <code>docs/*.md</code> in the same PR, and at most one CLAUDE.md line</dd></dl><p class="donel"><b>Done when:</b> Docs match the code, and the PR merges.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Run the docs subagent on the diff.</li>
+<li>Ask the planner: “Which mistake from this story is worth never repeating?”</li>
+<li>Add it to CLAUDE.md only if it’s a convention, never a feature detail.</li>
+</ol></div></details><details class="sub"><summary>Commands</summary><div class="subbody"><pre>&gt; Use the docs subagent: update docs/ from git diff main...HEAD.</pre></div></details><details class="sub"><summary>Agent and command files</summary><div class="subbody"><pre>.claude/agents/docs.md
+---
+name: docs
+description: Updates docs/ to match a branch diff.
+tools: Read, Grep, Glob, Edit, Write, Bash
+model: sonnet
+---
+Read `git diff main...HEAD` and the affected docs/*.md. Update
+them to describe the merged behaviour, not the coding journey.
+Short, plain words. Do not touch code.</pre></div></details><details class="sub"><summary>Learn Faster</summary><div class="subbody"><div class="ex">
+<p><code>docs/tutor-loop.md</code> gains the checkpoint flow and the grader schema.</p>
+<p>New CLAUDE.md line: “Mock all LLM calls in tests. pytest never hits the API.”</p></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>CLAUDE.md growing past 200 lines. Every subagent pays for it.</p></div></details></div></div><div class="stage" data-kind="sub" data-n="W" data-t="Weekly cleanup"><div class="dwho">Subagent <code>cleanup</code>, Sonnet, once a week</div>
+<p class="purpose">Fight bloat across the whole codebase once a week instead of polishing every PR. Agents add code faster than anyone removes it; this is where it gets removed.</p>
+<dl class="io"><dt>In</dt><dd>Whole repo, plus the week’s open <code>tech</code> issues logged by coders</dd><dt>Out</dt><dd>One cleanup PR, a triaged tech backlog, a pruned CLAUDE.md</dd></dl>
+<p class="donel"><b>Done when:</b> one green PR that shrinks the codebase, and every tech issue is fixed, turned into a story, or closed.</p>
+<div class="stack">
+<details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<li>Branch once for the week.</li>
+<li>Run the free deterministic tools across the repo.</li>
+<li>Cleanup subagent works through the findings and open tech issues, one commit per theme, tests after each.</li>
+<li>Triage what’s left: fix now, make it a story, or close it.</li>
+<li>Prune CLAUDE.md: drop lines that no longer earn their place, keep it under 200.</li>
+<li>Docs subagent checks <code>docs/</code> against the code for drift.</li>
+<li>Same review as any PR: CI, Codex, you merge.</li>
+</ol></div></details>
+<details class="sub"><summary>Commands</summary><div class="subbody"><pre>git switch -c cleanup/$(date +%G-w%V)
+ruff check . --select F401,F841,ERA001 --fix
+vulture src/ --min-confidence 80
+npx jscpd src/
+gh issue list --label tech --state open
+&gt; Use the cleanup subagent on the findings and open tech issues.
+pytest
+gh pr create --fill --label cleanup</pre></div></details>
+<details class="sub"><summary>Agent and command files</summary><div class="subbody"><pre>.claude/agents/cleanup.md
+---
+name: cleanup
+description: Weekly whole-codebase cleanup. Removes bloat without changing behaviour.
+tools: Read, Grep, Glob, Edit, Bash
+model: sonnet
+---
+Inputs: tool findings and open issues labelled `tech`. Delete
+dead code, merge duplicate helpers into the existing one, remove
+needless try/except and wrappers, simplify oversized functions.
+Behaviour must not change: run pytest after each change and
+revert anything that turns a test red. One commit per theme:
+cleanup: &lt;theme&gt;. Close fixed tech issues with "Fixed in &lt;sha&gt;".
+Comment on anything risky instead of changing it.</pre></div></details>
+<details class="sub"><summary>Learn Faster</summary><div class="subbody"><div class="ex"><ul class="plain">
+<li>Merges the two LLM helpers with overlapping retries, the tech issue logged during #42.</li>
+<li>Deletes a prompt template no lesson uses any more.</li>
+<li>jscpd finds the same step-state formatting in two UI handlers; folded into one.</li>
+<li>CLAUDE.md drops a line about an old file layout.</li>
+</ul></div></div></details>
+<details class="sub"><summary>Watch out</summary><div class="subbody"><p>A weekly PR too big to review. Past about 400 changed lines, split it by theme. Anything that changes behaviour is a story, not cleanup.</p></div></details>
+</div></div></div>
+<dialog aria-labelledby="dtitle" id="dlg"><div class="dlg">
+<div class="dh" id="dh"><span class="num" id="dnum"></span><div><h2 id="dtitle"></h2><div class="dwho" id="dwho"></div></div><button aria-label="Close" class="btn" id="dclose">Close</button></div>
+<div class="db" id="db"></div>
+<div class="df"><button class="btn" id="dprev">Previous</button><button class="btn" id="dnext">Next</button></div>
+</div></dialog>
+<details class="sec"><summary>Set up once</summary><div class="subbody">
+<pre>CLAUDE.md               # conventions only, under 200 lines
+tests/CLAUDE.md         # loads only when tests are touched
+docs/architecture.md    # bootstrap: "analyze the repo, create docs/"
+.claude/agents/         researcher, tester, coder, cleanup, docs
+.claude/commands/       research.md, test.md
+.github/ISSUE_TEMPLATE/story.yml
+.github/workflows/ci.yml  # ruff + pytest, required to merge
+</pre>
+<pre>.claude/commands/research.md
+Use the researcher subagent on issue $ARGUMENTS.</pre>
+<div class="note">For Learn Faster: recover the unpushed live code and push it before the first research run. Otherwise the researcher maps stale code. Don’t run <code>fly deploy</code> until that’s done.</div>
+<pre># labels, once
+for l in research plan tests code review; do gh label create "stage:$l"; done
+gh label create tech; gh label create cleanup</pre>
+<h3>Cloud environment (claude.ai/code)</h3>
+<pre># Setup script
+pip install -r requirements.txt
+pip install playwright &amp;&amp; playwright install --with-deps chromium
+
+# Environment variables (not exports in the script)
+ANTHROPIC_API_KEY=...   # separate, spend-capped key
+
+# Network access: allow your LLM provider and package registries</pre></div></details><details class="sec"><summary>Where state lives</summary><div class="subbody">
+<p>Every cloud session starts from a fresh clone. Anything not in GitHub is gone when it ends, so GitHub is the state store. Any session, cloud or local, can pick up a story by reading its issue.</p>
+<div class="tbl"><table>
+<tr><th>State</th><th>Lives in</th></tr>
+<tr><td>Spec</td><td>Issue body</td></tr>
+<tr><td>Research</td><td>Issue comment</td></tr>
+<tr><td>Plan</td><td>Issue comment</td></tr>
+<tr><td>Current stage</td><td>Issue label <code>stage:*</code></td></tr>
+<tr><td>Tests and code</td><td>Branch commits, pushed after every step</td></tr>
+<tr><td>Review</td><td>PR comments</td></tr>
+<tr><td>Tech debt</td><td>Issues labelled <code>tech</code></td></tr>
+<tr><td>Lessons</td><td>CLAUDE.md, committed</td></tr>
+</table></div>
+<p>Inside one session, subagents share the VM’s files, so scratch files are fine. Push anything the next session needs before this one ends. The tester reads only the issue body, so research and plan in the comments never reach it.</p>
+</div></details><details class="sec"><summary>Rules that keep quality up and tokens down</summary><div class="subbody">
+<ol class="rules">
+<li>State lives in GitHub: the issue, its labels, the branch and the PR. Push before any session ends.</li><li>Bloat is handled weekly, not per PR. Coders log mess as <code>tech</code> issues; the weekly cleanup consumes them.</li>
+<li>Opus plans at high effort; <code>/model opusplan</code> automates the switch. Sonnet researches, tests and builds, at high or max effort. A tight plan is what lets Sonnet match Opus. Escalate to Opus for subtle bugs or multi-file refactors.</li>
+<li>Stay under about 60% of the context window. If a phase needs more, split it.</li>
+<li>CLAUDE.md answers “how do we work here?”, never “what are we building now?”. Every subagent loads it, so feature details there leak bias and multiply cost.</li>
+<li>The tester gets the issue number, never a summary from the planner.</li>
+<li>Later: label an issue <code>ready</code> and the Claude Code GitHub Action runs the same agents with no relay.</li>
+</ol>
+</div></details>
+<footer>Combines Eugene’s SDLC playbook (Oct 9 call) with the research, plan, implement pattern and the Claude Code team’s published workflow tips.</footer>
+</div>
+<script>
+(function(){
+const st=[...document.querySelectorAll('.tpl .stage')];
+const dlg=document.getElementById('dlg'),db=document.getElementById('db'),dh=document.getElementById('dh');
+const colors={main:'var(--main)',sub:'var(--sub)',you:'var(--you)'};
+let cur=0;
+function show(i){
+  cur=i;const s=st[i];
+  dh.style.setProperty('--c',colors[s.dataset.kind]);
+  document.getElementById('dnum').textContent=s.dataset.n;
+  document.getElementById('dtitle').textContent=s.dataset.t;
+  document.getElementById('dwho').innerHTML=s.querySelector('.dwho').innerHTML;
+  db.innerHTML=s.innerHTML;db.scrollTop=0;
+  const p=document.getElementById('dprev'),n=document.getElementById('dnext');
+  p.disabled=i===0;n.disabled=i===st.length-1;
+  p.textContent=i>0?'← '+st[i-1].dataset.t:'Previous';
+  n.textContent=i<st.length-1?st[i+1].dataset.t+' →':'Next';
+  if(!dlg.open)dlg.showModal();
+}
+document.querySelectorAll('.nd').forEach(g=>{
+  const go=()=>show(+g.dataset.i);
+  g.addEventListener('click',go);
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
+});
+document.getElementById('dclose').onclick=()=>dlg.close();
+document.getElementById('dprev').onclick=()=>cur>0&&show(cur-1);
+document.getElementById('dnext').onclick=()=>cur<st.length-1&&show(cur+1);
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
+})();
+</script>
+</body>
+</html>
