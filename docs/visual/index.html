@@ -478,7 +478,8 @@
     border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: var(--shadow);
     cursor: pointer; transition: border-color .12s, transform .12s;
     font: inherit; color: inherit; text-align: left; width: 100%; }
-  .featured:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .featured:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+  .featured:disabled { opacity: .5; cursor: not-allowed; }
   .featured .fbody { display: block; }
   .featured .fk, .featured .ft { display: block; }
   .featured .play { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: #fff;
@@ -638,7 +639,7 @@
     </svg>
     <div class="thinking" id="thinking">
       <div class="pulse"></div>
-      <div class="t" id="thinking-text" aria-live="polite">Thinking…</div>
+      <div class="t" id="thinking-text" aria-live="polite"><span id="thinking-label">Thinking…</span><span id="thinking-tail" aria-live="off"></span></div>
     </div>
     <div id="trace"></div>
     <div class="brain-empty" id="brain-empty">
@@ -1092,12 +1093,13 @@ function flowDone(stage) {
   const edge = document.getElementById(FLOW_EDGE_IN[stage]);
   if (edge) edge.classList.remove("on");
 }
-let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
+let thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
   if (text === null) { t.classList.remove("show"); orbState(""); return; }
-  thinkingLabel = text; thinkingBuf = ""; writingChars = 0;
-  document.getElementById("thinking-text").innerHTML = text;
+  thinkingBuf = ""; writingChars = 0;
+  document.getElementById("thinking-label").innerHTML = text;
+  document.getElementById("thinking-tail").innerHTML = "";
   t.classList.add("show");
   orbState("think");
 }
@@ -1105,7 +1107,9 @@ function setThinking(text) {
 // while the model writes its answer (reasoning goes quiet), a character
 // counter keeps the pane moving instead of freezing for tens of seconds.
 function renderThinking() {
-  let html = thinkingLabel;
+  // Only the tail changes here, so screen readers announce the phase label once
+  // (from setThinking) and not every streamed delta.
+  let html = "";
   if (thinkingBuf) {
     html += '<span class="reasoning" id="live-reason">' + esc(thinkingBuf) +
       '<span class="caret">▍</span></span>';
@@ -1114,7 +1118,7 @@ function renderThinking() {
     const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
     html += '<span class="reasoning">✍ writing… ' + k + ' characters<span class="caret">▍</span></span>';
   }
-  document.getElementById("thinking-text").innerHTML = html;
+  document.getElementById("thinking-tail").innerHTML = html;
   document.getElementById("thinking").classList.add("show");
   const live = document.getElementById("live-reason");
   if (live) live.scrollTop = live.scrollHeight; // pin to the newest line
@@ -1481,8 +1485,14 @@ function renderLearnerTrace(learner) {
 }
 
 // ================= SSE start =================
+// Featured cards are off while a session runs, like #start, so "change topic"
+// mid-stream never shows buttons that do nothing.
+function setFeaturedEnabled(on) {
+  document.querySelectorAll(".featured").forEach(b => { b.disabled = !on; });
+}
 function startSession() {
   document.getElementById("start").disabled = true;
+  setFeaturedEnabled(false);
   document.getElementById("feed").innerHTML = "";
   document.getElementById("trace").innerHTML = "";
   GV_NODES = null; // the map card lives in the feed, which was just cleared
@@ -1519,7 +1529,7 @@ function startSession() {
   streamSSE(
     "/agent/sessions/start_stream",
     payload,
-    () => { document.getElementById("start").disabled = false; }
+    () => { document.getElementById("start").disabled = false; setFeaturedEnabled(true); }
   );
 }
 
