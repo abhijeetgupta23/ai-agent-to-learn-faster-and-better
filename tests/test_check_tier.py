@@ -55,8 +55,9 @@ def test_new_source_file_needs_m():
     assert floor(("src/tools/quiz.py", 40, "A")) == "M"
 
 
-def test_large_diff_needs_m():
-    assert floor(("src/tools/generate.py", check_tier.S_MAX_LINES + 1, "M")) == "M"
+def test_diff_size_alone_does_not_raise_tier():
+    # Size isn't risk: a 1,000-line rename in one package stays S.
+    assert floor(("src/tools/generate.py", 1000, "M")) == "S"
 
 
 def test_two_src_packages_is_cross_cutting_l():

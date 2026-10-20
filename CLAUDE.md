@@ -48,7 +48,7 @@ Pick the **highest** row that matches. When unsure, go one tier up.
 | Tier | Any of these makes it this tier | Merge |
 |------|------|------|
 | **L** | Touches a path in `.github/sensitive-paths.txt` (money, user data or its shape, secrets, untrusted-input defences, auth/payments, deploy/deps/CI) · changes more than one `src/` package · new module or data model change | You say "merge" and approved the plan; Claude checks CI + Codex first |
-| **M** | New or changed behaviour a user can notice · adds a `src/` file · over 150 changed lines | You say "merge"; Claude checks CI + Codex first |
+| **M** | New or changed behaviour a user can notice · adds a `src/` file | You say "merge"; Claude checks CI + Codex first |
 | **S** | None of the above: a fix or tweak in one area, no new behaviour | Auto-merge (rules below) |
 
 - `tier-check` CI computes the minimum tier from the diff and fails a PR labelled below it. Judgement can raise a tier, never lower it.

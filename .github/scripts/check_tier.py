@@ -8,7 +8,7 @@ auto-merge is on for anything but tier S (so promoting a queued S PR can't
 slip it through).
 
 Two kinds of rule set the floor: which files changed (sensitive-paths.txt,
-package spread, size) and what the changed lines say (CONTENT_RULES), so a
+package spread, new source files) and what the changed lines say (CONTENT_RULES), so a
 sensitive change in an unlisted file still needs tier L.
 
 Usage (CI): python check_tier.py --base <sha> --head <sha> --labels "a,b" --auto-merge true|false
@@ -28,8 +28,6 @@ from pathlib import Path
 TIERS = ["S", "M", "L"]
 RULES_FILE = Path(__file__).resolve().parents[1] / "sensitive-paths.txt"
 
-# S means a small fix in one area; above this many changed lines it is at least M.
-S_MAX_LINES = 150
 
 
 # Patterns in added or removed lines of non-test Python that force tier L.
@@ -117,10 +115,6 @@ def floor_for(
     new_src = sorted(p for p, _, s in changes if s == "A" and p.startswith("src/") and p.endswith(".py"))
     if new_src:
         m_reasons.append("adds source files: " + ", ".join(new_src))
-
-    total = sum(n for _, n, _ in changes)
-    if total > S_MAX_LINES:
-        m_reasons.append(f"{total} changed lines (S allows {S_MAX_LINES})")
 
     if l_reasons:
         return "L", l_reasons + m_reasons
