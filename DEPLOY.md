@@ -49,6 +49,29 @@ fly secrets set --app adaptive-learning-2 \
 fly deploy
 ```
 
+### Automatic deploys (after the first one)
+
+In plain words: once a change is merged and its tests pass, GitHub gets the
+deploy ready and waits for you to click **Approve**. Then it ships the change and
+checks the site is still up.
+
+```
+merge to main ─▶ CI green ─▶ ⏸ you click Approve ─▶ fly deploy ─▶ /health OK ✅
+```
+
+`.github/workflows/deploy.yml` runs after CI passes on `main` (or from the
+Actions tab with "Run workflow"). It deploys exactly the commit CI tested, one
+deploy at a time, then polls `/health` for up to 2 minutes and fails if the
+app doesn't come back.
+
+One-time setup:
+
+1. `fly tokens create deploy --app adaptive-learning-2`, then save the output as
+   the repository secret **`FLY_API_TOKEN`** (Settings → Secrets and variables →
+   Actions → New repository secret).
+2. Settings → Environments → **New environment** `production` → tick
+   **Required reviewers** and add yourself → **Save protection rules**.
+
 Smoke-test:
 
 ```bash
