@@ -192,8 +192,37 @@ def test_text_on_chalkboard_green_contrast_at_least_4_5():
 
 
 # ---------- fonts ----------
-def test_fonts_loaded_from_google_fonts_with_generic_fallback():
-    assert "fonts.googleapis.com" in HTML
+def test_no_google_fonts_hosts_anywhere_in_page():
+    assert "fonts.googleapis.com" not in HTML
+    assert "fonts.gstatic.com" not in HTML
+
+
+FONT_DIR = PAGE.parent / "fonts"
+
+
+def test_woff2_files_ship_in_fonts_folder_with_ofl_licence():
+    assert list(FONT_DIR.glob("*.woff2")), "no .woff2 files in docs/visual/fonts/"
+    names = [p.name.upper() for p in FONT_DIR.iterdir()]
+    assert any("OFL" in n or "LICENSE" in n or "LICENCE" in n for n in names)
+    lic = next(p for p in FONT_DIR.iterdir()
+               if any(k in p.name.upper() for k in ("OFL", "LICENSE", "LICENCE")))
+    assert "SIL OPEN FONT LICENSE" in lic.read_text(encoding="utf-8", errors="ignore").upper()
+
+
+def test_font_face_rules_use_relative_urls_swap_and_existing_files():
+    faces = re.findall(r"@font-face\s*\{([^{}]*)\}", CSS_NC)
+    assert faces, "no @font-face rules"
+    for body in faces:
+        assert re.search(r"font-display\s*:\s*swap", body), body
+        urls = re.findall(r"url\(\s*['\"]?([^'\")]+)", body)
+        assert urls, body
+        for u in urls:
+            assert not re.match(r"(https?:)?//|/", u), f"not relative: {u}"
+            assert u.split("?")[0].endswith(".woff2"), u
+            assert (PAGE.parent / u).is_file(), f"missing font file {u}"
+
+
+def test_web_font_families_have_generic_fallback():
     fams = re.findall(r"font-family\s*:\s*([^;}]+)", CSS_NC)
     assert fams
     for f in fams:
