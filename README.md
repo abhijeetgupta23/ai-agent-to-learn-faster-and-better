@@ -104,7 +104,7 @@ flowchart LR
 > | Frame | Chalkboard green |
 > | Page | Cool paper, chalk-yellow highlights |
 > | Icons | Drawn inline SVG, no emoji |
-> | Fonts | Fraunces and Source Sans 3, self-hosted in [`docs/visual/fonts/`](docs/visual/fonts/) (no external requests) |
+> | Fonts | Fraunces and Source Sans 3, self-hosted in [`docs/visual/fonts/`](docs/visual/fonts/) (no Google Fonts requests) |
 > | Per-subject themes | Removed; why: [`docs/DESIGN_DECISIONS.md`](docs/DESIGN_DECISIONS.md) |
 >
 > Checked offline by [`tests/test_visual_theme.py`](tests/test_visual_theme.py). The screenshots in the walkthrough below show the older look.
