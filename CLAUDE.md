@@ -8,7 +8,7 @@ Prefer visuals over prose in every response. Prose is boring — **especially** 
 - When explaining code, show structure visually (boxes/arrows/tables) rather than narrating it line-by-line.
 - Keep any accompanying prose short and summary-first.
 - **Every reply in chat opens with "In plain words"**: 2–3 short sentences a non-engineer understands (plus a tiny picture when it helps), then the detail. This applies to status updates too.
-- **Default to the `eli5` skill** (`.claude/skills/eli5`) for every substantive answer, and always publish its picture page (HTML artifact) and link it in the reply. This covers explanations (concepts, code, architecture, PRs, errors, results) **and** lookups, web research, recommendations, comparisons and lists. Skip it only for status updates, yes/no or one-line answers, and routine git/CI chores.
+- **Default to the `eli5` skill** (`.claude/skills/eli5`) for every substantive answer, and always publish its picture page (HTML artifact) and link it in the reply. Actually invoke it (Skill tool, `eli5`) every time; an eli5-*style* page made without calling the skill does not count. This covers explanations (concepts, code, architecture, PRs, errors, results) **and** lookups, web research, recommendations, comparisons and lists. Skip it only for status updates, yes/no or one-line answers, and routine git/CI chores.
 <!-- vester:visual-first:end -->
 
 # How we work: SDLC workflow

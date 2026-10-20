@@ -5,7 +5,7 @@ description: Explain a topic like I'm a 5 year old. Use by default for every sub
 
 # eli5
 
-Explain like I'm someone who knows nothing about this topic, using a HTML artifact with big pictures and few words. Always publish the artifact and put its link in the reply; a chat-only answer does not count.
+Explain like I'm someone who knows nothing about this topic, using a HTML artifact with big pictures and few words. Always publish the artifact and put its link in the reply; a chat-only answer does not count, and neither does a page made in this style without invoking this skill.
 
 Topic: $ARGUMENTS
 
