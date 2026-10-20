@@ -40,8 +40,22 @@ jobs:
         with:
           ref: ${{ env.SHA }}
 
+      # Never roll back: if main moved on (an older CI run finished late), skip;
+      # the newer commit's own run deploys it.
+      - name: Check this is still main's newest commit
+        id: fresh
+        run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" = "$SHA" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping $SHA: main is now at $tip"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # Pinned release, checked against its published SHA-256 before use.
       - name: Install flyctl ${{ env.FLYCTL_VERSION }}
+        if: steps.fresh.outputs.ok == 'true'
         run: |
           f="flyctl_${FLYCTL_VERSION}_Linux_x86_64.tar.gz"
           curl -fsSL -o "$RUNNER_TEMP/$f" \
@@ -53,11 +67,13 @@ jobs:
 
       # The Fly token is a production-environment secret, and only this step sees it.
       - name: Deploy
+        if: steps.fresh.outputs.ok == 'true'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl deploy --remote-only --app adaptive-learning-2
 
       - name: Check the live app is healthy
+        if: steps.fresh.outputs.ok == 'true'
         # Machines scale to zero, so the first request can take a few seconds.
         run: |
           for i in $(seq 1 12); do
