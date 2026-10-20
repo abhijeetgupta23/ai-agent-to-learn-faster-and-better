@@ -97,6 +97,16 @@ flowchart LR
 
 > **See it run live.** [`docs/VISUAL_WALKTHROUGH.md`](docs/VISUAL_WALKTHROUGH.md) is a phase-by-phase visual: six screenshots from a real session, captured by Playwright driving the live SSE stream. The page that produced them is [`docs/visual/index.html`](docs/visual/index.html) — a single static file served by FastAPI at `/visual`, no build step.
 
+> **Accessible.** In plain words: the page works without a mouse, with a screen reader, and for people who turn animations off.
+>
+> | Need | What the page does |
+> |---|---|
+> | Keyboard | Featured demos are real buttons (disabled while a session runs); every control shows a focus ring; the name field has a label |
+> | Screen reader | Status line and thinking label are announced politely; streamed text is not re-read on every token; decorative icons are hidden |
+> | Reduce motion | With the OS "reduce motion" setting on, all looping animations stop; the status text still says what the tutor is doing |
+>
+> Checked offline by [`tests/test_visual_accessibility.py`](tests/test_visual_accessibility.py) (static HTML/CSS checks, no browser).
+
 ### Stack
 
 - **Orchestration:** an autonomous agent — the five tools (§6 below) exposed via the Anthropic tools API, with the model owning the loop: it decides which tool to call, in what order, and when to stop, inside a per-turn tool budget and a shared cost meter. Prompt caching is on for the orchestrator's repeated prefix. Chart generation additionally uses Anthropic's code-execution sandbox: the model writes and runs matplotlib; no code executes on our infrastructure.
