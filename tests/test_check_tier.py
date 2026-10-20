@@ -56,7 +56,8 @@ def test_new_source_file_needs_m():
 
 
 def test_diff_size_alone_does_not_raise_tier():
-    # Size isn't risk: a 1,000-line rename in one package stays S.
+    # Size isn't risk: renaming a variable across 1,000 lines of an existing file
+    # stays S. (Renaming the file itself shows up as a new src/ file: still M.)
     assert floor(("src/tools/generate.py", 1000, "M")) == "S"
 
 

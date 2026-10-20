@@ -59,7 +59,7 @@ body:
     id: tier
     attributes:
       label: Tier
-      description: "Pick the highest that fits; when unsure go up. L: any sensitive box ticked, more than one src/ package, or a new module / data model change. M: new behaviour a user can notice, or a new src/ file. S: a fix or tweak in one area, no new behaviour (auto-merges). CI enforces the minimum."
+      description: "Pre-launch mode (0 real users): pick the lowest tier CI allows; user-noticeable behaviour alone does not make it M. L:  any sensitive box ticked, more than one src/ package, or a new module / data model change. M: new behaviour a user can notice, or a new src/ file. S: a fix or tweak in one area (auto-merges). CI enforces the minimum. After launch: pick the highest that fits and go up when unsure."
       options: [S, M, L]
     validations:
       required: true
