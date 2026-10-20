@@ -4,14 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI Agent to Learn Faster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <style>
   :root {
-    --bg: #f3eee0;
-    --paper: #fffdf6;
-    --border: #d9d2bd;
+    --bg: #f3f5f2;
+    --paper: #fbfcfa;
+    --border: #d0d9d3;
     --ink: #1a2420;
     --muted: #55605a;
     --board: #1f4d3a;
@@ -37,12 +40,13 @@
     --pill-interactive-fg: #1d4e89;
     --pill-plan-bg: #fbe8d6;
     --pill-plan-fg: #8a4b12;
-    --tint: #f0ebdb;
+    --tint: #e8eeea;
     --shadow: 0 10px 30px rgba(40, 50, 30, 0.10);
   }
   * { box-sizing: border-box; }
+  h1, h2, h3, .lesson h3, .ev-hero h2, .done-card .big { font-family: Fraunces, Georgia, serif; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
     background: var(--bg);
     color: var(--ink);
     margin: 0;
@@ -136,7 +140,7 @@
   }
   @keyframes rise { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none; } }
   .lesson-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-  .pill { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  .pill { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
     padding: 4px 10px; border-radius: 999px; }
   .pill.reading { background: var(--pill-reading-bg); color: var(--pill-reading-fg); }
   .pill.socratic { background: var(--pill-socratic-bg); color: var(--pill-socratic-fg); }
@@ -154,7 +158,7 @@
   .lesson-chart { margin: 16px 0 6px; }
   .lesson-chart img { width: 100%; max-width: 560px; display: block; border: 1px solid var(--border);
     border-radius: 10px; background: var(--paper); }
-  .lesson-chart figcaption { font-size: 11.5px; color: var(--muted); margin-top: 5px; font-style: italic; }
+  .lesson-chart figcaption { font-size: 12px; color: var(--muted); margin-top: 5px; font-style: italic; }
   .takeaways { margin-top: 18px; background: var(--tint); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
   .takeaways .h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--board); margin-bottom: 8px; }
   .takeaways li { margin-bottom: 6px; }
@@ -168,7 +172,7 @@
     display: grid; place-items: center; font-size: 13px; font-weight: 700; }
   .toc .c-title { font-weight: 600; font-size: 15.5px; }
   .toc .c-meta { color: var(--muted); font-size: 13px; margin-top: 3px; display: flex; align-items: center; gap: 8px; }
-  .toc .c-meta .pill { font-size: 10px; padding: 2px 8px; }
+  .toc .c-meta .pill { font-size: 12px; padding: 2px 8px; }
   .toc li.done .num { background: var(--good); color: #fff; }
   .toc li.done .c-title { color: var(--muted); }
   .toc li.cur { background: var(--chalk-soft); }
@@ -176,7 +180,7 @@
 
   /* Socratic */
   .turn { display: flex; gap: 10px; margin-bottom: 12px; }
-  .turn .who { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  .turn .who { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
     color: var(--muted); min-width: 64px; padding-top: 3px; }
   .turn .bubble { background: var(--tint); border-radius: 12px; padding: 10px 14px; flex: 1; }
   .turn.learner_prompt .bubble { background: var(--chalk-soft); }
@@ -240,33 +244,33 @@
   .stream-card .head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
   .stream-card .ticon { font-size: 13px; flex: none; }
   .stream-card .title { font-weight: 600; font-size: 13px; color: var(--on-board); flex: 1; min-width: 0; }
-  .stream-card .label { font-size: 9.5px; color: var(--on-board-muted); background: var(--board-d); border: 1px solid var(--board-line);
+  .stream-card .label { font-size: 12px; color: var(--on-board-muted); background: var(--board-d); border: 1px solid var(--board-line);
     padding: 2px 6px; border-radius: 5px; flex: none; max-width: 46%; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; }
   /* Phase transitions are slim section dividers, not boxes. */
   .trace-sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px;
-    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--on-board-muted); }
+    font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--on-board-muted); }
   .trace-sec::after { content: ""; flex: 1; height: 1px; background: var(--board-line); }
   .trace-sec.phase-assess { color: var(--chalk); }
   .trace-sec.phase-plan { color: #fbbf24; }
   .trace-sec.phase-generate { color: #34d399; }
   .trace-sec.phase-observe { color: #f472b6; }
   .trace-sec.phase-adapt { color: #c084fc; }
-  .trace-sec .sec-agent { font-size: 9.5px; font-weight: 500; letter-spacing: 0; text-transform: none;
+  .trace-sec .sec-agent { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none;
     color: var(--on-board-muted); background: var(--board-d); border: 1px solid var(--board-line); padding: 1px 6px;
     border-radius: 5px; margin-left: 2px; }
   /* Learner profile chips */
   .lstats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
   .lstat { background: var(--board-d); border: 1px solid var(--board-line); border-radius: 999px;
-    padding: 3px 10px; font-size: 11.5px; color: var(--on-board); }
+    padding: 3px 10px; font-size: 12px; color: var(--on-board); }
   .ldot { width: 6px; height: 6px; border-radius: 50%; background: var(--board-line);
     display: inline-block; margin-left: 3px; vertical-align: 1px; }
   .ldot.on { background: var(--chalk); }
   .stream-card .content { font-size: 12.5px; color: var(--on-board-muted); }
   .stream-card .content b { color: var(--on-board); }
   .stream-card code { background: var(--board-d); color: var(--chalk); padding: 1px 5px; border-radius: 4px; }
-  .stream-card pre { background: var(--board-d); color: var(--on-board); padding: 8px 10px; border-radius: 6px; font-size: 11.5px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
-  .step-mini { display: inline-block; background: var(--board-d); border: 1px solid var(--board-line); border-radius: 6px; padding: 4px 8px; font-size: 11.5px; margin: 0 5px 5px 0; color: var(--on-board); }
+  .stream-card pre { background: var(--board-d); color: var(--on-board); padding: 8px 10px; border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
+  .step-mini { display: inline-block; background: var(--board-d); border: 1px solid var(--board-line); border-radius: 6px; padding: 4px 8px; font-size: 12px; margin: 0 5px 5px 0; color: var(--on-board); }
   .step-mini b { color: var(--chalk); }
   #status { color: var(--muted); font-size: 12.5px; margin-left: 4px; }
 
@@ -372,7 +376,7 @@
   .gedge { stroke: var(--board-line); stroke-width: 1.4; fill: none; transition: stroke .3s; }
   .gedge.path { stroke: var(--chalk); stroke-width: 2.2; }
   .gnode circle { fill: var(--board-2); stroke: var(--board-line); stroke-width: 1.6; transition: fill .3s, stroke .3s, stroke-width .3s; }
-  .gnode text { fill: var(--on-board-muted); font-size: 11px; }
+  .gnode text { fill: var(--on-board-muted); font-size: 12px; }
   .gnode.mastered circle { fill: #12361f; stroke: #2ea043; }
   .gnode.mastered text { fill: #7ee2a8; }
   .gnode.planned circle { stroke: #fbbf24; stroke-dasharray: 3 2; }
@@ -408,7 +412,7 @@
     padding: 7px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .nav button.active { background: var(--board); color: var(--on-board); border-color: var(--board); }
   .nav .grow { flex: 1; }
-  .nav .badge-pass { font-size: 11px; font-weight: 700; color: var(--good); background: var(--good-bg);
+  .nav .badge-pass { font-size: 12px; font-weight: 700; color: var(--good); background: var(--good-bg);
     border-radius: 999px; padding: 3px 10px; }
 
   /* Featured decision launchers — one card per signature adaptive behavior */
@@ -423,7 +427,7 @@
   .featured .fk, .featured .ft { display: block; }
   .featured .play { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--chalk); color: var(--ink);
     display: grid; place-items: center; font-size: 13px; }
-  .featured .fk { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--board); }
+  .featured .fk { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--board); }
   .featured .ft { font-size: 13px; margin-top: 3px; line-height: 1.45; }
   .featured code { background: #00000010; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
   @media (max-width: 900px) { .featured-row { grid-template-columns: 1fr; } }
@@ -439,10 +443,10 @@
     gap: 12px; flex-wrap: wrap; }
   .ev-case > summary::-webkit-details-marker { display: none; }
   .ev-case .cname { font-weight: 600; font-size: 15px; flex: 1; min-width: 180px; }
-  .ev-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+  .ev-badge { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
   .ev-badge.pass { color: var(--good); background: var(--good-bg); }
   .ev-badge.fail { color: var(--bad); background: var(--bad-bg); }
-  .jchip { font-size: 11.5px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
+  .jchip { font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
   .jchip b { color: var(--ink); }
   .jchip.lo b { color: var(--bad); }
   .ev-body { padding: 0 18px 16px; border-top: 1px solid var(--border); }
@@ -466,8 +470,8 @@
   .ev-cid { color: var(--muted); font-weight: 400; font-size: 12px; }
   .ev-mini { font-size: 12px; color: var(--muted); }
   .ev-hint { font-size: 12px; color: var(--muted); opacity: .8; }
-  .jtag { font-size: 11px; color: var(--muted); }
-  .jscore-pill { font-size: 11.5px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 999px; padding: 2px 9px; }
+  .jtag { font-size: 12px; color: var(--muted); }
+  .jscore-pill { font-size: 12px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 999px; padding: 2px 9px; }
   .jrow .jname { font-weight: 600; font-size: 14px; }
   .orch-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
   .orch-note b { color: var(--board); }
@@ -589,14 +593,14 @@
 <div id="evals-view" style="display:none;">
   <div class="ev-hero">
     <h2>Does the agent actually teach well?</h2>
-    <p style="color:var(--muted);font-size:15px;margin:0 0 6px;max-width:680px;">
+    <p style="color:var(--muted);font-size: 15px;margin:0 0 6px;max-width:680px;">
       We test the tutor the way you'd test a person: hand it six deliberately tricky learner
       situations, let it decide what to teach, and have three independent AI judges check each call —
       <b style="color:var(--ink);">right topic</b>, <b style="color:var(--ink);">right format</b>,
       <b style="color:var(--ink);">right difficulty</b>. These re-run whenever the tutor changes;
       everything below is from a real run, unedited.</p>
     <div class="big-pass"><span class="pct" id="ev-pct">—</span>
-      <span style="color:var(--muted);font-size:14px;">handled correctly. Tap any case to read the judges’ reasoning.</span></div>
+      <span style="color:var(--muted);font-size: 14px;">handled correctly. Tap any case to read the judges’ reasoning.</span></div>
   </div>
   <div id="ev-cases"></div>
 </div>
@@ -1112,7 +1116,7 @@ function renderCurriculum(w) {
   card.innerHTML = `
     <div class="lesson-top"><span class="pill plan">Your plan</span></div>
     <h3>Your learning plan</h3>
-    <div class="body" style="color:var(--muted);font-size:14px;margin-bottom:4px;">
+    <div class="body" style="color:var(--muted);font-size: 14px;margin-bottom:4px;">
       ${steps.length} steps, built for you from where you are. We’ll take them one at a time.</div>
     <ul class="toc">${items}</ul>`;
   feed.appendChild(card);
@@ -1314,7 +1318,7 @@ function showDone(res) {
     <div class="big">Done</div>
     <h3>Session complete</h3>
     <div class="body"><p>${esc(res.note || "Nice work.")}</p>
-      <p style="color:var(--muted);font-size:14px;">Start again and the tutor <b>picks up from everything you just did</b> — nothing resets.</p></div>`;
+      <p style="color:var(--muted);font-size: 14px;">Start again and the tutor <b>picks up from everything you just did</b> — nothing resets.</p></div>`;
   const b = document.createElement("button");
   b.className = "primary"; b.textContent = "Start a new session →";
   b.onclick = () => { document.getElementById("setup").scrollIntoView({behavior:"smooth"}); startSession(); };
