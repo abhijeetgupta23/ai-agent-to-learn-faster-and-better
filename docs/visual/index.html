@@ -57,7 +57,7 @@
   .chip {
     border: 1px solid var(--border); background: #fafbff; color: var(--ink);
     border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
-    transition: all .12s ease;
+    transition: background-color .12s ease, color .12s ease, border-color .12s ease;
   }
   .chip:hover { border-color: var(--accent); }
   .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
@@ -67,6 +67,12 @@
     font-size: 14px; background: #fff; min-width: 160px;
   }
   input:focus, .chip:focus { outline: 2px solid #c7d2fe; outline-offset: 1px; }
+  button:focus-visible, a:focus-visible, input:focus-visible, .chip:focus-visible,
+  .featured:focus-visible, .opt:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; }
+  .brain button:focus-visible, .brain a:focus-visible, .brain input:focus-visible {
+    outline-color: #93c5fd; }
+  label.field-label { display: block; }
   button.primary {
     background: var(--accent); color: white; border: none; padding: 11px 22px;
     border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
@@ -168,7 +174,7 @@
   .opt {
     display: block; width: 100%; text-align: left; border: 1px solid var(--border);
     background: #fff; border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
-    font-size: 14.5px; cursor: pointer; transition: all .1s;
+    font-size: 14.5px; cursor: pointer; transition: border-color .1s, background-color .1s, color .1s;
   }
   .opt:hover:not(:disabled) { border-color: var(--accent); background: #fafbff; }
   .opt:disabled { cursor: default; }
@@ -377,7 +383,7 @@
   .jstep { display: flex; align-items: center; gap: 10px; padding: 10px 4px;
     border-bottom: 1px dashed var(--border); font-size: 14.5px; color: var(--muted); }
   .jstep:last-child { border-bottom: none; }
-  .jstep .jicon { filter: grayscale(1); opacity: .45; transition: all .2s; }
+  .jstep .jicon { filter: grayscale(1); opacity: .45; transition: filter .2s, opacity .2s; }
   .jstep.active, .jstep.done { color: var(--ink); }
   .jstep.active .jicon, .jstep.done .jicon { filter: none; opacity: 1; }
   .jstep .jspin { display: none; width: 13px; height: 13px; border: 2px solid var(--border);
@@ -388,6 +394,15 @@
   .jstep .jstate { margin-left: auto; font-size: 12.5px; color: var(--muted); }
   .jstep.active .jstate { display: none; }
   .jstep.done .jstate::before { content: "✓ "; color: var(--good); font-weight: 700; }
+
+  /* Reduce motion: stop every looping animation, make entrances instant.
+     The #status text still says what the tutor is doing. */
+  @media (prefers-reduced-motion: reduce) {
+    .pulse, .live-dot, .jstep .jspin, .orb, .orb.think, .orb.write, .caret,
+    .gnode, .gnode.target circle, .fedge, .fedge.on, .fnode, .fnode.active rect,
+    .jstep, .stream-card, .lesson, .featured {
+      animation: none !important; transition: none !important; }
+  }
 
   /* Rail cards slide in instead of popping. */
   .stream-card { animation: rise 240ms ease; }
@@ -417,7 +432,7 @@
     margin-right: 5px; vertical-align: -1px; }
   .gedge { stroke: #233152; stroke-width: 1.4; fill: none; transition: stroke .3s; }
   .gedge.path { stroke: #60a5fa; stroke-width: 2.2; }
-  .gnode circle { fill: #1c2742; stroke: #3b4a6e; stroke-width: 1.6; transition: all .3s; }
+  .gnode circle { fill: #1c2742; stroke: #3b4a6e; stroke-width: 1.6; transition: fill .3s, stroke .3s, stroke-width .3s; }
   .gnode text { fill: #93a4c8; font-size: 11px; }
   .gnode.mastered circle { fill: #12361f; stroke: #2ea043; }
   .gnode.mastered text { fill: #7ee2a8; }
@@ -434,7 +449,7 @@
   .fedge.on { stroke: #60a5fa; stroke-dasharray: 6 5; animation: fdash .7s linear infinite; }
   .fedge.loop { stroke-dasharray: 3 4; }
   @keyframes fdash { to { stroke-dashoffset: -11; } }
-  .fnode rect { fill: #131c2f; stroke: #2a3550; stroke-width: 1.5; transition: all .3s; }
+  .fnode rect { fill: #131c2f; stroke: #2a3550; stroke-width: 1.5; transition: fill .3s, stroke .3s, stroke-width .3s; }
   .fnode text { fill: #8fa0c4; font-size: 12px; }
   .fnode.active rect { stroke: #60a5fa; animation: fpulse 1.2s ease-in-out infinite; }
   .fnode.active text { fill: #cfe1ff; font-weight: 700; }
@@ -461,8 +476,12 @@
   .featured-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
   .featured { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px;
     border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: var(--shadow);
-    cursor: pointer; transition: border-color .12s, transform .12s; }
-  .featured:hover { border-color: var(--accent); transform: translateY(-1px); }
+    cursor: pointer; transition: border-color .12s, transform .12s;
+    font: inherit; color: inherit; text-align: left; width: 100%; }
+  .featured:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+  .featured:disabled { opacity: .5; cursor: not-allowed; }
+  .featured .fbody { display: block; }
+  .featured .fk, .featured .ft { display: block; }
   .featured .play { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--accent); color: #fff;
     display: grid; place-items: center; font-size: 13px; }
   .featured .fk { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
@@ -523,7 +542,7 @@
 
 <header>
   <div class="brand">
-    <div class="logo">🎓</div>
+    <div class="logo" aria-hidden="true">🎓</div>
     <div>
       <h1>AI Agent to Learn Faster</h1>
       <p class="sub">Pick a subject — an AI agent maps it, diagnoses exactly what <i>you</i> need, and picks the format you’ll learn fastest from: no re-reading what you know, no drowning at the wrong level. Reasoning shown, every step.</p>
@@ -541,27 +560,27 @@
 <div id="learn-view">
 
 <div class="featured-row">
-  <div class="featured" onclick="runFeatured(0)">
-    <div class="play">▶</div>
-    <div>
-      <div class="fk">Featured · AI &amp; LLMs</div>
-      <div class="ft">A learner keeps failing the same lesson. The agent <b>refuses to explain it a third time</b> — failing twice means a building block is missing. It works out which one they were never taught, and teaches that first.</div>
-    </div>
-  </div>
-  <div class="featured" onclick="runFeatured(1)">
-    <div class="play">▶</div>
-    <div>
-      <div class="fk">Featured · Cognitive biases</div>
-      <div class="ft">Says they learn best by reading — but failed the same probability trap twice. The agent <b>overrides their stated preference</b> and switches to Socratic questioning.</div>
-    </div>
-  </div>
-  <div class="featured" onclick="runFeatured(2)">
-    <div class="play">▶</div>
-    <div>
-      <div class="fk">Featured · Cognitive biases</div>
-      <div class="ft">Studying at expert level and failing everything. The agent <b>steps the difficulty down</b> instead of pushing them forward.</div>
-    </div>
-  </div>
+  <button type="button" class="featured" onclick="runFeatured(0)">
+    <span class="play" aria-hidden="true">▶</span>
+    <span class="fbody">
+      <span class="fk">Featured · AI &amp; LLMs</span>
+      <span class="ft">A learner keeps failing the same lesson. The agent <b>refuses to explain it a third time</b> — failing twice means a building block is missing. It works out which one they were never taught, and teaches that first.</span>
+    </span>
+  </button>
+  <button type="button" class="featured" onclick="runFeatured(1)">
+    <span class="play" aria-hidden="true">▶</span>
+    <span class="fbody">
+      <span class="fk">Featured · Cognitive biases</span>
+      <span class="ft">Says they learn best by reading — but failed the same probability trap twice. The agent <b>overrides their stated preference</b> and switches to Socratic questioning.</span>
+    </span>
+  </button>
+  <button type="button" class="featured" onclick="runFeatured(2)">
+    <span class="play" aria-hidden="true">▶</span>
+    <span class="fbody">
+      <span class="fk">Featured · Cognitive biases</span>
+      <span class="ft">Studying at expert level and failing everything. The agent <b>steps the difficulty down</b> instead of pushing them forward.</span>
+    </span>
+  </button>
 </div>
 
 <div class="setup" id="setup">
@@ -571,8 +590,8 @@
   <div class="chips" id="domain-chips"></div>
   <div class="row">
     <div>
-      <div class="field-label">Your name</div>
-      <input class="txt" type="text" id="user" value="alice" />
+      <label class="field-label" for="user">Your name</label>
+      <input class="txt" type="text" id="user" name="user" autocomplete="username" value="alice" />
     </div>
     <input type="text" id="domain" value="ai" style="display:none;" />
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
@@ -584,7 +603,7 @@
 <!-- Slim bar shown while a session runs (the launcher collapses away). -->
 <div class="session-bar" id="session-bar" style="display:none;">
   <span>Learning <b id="bar-domain"></b></span>
-  <span id="status">ready</span>
+  <span id="status" aria-live="polite">ready</span>
   <button class="chip" onclick="resetToSetup()">⟲ change topic</button>
 </div>
 
@@ -620,7 +639,7 @@
     </svg>
     <div class="thinking" id="thinking">
       <div class="pulse"></div>
-      <div class="t" id="thinking-text">Thinking…</div>
+      <div class="t" id="thinking-text" aria-live="polite"><span id="thinking-label">Thinking…</span><span id="thinking-tail" aria-live="off"></span></div>
     </div>
     <div id="trace"></div>
     <div class="brain-empty" id="brain-empty">
@@ -756,6 +775,7 @@ const FEATURED = [
   },
 ];
 function runFeatured(i) {
+  if (document.getElementById("start").disabled) return; // a session is already starting/running
   const f = FEATURED[i];
   showView("learn");
   document.getElementById("user").value = f.user_id;
@@ -1073,12 +1093,13 @@ function flowDone(stage) {
   const edge = document.getElementById(FLOW_EDGE_IN[stage]);
   if (edge) edge.classList.remove("on");
 }
-let thinkingLabel = "", thinkingBuf = "", writingChars = 0;
+let thinkingBuf = "", writingChars = 0;
 function setThinking(text) {
   const t = document.getElementById("thinking");
   if (text === null) { t.classList.remove("show"); orbState(""); return; }
-  thinkingLabel = text; thinkingBuf = ""; writingChars = 0;
-  document.getElementById("thinking-text").innerHTML = text;
+  thinkingBuf = ""; writingChars = 0;
+  document.getElementById("thinking-label").innerHTML = text;
+  document.getElementById("thinking-tail").innerHTML = "";
   t.classList.add("show");
   orbState("think");
 }
@@ -1086,7 +1107,9 @@ function setThinking(text) {
 // while the model writes its answer (reasoning goes quiet), a character
 // counter keeps the pane moving instead of freezing for tens of seconds.
 function renderThinking() {
-  let html = thinkingLabel;
+  // Only the tail changes here, so screen readers announce the phase label once
+  // (from setThinking) and not every streamed delta.
+  let html = "";
   if (thinkingBuf) {
     html += '<span class="reasoning" id="live-reason">' + esc(thinkingBuf) +
       '<span class="caret">▍</span></span>';
@@ -1095,7 +1118,7 @@ function renderThinking() {
     const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
     html += '<span class="reasoning">✍ writing… ' + k + ' characters<span class="caret">▍</span></span>';
   }
-  document.getElementById("thinking-text").innerHTML = html;
+  document.getElementById("thinking-tail").innerHTML = html;
   document.getElementById("thinking").classList.add("show");
   const live = document.getElementById("live-reason");
   if (live) live.scrollTop = live.scrollHeight; // pin to the newest line
@@ -1462,8 +1485,14 @@ function renderLearnerTrace(learner) {
 }
 
 // ================= SSE start =================
+// Featured cards are off while a session runs, like #start, so "change topic"
+// mid-stream never shows buttons that do nothing.
+function setFeaturedEnabled(on) {
+  document.querySelectorAll(".featured").forEach(b => { b.disabled = !on; });
+}
 function startSession() {
   document.getElementById("start").disabled = true;
+  setFeaturedEnabled(false);
   document.getElementById("feed").innerHTML = "";
   document.getElementById("trace").innerHTML = "";
   GV_NODES = null; // the map card lives in the feed, which was just cleared
@@ -1500,7 +1529,7 @@ function startSession() {
   streamSSE(
     "/agent/sessions/start_stream",
     payload,
-    () => { document.getElementById("start").disabled = false; }
+    () => { document.getElementById("start").disabled = false; setFeaturedEnabled(true); }
   );
 }
 
