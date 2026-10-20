@@ -133,6 +133,18 @@ def test_purple_palette_is_gone():
         assert c not in HTML.lower(), c
 
 
+def test_no_saturated_purple_hue_in_any_hex_colour():
+    import colorsys
+
+    bad = []
+    for h in set(re.findall(r"#([0-9a-fA-F]{6})\b", HTML)):
+        r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        hue, light, sat = colorsys.rgb_to_hls(r, g, b)
+        if 255 <= hue * 360 <= 300 and sat > 0.25:
+            bad.append(f"#{h} hue={hue * 360:.0f} sat={sat:.2f}")
+    assert not bad, bad
+
+
 # ---------- board + paper ----------
 def _uses_var(value, var_name):
     return f"var({var_name})" in value
