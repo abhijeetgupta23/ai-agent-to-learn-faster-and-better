@@ -30,6 +30,7 @@ This file holds conventions only — never feature details. Keep it under 200 li
 Rules:
 - **Every step's output opens with "In plain words"** (eli5: 2–3 short sentences + a tiny before/after picture, no jargon), then the technical detail: story, research comment, plan comment and each plan step, the tester's and coder's report back, PR description, review replies to the owner, docs changes, and the weekly cleanup PR.
 - State lives in GitHub (issue body, comments, labels, branch, PR). Push after every step.
+- **Every step gets an eli5 picture on the issue.** After each step (story, research, plan, tests, each code step, review, docs), the main session runs the `eli5` skill on that step's output, publishes the artifact, saves a PNG snapshot to `docs/issues/<n>/<NN>-<step>.png`, pushes it, and comments on the issue with the image (raw URL pinned to the commit SHA) plus the artifact link. Subagents can't publish artifacts, so this is always the main session's job.
 - The tester gets only the issue number and reads only the issue body.
 - Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.
 - Product/design questions from a coder go back to the planner; the plan comment is updated.
