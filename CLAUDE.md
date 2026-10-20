@@ -43,7 +43,7 @@ Rules:
 
 Pick the **highest** row that matches. When unsure, go one tier up.
 
-**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Revisit when real users arrive.
+**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Process/tooling changes you've approved in chat skip the story; the PR is the record (L still means no auto-merge and your "merge"). Revisit when real users arrive.
 
 | Tier | Any of these makes it this tier | Merge |
 |------|------|------|
