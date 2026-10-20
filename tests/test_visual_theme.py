@@ -235,7 +235,8 @@ def test_font_face_rules_use_relative_urls_swap_and_existing_files():
 
 
 def test_web_font_families_have_generic_fallback():
-    fams = re.findall(r"font-family\s*:\s*([^;}]+)", CSS_NC)
+    used_css = re.sub(r"@font-face\s*\{[^{}]*\}", "", CSS_NC)
+    fams = re.findall(r"font-family\s*:\s*([^;}]+)", used_css)
     assert fams
     for f in fams:
         if "var(" in f or "inherit" in f:
