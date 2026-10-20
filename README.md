@@ -97,6 +97,18 @@ flowchart LR
 
 > **See it run live.** [`docs/VISUAL_WALKTHROUGH.md`](docs/VISUAL_WALKTHROUGH.md) is a phase-by-phase visual: six screenshots from a real session, captured by Playwright driving the live SSE stream. The page that produced them is [`docs/visual/index.html`](docs/visual/index.html) — a single static file served by FastAPI at `/visual`, no build step.
 
+> **One look for every subject.** In plain words: the page looks the same whatever you study, like one classroom chalkboard. The agent picks the lesson, not the colours.
+>
+> | Part | What it is |
+> |---|---|
+> | Frame | Chalkboard green |
+> | Page | Cool paper, chalk-yellow highlights |
+> | Icons | Drawn inline SVG, no emoji |
+> | Fonts | Fraunces and Source Sans 3, self-hosted in [`docs/visual/fonts/`](docs/visual/fonts/) (no external requests) |
+> | Per-subject themes | Removed; why: [`docs/DESIGN_DECISIONS.md`](docs/DESIGN_DECISIONS.md) |
+>
+> Checked offline by [`tests/test_visual_theme.py`](tests/test_visual_theme.py). The screenshots in the walkthrough below show the older look.
+
 > **Accessible.** In plain words: the page works without a mouse, with a screen reader, and for people who turn animations off.
 >
 > | Need | What the page does |
