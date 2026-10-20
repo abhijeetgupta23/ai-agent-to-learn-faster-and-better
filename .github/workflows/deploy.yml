@@ -80,7 +80,7 @@ jobs:
           fi
 
       # Exactly the commit picked (and shown) before approval.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0, pinned by commit
         if: steps.fresh.outputs.ok == 'true'
         with:
           ref: ${{ needs.pick.outputs.sha }}
