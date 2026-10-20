@@ -24,14 +24,16 @@ flowchart TD
 | Tier | Any of these makes it this tier | Stages | Merge |
 |------|-----------|--------|-------|
 | L | Touches `.github/sensitive-paths.txt` · more than one `src/` package · new module or data model change | All + you approve the plan before tests | On your instruction, after Claude checks CI + Codex |
-| M | New behaviour a user can notice · new `src/` file · over 150 changed lines | All | On your instruction, after Claude checks CI + Codex |
+| M | New behaviour a user can notice · new `src/` file | All | On your instruction, after Claude checks CI + Codex |
 | S | None of the above | 5, 6, 7 | Auto-merge once Codex threads are resolved and checks are green |
+
+> **Pre-launch mode (0 real users):** "a user can notice" doesn't raise the tier and "when unsure, go up" is off. Label the lowest tier tier-check allows; the L rules still apply. Revisit when real users arrive.
 
 ```mermaid
 flowchart TD
   D[PR diff] --> Q1{Sensitive path?<br/>2+ src packages?}
   Q1 -- yes --> L[min tier L]
-  Q1 -- no --> Q2{New src file?<br/>over 150 lines?}
+  Q1 -- no --> Q2{New src file?}
   Q2 -- yes --> M[min tier M]
   Q2 -- no --> S[min tier S]
   L & M & S --> C{label below min?}
@@ -60,14 +62,14 @@ one rule keeps them honest.
 
 ```
               L ┃  money, user data, secrets, deploy, 2+ src/ packages
-              M ┃  new src/ file, >150 lines, or new behaviour
+              M ┃  new src/ file, or new behaviour
 - - - - - - - - ┃ - - - - tier-check's line: nothing goes below it - -
               S ┃  small fix in one area
 ```
 
 | Helper | What it looks at | Uses AI? | What it can do |
 |---|---|---|---|
-| tier-check (`check_tier.py`) | Which files changed, how many lines, and risky patterns in the changed lines | No. Plain rules: same change, same answer | Draws the line: the lowest tier allowed |
+| tier-check (`check_tier.py`) | Which files changed and risky patterns in the changed lines (not how many: size isn't risk) | No. Plain rules: same change, same answer | Draws the line: the lowest tier allowed |
 | Codex, following `AGENTS.md` | What the change means (money, data, secrets, auth, injection defences) | Yes | Flags a too-low label as P1, never lowers it |
 | The researcher agent, then you | The story: does it change what users see? | Yes, the agent suggests; you set the label | Push the tier **up**, never below the line |
 

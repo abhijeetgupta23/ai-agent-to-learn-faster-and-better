@@ -161,7 +161,7 @@ dialog::backdrop{background:rgba(10,14,20,.5)}
 <tr><td>S</td><td>Small fix in one area, no new behaviour</td><td>5, 6, 7</td></tr>
 <tr><td>M</td><td>New behaviour inside one module</td><td>All</td></tr>
 <tr><td>L</td><td>Cross-cutting, new module, or data model change</td><td>All, and you approve the plan before tests</td></tr>
-</table></div><p class="donel"><b>Done when:</b> The issue carries a tier label.</p><div class="stack"><details class="sub"><summary>Commands</summary><div class="subbody"><pre>gh issue edit 42 --add-label tier:M,stage:research
+</table></div><p><b>Pre-launch mode (0 real users):</b> label the lowest tier CI allows. New behaviour a user can notice doesn't make it M on its own, and “when unsure, go up” is off. The L rules still apply.</p><p class="donel"><b>Done when:</b> The issue carries a tier label.</p><div class="stack"><details class="sub"><summary>Commands</summary><div class="subbody"><pre>gh issue edit 42 --add-label tier:M,stage:research
 # tier S skips ahead: --add-label tier:S,stage:tests</pre></div></details><details class="sub"><summary>Learn Faster</summary><div class="subbody"><div class="ex">
 <ul class="plain">
 <li><b>S:</b> the plan-step highlight showing the wrong step.</li>

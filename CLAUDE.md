@@ -8,7 +8,7 @@ Prefer visuals over prose in every response. Prose is boring — **especially** 
 - When explaining code, show structure visually (boxes/arrows/tables) rather than narrating it line-by-line.
 - Keep any accompanying prose short and summary-first.
 - **Every reply in chat opens with "In plain words"**: 2–3 short sentences a non-engineer understands (plus a tiny picture when it helps), then the detail. This applies to status updates too.
-- **Default to the `eli5` skill** (`.claude/skills/eli5`) for any explanation: concepts, code, architecture, PRs, errors, results. Skip it only for status updates, one-line answers, and routine git/CI chores.
+- **Default to the `eli5` skill** (`.claude/skills/eli5`) for every substantive answer, and always publish its picture page (HTML artifact) and link it in the reply. Actually invoke it (Skill tool, `eli5`) every time; an eli5-*style* page made without calling the skill does not count. This covers explanations (concepts, code, architecture, PRs, errors, results) **and** lookups, web research, recommendations, comparisons and lists. Skip it only for status updates, yes/no or one-line answers, and routine git/CI chores.
 <!-- vester:visual-first:end -->
 
 # How we work: SDLC workflow
@@ -30,6 +30,7 @@ This file holds conventions only — never feature details. Keep it under 200 li
 Rules:
 - **Every step's output opens with "In plain words"** (eli5: 2–3 short sentences + a tiny before/after picture, no jargon), then the technical detail: story, research comment, plan comment and each plan step, the tester's and coder's report back, PR description, review replies to the owner, docs changes, and the weekly cleanup PR.
 - State lives in GitHub (issue body, comments, labels, branch, PR). Push after every step.
+- **Every step gets an eli5 picture on the issue.** After each step (story, research, plan, tests, each code step, review, docs), the main session runs the `eli5` skill on that step's output, publishes the artifact, saves a PNG snapshot to `docs/issues/<n>/<NN>-<step>.png`, pushes it, and comments on the issue with the image (raw URL pinned to the commit SHA) plus the artifact link. Subagents can't publish artifacts, so this is always the main session's job.
 - The tester gets only the issue number and reads only the issue body.
 - Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.
 - Product/design questions from a coder go back to the planner; the plan comment is updated.
@@ -42,10 +43,12 @@ Rules:
 
 Pick the **highest** row that matches. When unsure, go one tier up.
 
+**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Process/tooling changes you've approved in chat skip the story; the PR is the record (L still means no auto-merge and your "merge"). Revisit when real users arrive.
+
 | Tier | Any of these makes it this tier | Merge |
 |------|------|------|
 | **L** | Touches a path in `.github/sensitive-paths.txt` (money, user data or its shape, secrets, untrusted-input defences, auth/payments, deploy/deps/CI) · changes more than one `src/` package · new module or data model change | You say "merge" and approved the plan; Claude checks CI + Codex first |
-| **M** | New or changed behaviour a user can notice · adds a `src/` file · over 150 changed lines | You say "merge"; Claude checks CI + Codex first |
+| **M** | New or changed behaviour a user can notice · adds a `src/` file | You say "merge"; Claude checks CI + Codex first |
 | **S** | None of the above: a fix or tweak in one area, no new behaviour | Auto-merge (rules below) |
 
 - `tier-check` CI computes the minimum tier from the diff and fails a PR labelled below it. Judgement can raise a tier, never lower it.
