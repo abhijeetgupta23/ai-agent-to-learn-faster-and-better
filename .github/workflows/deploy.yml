@@ -10,6 +10,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Prints the newest commit on main (of its last 50) that passed CI.
+env:
+  NEWEST_GREEN: |
+    green=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=50" \
+      --jq '.workflow_runs[].head_sha')
+    for c in $(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=50" --jq '.[].sha'); do
+      if grep -qx "$c" <<< "$green"; then echo "$c"; exit 0; fi
+    done
+    exit 1
+
 permissions:
   contents: read
   actions: read   # to find which main commits passed CI
@@ -33,19 +43,10 @@ jobs:
       - id: pick
         env:
           GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
         run: |
-          green=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=50" \
-            --jq '.workflow_runs[].head_sha')
-          for c in $(gh api "repos/$REPO/commits?sha=main&per_page=50" --jq '.[].sha'); do
-            if grep -qx "$c" <<< "$green"; then
-              echo "sha=$c" >> "$GITHUB_OUTPUT"
-              echo "Will deploy \`$c\` (newest commit on main that passed CI)" >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-          done
-          echo "::error::No commit among main's last 50 has passed CI"
-          exit 1
+          c=$(bash -c "$NEWEST_GREEN") || { echo "::error::No commit among main's last 50 has passed CI"; exit 1; }
+          echo "sha=$c" >> "$GITHUB_OUTPUT"
+          echo "Will deploy \`$c\` (newest commit on main that passed CI)" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: deploy to Fly (production)
@@ -62,13 +63,31 @@ jobs:
       FLYCTL_VERSION: 0.4.110
       FLYCTL_SHA256: 62b48471d4d560831ec27a3c316c402750d34a3f5f8b956459d7cc5f6125ec97
     steps:
+      # Approvals can be clicked in any order. If a newer green commit exists by
+      # now, skip (never swap): its own run ships it, so nothing rolls back.
+      - name: Skip if a newer green commit exists
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PICKED: ${{ needs.pick.outputs.sha }}
+        run: |
+          newest=$(bash -c "$NEWEST_GREEN")
+          if [ "$newest" = "$PICKED" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping $PICKED: newer green commit $newest has its own deploy run"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # Exactly the commit picked (and shown) before approval.
       - uses: actions/checkout@v4
+        if: steps.fresh.outputs.ok == 'true'
         with:
           ref: ${{ needs.pick.outputs.sha }}
 
       # Pinned release, checked against its published SHA-256 before use.
       - name: Install flyctl ${{ env.FLYCTL_VERSION }}
+        if: steps.fresh.outputs.ok == 'true'
         run: |
           f="flyctl_${FLYCTL_VERSION}_Linux_x86_64.tar.gz"
           curl -fsSL -o "$RUNNER_TEMP/$f" \
@@ -80,11 +99,13 @@ jobs:
 
       # The Fly token is a production-environment secret, and only this step sees it.
       - name: Deploy
+        if: steps.fresh.outputs.ok == 'true'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl deploy --remote-only --app adaptive-learning-2
 
       - name: Check the live app is healthy
+        if: steps.fresh.outputs.ok == 'true'
         env:
           TARGET: ${{ needs.pick.outputs.sha }}
         # Machines scale to zero, so the first request can take a few seconds.

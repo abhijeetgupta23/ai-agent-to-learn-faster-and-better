@@ -62,8 +62,9 @@ merge to main ─▶ CI green ─▶ ⏸ you click Approve ─▶ fly deploy ─
 `.github/workflows/deploy.yml` runs after CI passes on `main` (or from the
 Actions tab with "Run workflow"). Before asking you, it picks the newest commit
 on `main` that passed CI and shows it on the run page; after you approve, it
-ships exactly that commit, one deploy at a time. Then it polls `/health` for up
-to 2 minutes and fails if the app doesn't come back.
+ships exactly that commit, one deploy at a time. If you approve an older run
+after a newer one, the older one skips, so the site never goes backwards. Then it
+polls `/health` for up to 2 minutes and fails if the app doesn't come back.
 
 One-time setup:
 
