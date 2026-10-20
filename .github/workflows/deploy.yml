@@ -1,0 +1,120 @@
+name: Deploy
+
+# CD: after CI passes on main, deploy to Fly.io, but only once the owner
+# approves in the GitHub "production" environment. Runs the default branch's
+# copy of this file (workflow_run), never a PR's.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Prints the newest commit on main (of its last 50) that passed CI.
+env:
+  NEWEST_GREEN: |
+    green=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=50" \
+      --jq '.workflow_runs[].head_sha')
+    for c in $(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=50" --jq '.[].sha'); do
+      if grep -qx "$c" <<< "$green"; then echo "$c"; exit 0; fi
+    done
+    exit 1
+
+permissions:
+  contents: read
+  actions: read   # to find which main commits passed CI
+
+jobs:
+  # Runs before the approval gate, so the commit you approve is the commit that
+  # ships. It always picks the newest main commit that passed CI. Then a run
+  # bumped from the queue (GitHub keeps one pending run) is only ever replaced by
+  # one that picked the same or a newer commit, and nothing older is shipped later.
+  pick:
+    name: pick the newest green commit on main
+    # Only a green CI run from a push to main (not a PR), or a manual run of main.
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+    steps:
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          c=$(bash -c "$NEWEST_GREEN") || { echo "::error::No commit among main's last 50 has passed CI"; exit 1; }
+          echo "sha=$c" >> "$GITHUB_OUTPUT"
+          echo "Will deploy \`$c\` (newest commit on main that passed CI)" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: deploy to Fly (production)
+    needs: pick
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://adaptive-learning-2.fly.dev
+    # One deploy at a time; a newer pending deploy replaces an older pending one.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      FLYCTL_VERSION: 0.4.110
+      FLYCTL_SHA256: 62b48471d4d560831ec27a3c316c402750d34a3f5f8b956459d7cc5f6125ec97
+    steps:
+      # Approvals can be clicked in any order. If a newer green commit exists by
+      # now, skip (never swap): its own run ships it, so nothing rolls back.
+      - name: Skip if a newer green commit exists
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PICKED: ${{ needs.pick.outputs.sha }}
+        run: |
+          newest=$(bash -c "$NEWEST_GREEN")
+          if [ "$newest" = "$PICKED" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping $PICKED: newer green commit $newest has its own deploy run"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Exactly the commit picked (and shown) before approval.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0, pinned by commit
+        if: steps.fresh.outputs.ok == 'true'
+        with:
+          ref: ${{ needs.pick.outputs.sha }}
+
+      # Pinned release, checked against its published SHA-256 before use.
+      - name: Install flyctl ${{ env.FLYCTL_VERSION }}
+        if: steps.fresh.outputs.ok == 'true'
+        run: |
+          f="flyctl_${FLYCTL_VERSION}_Linux_x86_64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$f" \
+            "https://github.com/superfly/flyctl/releases/download/v${FLYCTL_VERSION}/$f"
+          echo "$FLYCTL_SHA256  $RUNNER_TEMP/$f" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/flyctl"
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP/flyctl"
+          echo "$RUNNER_TEMP/flyctl" >> "$GITHUB_PATH"
+
+      # The Fly token is a production-environment secret, and only this step sees it.
+      - name: Deploy
+        if: steps.fresh.outputs.ok == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only --app adaptive-learning-2
+
+      - name: Check the live app is healthy
+        if: steps.fresh.outputs.ok == 'true'
+        env:
+          TARGET: ${{ needs.pick.outputs.sha }}
+        # Machines scale to zero, so the first request can take a few seconds.
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS --max-time 10 https://adaptive-learning-2.fly.dev/health; then
+              echo; echo "Healthy after deploy of $TARGET"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::/health did not return OK within 2 minutes after deploying $TARGET"
+          exit 1
