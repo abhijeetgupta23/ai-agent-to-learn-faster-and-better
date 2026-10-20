@@ -43,6 +43,8 @@ Rules:
 
 Pick the **highest** row that matches. When unsure, go one tier up.
 
+**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Revisit when real users arrive.
+
 | Tier | Any of these makes it this tier | Merge |
 |------|------|------|
 | **L** | Touches a path in `.github/sensitive-paths.txt` (money, user data or its shape, secrets, untrusted-input defences, auth/payments, deploy/deps/CI) · changes more than one `src/` package · new module or data model change | You say "merge" and approved the plan; Claude checks CI + Codex first |

@@ -27,6 +27,8 @@ flowchart TD
 | M | New behaviour a user can notice · new `src/` file · over 150 changed lines | All | On your instruction, after Claude checks CI + Codex |
 | S | None of the above | 5, 6, 7 | Auto-merge once Codex threads are resolved and checks are green |
 
+> **Pre-launch mode (0 real users):** "a user can notice" doesn't raise the tier and "when unsure, go up" is off. Label the lowest tier tier-check allows; the L rules still apply. Revisit when real users arrive.
+
 ```mermaid
 flowchart TD
   D[PR diff] --> Q1{Sensitive path?<br/>2+ src packages?}

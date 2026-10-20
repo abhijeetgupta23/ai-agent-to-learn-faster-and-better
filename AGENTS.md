@@ -26,4 +26,4 @@ Also flag as **P1**, whatever the label:
 - A test that calls a real LLM API, or a test deleted or loosened so a failing change can pass.
 - Code that parses free-text model output instead of a Pydantic model from `src/schemas.py`.
 
-Flag as **P2** if a PR labelled S adds behaviour a user can notice. That makes it at least M.
+Flag as **P2** if a PR labelled S adds behaviour a user can notice. That makes it at least M. *Paused while the project is in pre-launch mode (see `CLAUDE.md`): don't flag this.*
