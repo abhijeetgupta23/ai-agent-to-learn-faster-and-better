@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  actions: read   # to see whether main's tip passed CI
 
 # One deploy at a time; a newer approved deploy waits for the running one.
 concurrency:
@@ -33,29 +34,38 @@ jobs:
     env:
       FLYCTL_VERSION: 0.4.110
       FLYCTL_SHA256: 62b48471d4d560831ec27a3c316c402750d34a3f5f8b956459d7cc5f6125ec97
-      # Deploy exactly the commit CI tested; a manual run deploys main's tip.
+      # The commit CI tested; a manual run uses main's tip.
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SHA }}
-
-      # Never roll back: if main moved on (an older CI run finished late), skip;
-      # the newer commit's own run deploys it.
-      - name: Check this is still main's newest commit
-        id: fresh
+      # Never roll back. If main moved on (an older CI run finished late), ship
+      # main's tip instead when its CI already passed; otherwise skip, because the
+      # tip's own CI run arrives later and deploys it. A stale arrival can evict
+      # the tip's queued run, so this keeps the newest green commit from being lost.
+      - name: Pick the commit to ship
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
-          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          tip=$(gh api "repos/$REPO/commits/main" --jq .sha)
           if [ "$tip" = "$SHA" ]; then
-            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          elif [ "$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$tip&event=push&status=success&per_page=1" --jq .total_count)" -gt 0 ]; then
+            echo "::notice::$SHA is stale; shipping main's tip $tip (CI passed)"
+            echo "sha=$tip" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::Skipping $SHA: main is now at $tip"
-            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping $SHA: main is at $tip, whose CI hasn't passed yet"
+            echo "sha=" >> "$GITHUB_OUTPUT"
           fi
+
+      - uses: actions/checkout@v4
+        if: steps.target.outputs.sha != ''
+        with:
+          ref: ${{ steps.target.outputs.sha }}
 
       # Pinned release, checked against its published SHA-256 before use.
       - name: Install flyctl ${{ env.FLYCTL_VERSION }}
-        if: steps.fresh.outputs.ok == 'true'
+        if: steps.target.outputs.sha != ''
         run: |
           f="flyctl_${FLYCTL_VERSION}_Linux_x86_64.tar.gz"
           curl -fsSL -o "$RUNNER_TEMP/$f" \
@@ -67,20 +77,22 @@ jobs:
 
       # The Fly token is a production-environment secret, and only this step sees it.
       - name: Deploy
-        if: steps.fresh.outputs.ok == 'true'
+        if: steps.target.outputs.sha != ''
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl deploy --remote-only --app adaptive-learning-2
 
       - name: Check the live app is healthy
-        if: steps.fresh.outputs.ok == 'true'
+        if: steps.target.outputs.sha != ''
+        env:
+          TARGET: ${{ steps.target.outputs.sha }}
         # Machines scale to zero, so the first request can take a few seconds.
         run: |
           for i in $(seq 1 12); do
             if curl -fsS --max-time 10 https://adaptive-learning-2.fly.dev/health; then
-              echo; echo "Healthy after deploy of $SHA"; exit 0
+              echo; echo "Healthy after deploy of $TARGET"; exit 0
             fi
             sleep 10
           done
-          echo "::error::/health did not return OK within 2 minutes after deploying $SHA"
+          echo "::error::/health did not return OK within 2 minutes after deploying $TARGET"
           exit 1
