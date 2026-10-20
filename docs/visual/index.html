@@ -478,7 +478,7 @@
 
 <header>
   <div class="brand">
-    <div class="logo" aria-hidden="true">🎓</div>
+    <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5v-4.5"/></svg></div>
     <div>
       <h1>AI Agent to Learn Faster</h1>
       <p class="sub">Pick a subject — an AI agent maps it, diagnoses exactly what <i>you</i> need, and picks the format you’ll learn fastest from: no re-reading what you know, no drowning at the wrong level. Reasoning shown, every step.</p>
@@ -497,21 +497,21 @@
 
 <div class="featured-row">
   <button type="button" class="featured" onclick="runFeatured(0)">
-    <span class="play" aria-hidden="true">▶</span>
+    <span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span>
     <span class="fbody">
       <span class="fk">Featured · AI &amp; LLMs</span>
       <span class="ft">A learner keeps failing the same lesson. The agent <b>refuses to explain it a third time</b> — failing twice means a building block is missing. It works out which one they were never taught, and teaches that first.</span>
     </span>
   </button>
   <button type="button" class="featured" onclick="runFeatured(1)">
-    <span class="play" aria-hidden="true">▶</span>
+    <span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span>
     <span class="fbody">
       <span class="fk">Featured · Cognitive biases</span>
       <span class="ft">Says they learn best by reading — but failed the same probability trap twice. The agent <b>overrides their stated preference</b> and switches to Socratic questioning.</span>
     </span>
   </button>
   <button type="button" class="featured" onclick="runFeatured(2)">
-    <span class="play" aria-hidden="true">▶</span>
+    <span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span>
     <span class="fbody">
       <span class="fk">Featured · Cognitive biases</span>
       <span class="ft">Studying at expert level and failing everything. The agent <b>steps the difficulty down</b> instead of pushing them forward.</span>
@@ -532,14 +532,14 @@
     <input type="text" id="domain" value="ai" style="display:none;" />
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
-  <div class="orch-note">Orchestration: <b>autonomous agent 🤖</b> — the model owns the loop</div>
+  <div class="orch-note">Orchestration: <b>autonomous agent</b> — the model owns the loop</div>
 </div>
 
 <!-- Slim bar shown while a session runs (the launcher collapses away). -->
 <div class="session-bar" id="session-bar" style="display:none;">
   <span>Learning <b id="bar-domain"></b></span>
   <span id="status" aria-live="polite">ready</span>
-  <button class="chip" onclick="resetToSetup()">⟲ change topic</button>
+  <button class="chip" onclick="resetToSetup()">change topic</button>
 </div>
 
 <!-- Split: the learner's experience on the left, the tutor's brain on the
@@ -565,12 +565,12 @@
       <path class="fedge" id="fe-observe" d="M258,99 L236,99"/>
       <path class="fedge" id="fe-adapt" d="M132,99 L110,99"/>
       <path class="fedge loop" id="fe-loop" d="M58,82 C58,56 100,48 130,38"/>
-      <g class="fnode" id="fn-map"><rect x="6" y="8" width="104" height="34" rx="9"/><text x="58" y="29" text-anchor="middle">🗺️ map</text></g>
-      <g class="fnode" id="fn-assess"><rect x="132" y="8" width="104" height="34" rx="9"/><text x="184" y="29" text-anchor="middle">🔍 assess</text></g>
-      <g class="fnode" id="fn-plan"><rect x="258" y="8" width="104" height="34" rx="9"/><text x="310" y="29" text-anchor="middle">📋 plan</text></g>
-      <g class="fnode" id="fn-teach"><rect x="258" y="82" width="104" height="34" rx="9"/><text x="310" y="103" text-anchor="middle">✍️ teach</text></g>
-      <g class="fnode" id="fn-observe"><rect x="132" y="82" width="104" height="34" rx="9"/><text x="184" y="103" text-anchor="middle">👀 observe</text></g>
-      <g class="fnode" id="fn-adapt"><rect x="6" y="82" width="104" height="34" rx="9"/><text x="58" y="103" text-anchor="middle">🔄 adapt</text></g>
+      <g class="fnode" id="fn-map"><rect x="6" y="8" width="104" height="34" rx="9"/><text x="58" y="29" text-anchor="middle">map</text></g>
+      <g class="fnode" id="fn-assess"><rect x="132" y="8" width="104" height="34" rx="9"/><text x="184" y="29" text-anchor="middle">assess</text></g>
+      <g class="fnode" id="fn-plan"><rect x="258" y="8" width="104" height="34" rx="9"/><text x="310" y="29" text-anchor="middle">plan</text></g>
+      <g class="fnode" id="fn-teach"><rect x="258" y="82" width="104" height="34" rx="9"/><text x="310" y="103" text-anchor="middle">teach</text></g>
+      <g class="fnode" id="fn-observe"><rect x="132" y="82" width="104" height="34" rx="9"/><text x="184" y="103" text-anchor="middle">observe</text></g>
+      <g class="fnode" id="fn-adapt"><rect x="6" y="82" width="104" height="34" rx="9"/><text x="58" y="103" text-anchor="middle">adapt</text></g>
     </svg>
     <div class="thinking" id="thinking">
       <div class="pulse"></div>
@@ -608,14 +608,14 @@
 // orchestration mode; the retired fixed-pipeline ("workflow") view is gone.
 const MODE = "agent";
 const DOMAINS = [
-  { id: "ai", label: "🤖 AI & LLMs" },
-  { id: "cognitive_biases", label: "🧠 Cognitive biases" },
-  { id: "psychology", label: "💭 Psychology" },
-  { id: "persuasion", label: "🗣️ Persuasion" },
-  { id: "game_theory", label: "♟️ Game theory" },
-  { id: "microeconomics", label: "📈 Microeconomics" },
-  { id: "mathematics", label: "➗ Mathematics" },
-  { id: "ethics", label: "⚖️ Ethics" },
+  { id: "ai", label: "AI & LLMs" },
+  { id: "cognitive_biases", label: "Cognitive biases" },
+  { id: "psychology", label: "Psychology" },
+  { id: "persuasion", label: "Persuasion" },
+  { id: "game_theory", label: "Game theory" },
+  { id: "microeconomics", label: "Microeconomics" },
+  { id: "mathematics", label: "Mathematics" },
+  { id: "ethics", label: "Ethics" },
 ];
 
 // --- session state ---
@@ -846,10 +846,10 @@ function resetToSetup() {
 
 // ---- journey card: live progress on the left while the session builds ----
 const JOURNEY_STEPS = [
-  { key: "load_graph", icon: "🗺️", label: "Map the subject" },
-  { key: "assess", icon: "🔍", label: "Work out what you need" },
-  { key: "plan", icon: "📋", label: "Design your lesson plan" },
-  { key: "generate", icon: "✍️", label: "Write your lesson" },
+  { key: "load_graph", icon: "1", label: "Map the subject" },
+  { key: "assess", icon: "2", label: "Work out what you need" },
+  { key: "plan", icon: "3", label: "Design your lesson plan" },
+  { key: "generate", icon: "4", label: "Write your lesson" },
 ];
 function showJourney() {
   const card = document.createElement("div");
@@ -934,7 +934,7 @@ function renderGraphViz(nodes) {
     feed.insertBefore(card, journey ? journey.nextSibling : null);
   }
   card.innerHTML =
-    `<div class="gv-h">🗺️ Subject map — what the agent sees</div>` +
+    `<div class="gv-h">Subject map — what the agent sees</div>` +
     `<svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg>` +
     `<div class="gv-legend">` +
     `<span><span class="sw" style="background:#2ea043;"></span>you’ve mastered</span>` +
@@ -1023,7 +1023,7 @@ function renderThinking() {
   }
   if (writingChars > 0) {
     const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
-    html += '<span class="reasoning">✍ writing… ' + k + ' characters<span class="caret">▍</span></span>';
+    html += '<span class="reasoning">writing… ' + k + ' characters<span class="caret">▍</span></span>';
   }
   document.getElementById("thinking-tail").innerHTML = html;
   document.getElementById("thinking").classList.add("show");
@@ -1311,7 +1311,7 @@ function showDone(res) {
   const card = document.createElement("div");
   card.className = "lesson done-card";
   card.innerHTML = `
-    <div class="big">🎉</div>
+    <div class="big">Done</div>
     <h3>Session complete</h3>
     <div class="body"><p>${esc(res.note || "Nice work.")}</p>
       <p style="color:var(--muted);font-size:14px;">Start again and the tutor <b>picks up from everything you just did</b> — nothing resets.</p></div>`;
@@ -1345,8 +1345,8 @@ const TOOL_RUN = {
 let agentLabelSet = false;
 
 const TRACE_ICONS = {
-  "phase-assess": "🔍", "phase-plan": "📋", "phase-generate": "✍️",
-  "phase-observe": "👀", "phase-adapt": "🔄",
+  "phase-assess": "•", "phase-plan": "•", "phase-generate": "•",
+  "phase-observe": "•", "phase-adapt": "•",
 };
 function _railFollow(fn) {
   const brain = document.getElementById("brain");
@@ -1383,8 +1383,8 @@ function renderLearnerTrace(learner) {
     `<span class="ldot${i <= learner.difficulty_level ? " on" : ""}"></span>`).join("");
   trace("phase-adapt", "LearnerModel", "What the tutor knows about you",
     `<div class="lstats">
-       <span class="lstat">🟢 ${m} mastered</span>
-       <span class="lstat">🔄 ${s} to revisit</span>
+       <span class="lstat">${m} mastered</span>
+       <span class="lstat">${s} to revisit</span>
        <span class="lstat">prefers ${esc(learner.modality_preference || "—")}</span>
        <span class="lstat">level ${dots}</span>
      </div>
@@ -1416,12 +1416,12 @@ function startSession() {
   document.getElementById("session-bar").style.display = "flex";
   const dd = DOMAINS.find(x => x.id === domain);
   document.getElementById("bar-domain").textContent =
-    (dd ? dd.label : domain) + " · 🤖 autonomous";
+    (dd ? dd.label : domain) + " · autonomous";
   document.getElementById("brain-empty").style.display = "none";
   agentLabelSet = false;
   const card = document.createElement("div");
   card.className = "lesson journey";
-  card.innerHTML = "<h3>🤖 Autonomous mode</h3>" +
+  card.innerHTML = "<h3>Autonomous mode</h3>" +
     '<div class="body"><p>No fixed pipeline here — the agent decides each move itself ' +
     "(diagnose, plan, teach, adapt) and can change course based on your answers. " +
     "Every decision it makes appears in its brain on the right.</p></div>";
@@ -1491,10 +1491,10 @@ function dispatch(event, p) {
     currentPhase = p.name;
     if (THINKING[p.name]) setThinking(THINKING[p.name]);
     const PHASE_TITLES = {
-      load_graph: "🗺️ reading the subject map",
-      assess: "🔍 working out what you need",
-      plan: "📋 designing your lesson plan",
-      generate: "✍️ writing your lesson",
+      load_graph: "reading the subject map",
+      assess: "working out what you need",
+      plan: "designing your lesson plan",
+      generate: "writing your lesson",
     };
     const PHASE_AGENT = {
       load_graph: "extract_learning_graph",
@@ -1510,7 +1510,7 @@ function dispatch(event, p) {
   }
   if (event === "thinking") {
     if (p.phase === "agent" && !agentLabelSet) {
-      setThinking("🤖 Deciding the next move…");
+      setThinking("Deciding the next move…");
       agentLabelSet = true;
     }
     appendThinking(p.delta);
@@ -1521,7 +1521,7 @@ function dispatch(event, p) {
     const node = TOOL_FLOW[p.tool];
     if (node) { currentPhase = node; flowActive(node); }
     if (p.tool === "teach" && p.args && p.args.concept_id) gvTarget(p.args.concept_id);
-    setThinking("🤖 " + (TOOL_RUN[p.tool] || "running " + p.tool) + "…");
+    setThinking("" + (TOOL_RUN[p.tool] || "running " + p.tool) + "…");
     agentLabelSet = true;
     const args = p.args && Object.keys(p.args).length
       ? `<code>${esc(JSON.stringify(p.args)).slice(0, 260)}</code>` : "(no arguments)";
