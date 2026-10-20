@@ -66,11 +66,15 @@ app doesn't come back.
 
 One-time setup:
 
-1. `fly tokens create deploy --app adaptive-learning-2`, then save the output as
-   the repository secret **`FLY_API_TOKEN`** (Settings → Secrets and variables →
-   Actions → New repository secret).
-2. Settings → Environments → **New environment** `production` → tick
+1. Settings → Environments → **New environment** `production` → tick
    **Required reviewers** and add yourself → **Save protection rules**.
+2. `fly tokens create deploy --app adaptive-learning-2`, then, on that same
+   `production` environment page, **Add environment secret** named
+   **`FLY_API_TOKEN`** with the output. Don't make it a repository secret: an
+   environment secret is only released after you approve the deploy.
+
+Manual deploys (Actions → Deploy → Run workflow) only run from `main`.
+flyctl is pinned to a fixed release and checked against its SHA-256 before use.
 
 Smoke-test:
 
