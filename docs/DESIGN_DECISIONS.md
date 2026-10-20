@@ -42,3 +42,9 @@ How to use it:
 - replaces: "a user can notice it → M"
 - affects: SDLC tiering (`CLAUDE.md`), every frontend PR
 - why: with no real users yet, speed matters more than process. To make up for skipping the owner's "merge", every frontend PR posts a visual demo (before/after screenshots at desktop and phone width, contrast table, guidelines re-run, no JS errors) before auto-merge. Revisit when real users arrive.
+
+## D-006 · Self-host the fonts, no Google Fonts
+- date: 2026-10-20 · status: active · source: owner (#65, Codex P1 on #67)
+- replaces: loading Fraunces and Source Sans 3 from `fonts.googleapis.com`
+- affects: `docs/visual/fonts/` (woff2 + OFL licence), `@font-face` rules in `docs/visual/index.html`
+- why: loading from Google made every visitor's browser contact a new outside service (their IP address and the page they're on). Same look, no third-party call.
