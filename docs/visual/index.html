@@ -26,6 +26,10 @@
     --chalk: #f4d35e;
     --chalk-d: #c9a227;
     --chalk-soft: #fbf1c7;
+    --phase-plan: #fbbf24;
+    --phase-generate: #34d399;
+    --phase-observe: #f9a8d4;
+    --phase-adapt: #7dd3fc;
     --accent: #1f4d3a;
     --accent-d: #163a2b;
     --good: #1d7a45;
@@ -239,10 +243,10 @@
   .stream-card { border: 1px solid var(--board-line); border-left: 3px solid var(--board-line); padding: 10px 12px;
     margin: 8px 0; background: linear-gradient(180deg, var(--board-2), var(--board-2)); border-radius: 10px; }
   .stream-card.phase-assess { border-left-color: var(--chalk); }
-  .stream-card.phase-plan { border-left-color: #fbbf24; }
-  .stream-card.phase-generate { border-left-color: #34d399; }
-  .stream-card.phase-observe { border-left-color: #f472b6; }
-  .stream-card.phase-adapt { border-left-color: #c084fc; }
+  .stream-card.phase-plan { border-left-color: var(--phase-plan); }
+  .stream-card.phase-generate { border-left-color: var(--phase-generate); }
+  .stream-card.phase-observe { border-left-color: var(--phase-observe); }
+  .stream-card.phase-adapt { border-left-color: var(--phase-adapt); }
   .stream-card .head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
   .stream-card .ticon { font-size: 13px; flex: none; }
   .stream-card .title { font-weight: 600; font-size: 13px; color: var(--on-board); flex: 1; min-width: 0; }
@@ -254,10 +258,10 @@
     font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--on-board-muted); }
   .trace-sec::after { content: ""; flex: 1; height: 1px; background: var(--board-line); }
   .trace-sec.phase-assess { color: var(--chalk); }
-  .trace-sec.phase-plan { color: #fbbf24; }
-  .trace-sec.phase-generate { color: #34d399; }
-  .trace-sec.phase-observe { color: #f472b6; }
-  .trace-sec.phase-adapt { color: #c084fc; }
+  .trace-sec.phase-plan { color: var(--phase-plan); }
+  .trace-sec.phase-generate { color: var(--phase-generate); }
+  .trace-sec.phase-observe { color: var(--phase-observe); }
+  .trace-sec.phase-adapt { color: var(--phase-adapt); }
   .trace-sec .sec-agent { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none;
     color: var(--on-board-muted); background: var(--board-d); border: 1px solid var(--board-line); padding: 1px 6px;
     border-radius: 5px; margin-left: 2px; }
