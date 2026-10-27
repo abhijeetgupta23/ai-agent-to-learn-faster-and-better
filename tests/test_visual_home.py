@@ -7,12 +7,26 @@ from __future__ import annotations
 
 import re
 
-from test_visual_accessibility import HTML, _all, _by_id, _css
+from test_visual_accessibility import HTML, _css, _dom
 
 REPLAY_RE = re.compile(r"runFeatured\((\d)\)")
 
 
 # ---------- helpers ----------
+_ELEMENTS = list(_dom().descendants())  # one parse, so identity and order are stable
+
+
+def _all():
+    return list(_ELEMENTS)
+
+
+def _by_id(i):
+    for e in _ELEMENTS:
+        if e.attrs.get("id") == i:
+            return e
+    raise AssertionError(f"#{i} not found")
+
+
 def _text(el):
     return (el.text + "".join(_text(c) for c in el.children)).strip()
 
