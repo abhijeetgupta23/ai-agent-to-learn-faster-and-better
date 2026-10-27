@@ -64,34 +64,43 @@
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1080px; margin: 0 auto; }
-  header { padding: 22px 22px 20px; margin-top: 16px; border-radius: 16px;
-    background: var(--board); color: var(--on-board); }
+  header { padding: 10px 16px; margin-top: 16px; border-radius: 14px;
+    background: var(--board); color: var(--on-board);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header .brand { flex: 1; min-width: 0; white-space: nowrap; }
+  header h1 { white-space: nowrap; }
+  header .nav { margin: 0; }
+  header .nav button { color: var(--on-board-muted); border-color: transparent; min-height: 36px; }
+  header .nav button.active { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+  header .nav .badge-pass { color: var(--on-board); background: transparent; }
   header h1, header .sub { color: var(--on-board); }
   .brand { display: flex; align-items: center; gap: 12px; }
   .logo {
-    width: 38px; height: 38px; border-radius: 11px; flex: none;
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
     background: var(--chalk);
-    display: grid; place-items: center; color: var(--ink); font-size: 20px;
+    display: grid; place-items: center; color: var(--ink); font-size: 16px;
   }
+  .logo svg { width: 18px; height: 18px; }
   h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
 
   /* Setup */
-  .setup {
-    background: var(--paper); border: 1px solid var(--border); border-radius: 16px;
-    padding: 20px; box-shadow: var(--shadow); margin-top: 18px;
-  }
-  .setup h2 { margin: 0 0 4px; font-size: 16px; }
-  .setup p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  .setup { padding: 28px 4px 8px; margin-top: 8px; text-align: left; }
+  .setup h2 { margin: 0 0 6px; font-size: 34px; line-height: 1.15; letter-spacing: -0.01em; }
+  .setup p { margin: 0 0 20px; color: var(--muted); font-size: 16px; }
   .field-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 0;
+    max-width: 520px; margin-bottom: 20px; }
   .chip {
-    border: 1px solid var(--border); background: var(--paper); color: var(--ink);
-    border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
-    transition: background-color .12s ease, color .12s ease, border-color .12s ease;
+    border: none; background: none; box-shadow: none; color: var(--ink);
+    border-radius: 8px; padding: 0 10px; min-height: 44px; font-size: 16px; text-align: left; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid var(--border);
+    transition: color .12s ease, outline-color .12s ease;
   }
-  .chip:hover { border-color: var(--accent); }
-  .chip.active { background: var(--board); color: var(--on-board); border-color: var(--board); }
+  .chip:hover { color: var(--board); }
+  .chip[aria-pressed="true"] { outline: 2px solid var(--board); outline-offset: -2px; font-weight: 600; }
+  .chip[aria-pressed="true"]::after { content: "\2713"; color: var(--board); }
   .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
   input[type=text], input.txt {
     padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
@@ -291,10 +300,14 @@
   /* ---- Responsive: phone ---- */
   @media (max-width: 560px) {
     body { padding: 0 12px 56px; }
-    header { padding: 22px 2px 6px; }
-    .logo { width: 34px; height: 34px; font-size: 18px; }
-    h1 { font-size: 18px; }
-    .sub { font-size: 13px; }
+    header { padding: 10px 12px; gap: 6px; }
+    header .nav { gap: 2px; }
+    header .nav button { padding: 7px 10px; }
+    header .nav .badge-pass { display: none; }
+    header .brand { flex: none; }
+    header .nav { margin-left: auto; }
+    h1 { font-size: 17px; }
+    .setup h2 { font-size: 28px; }
     .setup, .lesson { padding: 18px 15px; border-radius: 14px; }
     .lesson h3 { font-size: 19px; }
     .body { font-size: 15px; }
@@ -425,7 +438,7 @@
     border-radius: 999px; padding: 3px 10px; }
 
   /* Featured decision launchers — one card per signature adaptive behavior */
-  .featured-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .featured-row { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
   .featured { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px;
     border: 1px solid var(--border); border-radius: 14px; background: var(--paper); box-shadow: var(--shadow);
     cursor: pointer; transition: border-color .12s, transform .12s;
@@ -492,19 +505,15 @@
 <header>
   <div class="brand">
     <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5v-4.5"/></svg></div>
-    <div>
-      <h1>AI Agent to Learn Faster</h1>
-      <p class="sub">Pick a subject — an AI agent maps it, diagnoses exactly what <i>you</i> need, and picks the format you’ll learn fastest from: no re-reading what you know, no drowning at the wrong level. Reasoning shown, every step.</p>
-    </div>
+    <h1>Learn Faster</h1>
   </div>
-</header>
-
-<div class="nav">
+  <div class="nav">
   <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
   <button id="nav-evals" onclick="showView('evals')">Eval harness</button>
   <span class="grow"></span>
   <span class="badge-pass" id="nav-pass">6/6 ✓</span>
 </div>
+</header>
 
 <div id="learn-view">
 
@@ -534,8 +543,7 @@
 
 <div class="setup" id="setup">
   <h2>What do you want to learn?</h2>
-  <p>Pick a subject and we’ll start a session tailored to where you are.</p>
-  <div class="field-label">Subject</div>
+  <p>It finds the piece you’re missing and teaches that first.</p>
   <div class="chips" id="domain-chips"></div>
   <div class="row">
     <div>
@@ -704,7 +712,7 @@ function runFeatured(i) {
   document.getElementById("user").value = f.user_id;
   document.getElementById("domain").value = f.domain_id;
   document.querySelectorAll("#domain-chips .chip").forEach(c =>
-    c.classList.toggle("active", c.dataset.domain === f.domain_id));
+    c.setAttribute("aria-pressed", c.dataset.domain === f.domain_id ? "true" : "false"));
   pendingSeed = f.learner;
   startSession();
 }
@@ -824,12 +832,14 @@ function renderEvals(d) {
   const wrap = document.getElementById("domain-chips");
   DOMAINS.forEach((d, i) => {
     const el = document.createElement("button");
-    el.className = "chip" + (i === 0 ? " active" : "");
+    el.className = "chip";
+    el.type = "button";
+    el.setAttribute("aria-pressed", i === 0 ? "true" : "false");
     el.textContent = d.label;
     el.dataset.domain = d.id;
     el.onclick = () => {
-      document.querySelectorAll("#domain-chips .chip").forEach(c => c.classList.remove("active"));
-      el.classList.add("active");
+      document.querySelectorAll("#domain-chips .chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+      el.setAttribute("aria-pressed", "true");
       document.getElementById("domain").value = d.id;
     };
     wrap.appendChild(el);
