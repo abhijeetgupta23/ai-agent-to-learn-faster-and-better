@@ -56,7 +56,7 @@ How to use it:
 - why: five things competing for the first click slow a first-time visitor down. One yellow button, with replays as quiet text rows below it (Pro Max `primary-action`, `progressive-disclosure`). The "Orchestration: autonomous agent" note was removed from home: it is developer talk, and the Eval page covers how the tutor works.
 
 ## D-008 · The name is asked later, not up front
-- date: 2026-10-27 · status: active · source: owner (#68)
+- date: 2026-10-27 · status: replaced by D-010 · source: owner (#68)
 - replaces: the always-visible "Your name" box on the first screen
 - affects: `#user` (hidden until "change" is clicked), "Learning as alice · change" line
 - why: a first-time visitor shouldn't fill in a form before seeing value. The value still defaults to `alice` and replays still set it.
@@ -66,3 +66,9 @@ How to use it:
 - replaces: centred headline and a grid of identical subject chips
 - affects: home intro and `#domain-chips`, drawn concept map beside them
 - why: the taste-skill and frontend-design rules ban a centred default headline and rows of identical cards. A left-aligned question, a plain two-column list and one drawn map (the single bold thing) follow them.
+
+## D-010 · No name on screen until there's auth; the learner id is a hidden default
+- date: 2026-10-27 · status: active · source: owner (#68)
+- replaces: D-008 (name behind a "change" link)
+- affects: `#user` (now a hidden input, value `alice`), removed "Learning as alice · change" line
+- why: accounts come later, once this is a product. Until then a name box is a form with no purpose. The request still sends the same default id, so the server sees no change.

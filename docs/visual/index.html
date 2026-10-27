@@ -499,9 +499,6 @@
   .jscore-pill { font-size: 12px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 999px; padding: 2px 9px; }
   .jrow .jname { font-weight: 600; font-size: 14px; }
   [hidden] { display: none !important; }
-  .learning-as { font-size: 13px; color: var(--muted); margin: 14px 0 10px; }
-  .learning-as b { color: var(--text, inherit); }
-  .learning-as .linkbtn { background: none; border: 0; padding: 0 2px; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 0; }
 </style>
 </head>
 <body>
@@ -528,12 +525,8 @@
   <h2>What do you want to learn?</h2>
   <p>It finds the piece you’re missing and teaches that first.</p>
   <div class="chips" id="domain-chips"></div>
-  <p class="learning-as" id="learning-as">Learning as <b id="learning-as-name">alice</b> · <button type="button" class="linkbtn" id="change-name" onclick="revealName()">change</button></p>
   <div class="row">
-    <div id="name-box" hidden>
-      <label class="field-label" for="user">Your name</label>
-      <input class="txt" type="text" id="user" name="user" autocomplete="username" value="alice" oninput="syncLearningAs()" />
-    </div>
+    <input type="hidden" id="user" name="user" value="alice">
     <input type="text" id="domain" value="ai" style="display:none;" />
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
@@ -712,7 +705,6 @@ function runFeatured(i) {
   const f = FEATURED[i];
   showView("learn");
   document.getElementById("user").value = f.user_id;
-  syncLearningAs();
   document.getElementById("domain").value = f.domain_id;
   document.querySelectorAll("#domain-chips .chip").forEach(c =>
     c.setAttribute("aria-pressed", c.dataset.domain === f.domain_id ? "true" : "false"));
@@ -863,14 +855,6 @@ function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN
 
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
-function revealName() {
-  document.getElementById("name-box").hidden = false;
-  document.getElementById("user").focus();
-}
-function syncLearningAs() {
-  document.getElementById("learning-as-name").textContent =
-    document.getElementById("user").value || "learner";
-}
 function resetToSetup() {
   document.querySelector(".featured-row").style.display = "";
   document.getElementById("home").style.display = "";
