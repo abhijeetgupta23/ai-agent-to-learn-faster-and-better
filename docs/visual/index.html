@@ -438,21 +438,24 @@
     border-radius: 999px; padding: 3px 10px; }
 
   /* Featured decision launchers — one card per signature adaptive behavior */
-  .featured-row { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
-  .featured { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px;
-    border: 1px solid var(--border); border-radius: 14px; background: var(--paper); box-shadow: var(--shadow);
-    cursor: pointer; transition: border-color .12s, transform .12s;
-    font: inherit; color: inherit; text-align: left; width: 100%; }
-  .featured:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+  .home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 32px; align-items: start; }
+  .home-grid .setup { grid-column: 1; }
+  .concept-map { grid-column: 2; grid-row: 1; width: 100%; max-width: 340px; height: auto; display: block; margin-top: 36px; }
+  .replays { grid-column: 1 / -1; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .replays h3 { margin: 0 0 4px; font-family: "Source Sans 3", system-ui, sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .featured-row { display: flex; flex-wrap: wrap; gap: 4px 28px; }
+  .featured { display: inline-flex; gap: 8px; align-items: center; padding: 0; min-height: 44px;
+    border: none; background: none; box-shadow: none; cursor: pointer;
+    font: inherit; color: inherit; text-align: left; }
+  .featured:hover:not(:disabled) { color: var(--board); text-decoration: underline; }
   .featured:disabled { opacity: .5; cursor: not-allowed; }
-  .featured .fbody { display: block; }
-  .featured .fk, .featured .ft { display: block; }
-  .featured .play { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--chalk); color: var(--ink);
-    display: grid; place-items: center; font-size: 13px; }
-  .featured .fk { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--board); }
-  .featured .ft { font-size: 13px; margin-top: 3px; line-height: 1.45; }
-  .featured code { background: #00000010; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
-  @media (max-width: 900px) { .featured-row { grid-template-columns: 1fr; } }
+  .featured .play { width: 14px; height: 14px; flex: none; display: grid; place-items: center; color: var(--ink); }
+  .featured .ft { font-size: 14px; }
+  @media (max-width: 820px) {
+    .home-grid { grid-template-columns: 1fr; }
+    .concept-map { grid-column: 1; grid-row: auto; margin-top: 16px; }
+    .featured-row { flex-direction: column; gap: 0; }
+  }
 
   /* Evals view */
   .ev-hero { margin: 6px 4px 18px; }
@@ -517,30 +520,8 @@
 
 <div id="learn-view">
 
-<div class="featured-row">
-  <button type="button" class="featured" onclick="runFeatured(0)">
-    <span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span>
-    <span class="fbody">
-      <span class="fk">Featured · AI &amp; LLMs</span>
-      <span class="ft">A learner keeps failing the same lesson. The agent <b>refuses to explain it a third time</b> — failing twice means a building block is missing. It works out which one they were never taught, and teaches that first.</span>
-    </span>
-  </button>
-  <button type="button" class="featured" onclick="runFeatured(1)">
-    <span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span>
-    <span class="fbody">
-      <span class="fk">Featured · Cognitive biases</span>
-      <span class="ft">Says they learn best by reading — but failed the same probability trap twice. The agent <b>overrides their stated preference</b> and switches to Socratic questioning.</span>
-    </span>
-  </button>
-  <button type="button" class="featured" onclick="runFeatured(2)">
-    <span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span>
-    <span class="fbody">
-      <span class="fk">Featured · Cognitive biases</span>
-      <span class="ft">Studying at expert level and failing everything. The agent <b>steps the difficulty down</b> instead of pushing them forward.</span>
-    </span>
-  </button>
-</div>
-
+<div id="home">
+<div class="home-grid">
 <div class="setup" id="setup">
   <h2>What do you want to learn?</h2>
   <p>It finds the piece you’re missing and teaches that first.</p>
@@ -554,6 +535,25 @@
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
   <div class="orch-note">Orchestration: <b>autonomous agent</b> — the model owns the loop</div>
+</div>
+  <svg class="concept-map" role="img" viewBox="0 0 340 300" width="100%" aria-label="Concept map: known ideas are ticked and the learner's gap, attention, is circled in yellow. That gap is the first lesson.">
+    <rect width="340" height="300" rx="14" fill="#1f4d3a"/>
+    <text x="16" y="28" fill="#b9d4c6" font-size="13">How it works: it maps the subject…</text>
+    <g stroke="#3a7059" stroke-width="2"><line x1="90" y1="85" x2="170" y2="140"/><line x1="250" y1="85" x2="170" y2="140"/><line x1="170" y1="140" x2="170" y2="190"/><line x1="170" y1="190" x2="105" y2="245"/><line x1="170" y1="190" x2="235" y2="245"/></g>
+    <g fill="#2a5d47"><circle cx="90" cy="75" r="26"/><circle cx="250" cy="75" r="26"/><circle cx="170" cy="140" r="26"/><circle cx="170" cy="190" r="26"/><circle cx="105" cy="245" r="20"/><circle cx="235" cy="245" r="20"/></g>
+    <circle cx="170" cy="190" r="32" fill="none" stroke="#f4d35e" stroke-width="3" stroke-dasharray="6 5"/>
+    <g fill="#f1f6f2" font-size="12" text-anchor="middle"><text x="90" y="79">✓ tokens</text><text x="250" y="79">✓ vectors</text><text x="170" y="144">✓ embeddings</text><text x="170" y="194" fill="#f4d35e" font-weight="700">attention</text><text x="105" y="249" fill="#b9d4c6">next</text><text x="235" y="249" fill="#b9d4c6">next</text></g>
+    <text x="16" y="288" fill="#f4d35e" font-size="13">…and circles your gap. That's lesson 1.</text>
+  </svg>
+  <div class="replays">
+    <h3>Watch a replay</h3>
+    <div class="featured-row">
+    <button type="button" class="featured" onclick="runFeatured(0)"><span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span><span class="ft">Refuses to explain it a third time</span></button>
+    <button type="button" class="featured" onclick="runFeatured(1)"><span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span><span class="ft">Overrides “I learn by reading”</span></button>
+    <button type="button" class="featured" onclick="runFeatured(2)"><span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span><span class="ft">Steps the level down</span></button>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- Slim bar shown while a session runs (the launcher collapses away). -->
@@ -862,6 +862,7 @@ function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN
 function setStatus(s) { document.getElementById("status").textContent = s; }
 function resetToSetup() {
   document.querySelector(".featured-row").style.display = "";
+  document.getElementById("home").style.display = "";
   document.getElementById("setup").style.display = "";
   document.getElementById("session-bar").style.display = "none";
   document.getElementById("setup").scrollIntoView({ behavior: "smooth" });
@@ -1435,6 +1436,7 @@ function startSession() {
 
   // Collapse the launcher into the slim session bar; wake the brain rail.
   document.querySelector(".featured-row").style.display = "none";
+  document.getElementById("home").style.display = "none";
   document.getElementById("setup").style.display = "none";
   document.getElementById("session-bar").style.display = "flex";
   const dd = DOMAINS.find(x => x.id === domain);
