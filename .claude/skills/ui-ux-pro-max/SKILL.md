@@ -28,6 +28,8 @@ Work through them in order. Full rule text with rationale is in `references/quic
 | 9 | Navigation Patterns | HIGH | Predictable back, bottom nav ≤5, deep linking | Overloaded nav, broken back, no deep links |
 | 10 | Charts & Data | LOW | Legends, tooltips, accessible colours | Colour as the only signal |
 
+The references sometimes mention a `search.py` script, `--domain` / `--design-system` queries or `data/*.csv` files: those are **not installed**; use the rule text itself.
+
 Rule ids in the references (e.g. `primary-action`, `progressive-disclosure`) can be quoted in stories and reviews.
 
 ## In this repo

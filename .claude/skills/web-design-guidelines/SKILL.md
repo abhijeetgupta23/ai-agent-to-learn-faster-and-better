@@ -31,3 +31,5 @@ When a file or pattern is given:
 4. Output findings using the format specified in the guidelines
 
 If no files are specified, ask which files to review. To refresh the rules, update `guidelines.md` in a PR.
+
+Project rules win over the guidelines: in this repo there are no CDN or third-party asset domains to preconnect to (fonts are self-hosted), and text contrast must be at least 4.5:1.
