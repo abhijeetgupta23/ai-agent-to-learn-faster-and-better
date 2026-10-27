@@ -17,7 +17,10 @@ question comes up, stop and return the question instead of guessing.
 
 **Frontend steps (any change to how a page looks): look, build, photograph, compare.**
 1. Before editing, open the mockup PNG the issue names (under `docs/issues/<n>/`)
-   with Read, and look at it.
+   with Read, and look at it. Also read the design rules in
+   `.claude/skills/{frontend-design,ui-ux-pro-max,taste-skill,web-design-guidelines}/SKILL.md`
+   (and any reference file they point to for the screen you're building).
+   Project rules and the issue text win over these skills.
 2. After building, screenshot the page at desktop and phone width:
    `/opt/pw-browsers/chromium-1194/chrome-linux/chrome --headless --no-sandbox --hide-scrollbars --window-size=1280,1600 --screenshot=<scratch>/desk.png file://$PWD/docs/visual/index.html`
    and the same with `/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell`
