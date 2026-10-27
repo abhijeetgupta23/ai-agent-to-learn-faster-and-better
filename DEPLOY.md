@@ -67,7 +67,8 @@ request after a quiet period takes a few seconds while a machine boots.
 ### Automatic deploys (CD)
 
 `.github/workflows/deploy.yml` deploys `main` by itself: when the **CI** workflow passes on a push
-to `main`, it runs `flyctl deploy --remote-only` on that exact commit, then checks `/health`
+to `main`, it runs `flyctl deploy --remote-only` on the newest commit of `main` that has passed CI
+(never an older one, so a slow run can't roll the site back), then checks `/health`
 (with retries, because machines scale to zero). The **Run workflow** button on the Deploy
 workflow in the Actions tab re-deploys `main` by hand, from a phone too.
 
