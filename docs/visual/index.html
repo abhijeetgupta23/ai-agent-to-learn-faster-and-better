@@ -498,8 +498,10 @@
   .jtag { font-size: 12px; color: var(--muted); }
   .jscore-pill { font-size: 12px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 999px; padding: 2px 9px; }
   .jrow .jname { font-weight: 600; font-size: 14px; }
-  .orch-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
-  .orch-note b { color: var(--board); }
+  [hidden] { display: none !important; }
+  .learning-as { font-size: 13px; color: var(--muted); margin: 14px 0 10px; }
+  .learning-as b { color: var(--text, inherit); }
+  .learning-as .linkbtn { background: none; border: 0; padding: 0 2px; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 0; }
 </style>
 </head>
 <body>
@@ -526,24 +528,24 @@
   <h2>What do you want to learn?</h2>
   <p>It finds the piece you’re missing and teaches that first.</p>
   <div class="chips" id="domain-chips"></div>
+  <p class="learning-as" id="learning-as">Learning as <b id="learning-as-name">alice</b> · <button type="button" class="linkbtn" id="change-name" onclick="revealName()">change</button></p>
   <div class="row">
-    <div>
+    <div id="name-box" hidden>
       <label class="field-label" for="user">Your name</label>
-      <input class="txt" type="text" id="user" name="user" autocomplete="username" value="alice" />
+      <input class="txt" type="text" id="user" name="user" autocomplete="username" value="alice" oninput="syncLearningAs()" />
     </div>
     <input type="text" id="domain" value="ai" style="display:none;" />
     <button class="primary" id="start" onclick="startSession()">Start learning →</button>
   </div>
-  <div class="orch-note">Orchestration: <b>autonomous agent</b> — the model owns the loop</div>
 </div>
-  <svg class="concept-map" role="img" viewBox="0 0 340 300" width="100%" aria-label="Concept map: known ideas are ticked and the learner's gap, attention, is circled in yellow. That gap is the first lesson.">
-    <rect width="340" height="300" rx="14" fill="#1f4d3a"/>
+  <svg class="concept-map" role="img" viewBox="0 0 340 340" width="100%" aria-label="Concept map: known ideas are ticked and the learner's gap, attention, is circled in yellow. That gap is the first lesson.">
+    <rect width="340" height="340" rx="14" fill="#1f4d3a"/>
     <text x="16" y="28" fill="#b9d4c6" font-size="13">How it works: it maps the subject…</text>
-    <g stroke="#3a7059" stroke-width="2"><line x1="90" y1="85" x2="170" y2="140"/><line x1="250" y1="85" x2="170" y2="140"/><line x1="170" y1="140" x2="170" y2="190"/><line x1="170" y1="190" x2="105" y2="245"/><line x1="170" y1="190" x2="235" y2="245"/></g>
-    <g fill="#2a5d47"><circle cx="90" cy="75" r="26"/><circle cx="250" cy="75" r="26"/><circle cx="170" cy="140" r="26"/><circle cx="170" cy="190" r="26"/><circle cx="105" cy="245" r="20"/><circle cx="235" cy="245" r="20"/></g>
-    <circle cx="170" cy="190" r="32" fill="none" stroke="#f4d35e" stroke-width="3" stroke-dasharray="6 5"/>
-    <g fill="#f1f6f2" font-size="12" text-anchor="middle"><text x="90" y="79">✓ tokens</text><text x="250" y="79">✓ vectors</text><text x="170" y="144">✓ embeddings</text><text x="170" y="194" fill="#f4d35e" font-weight="700">attention</text><text x="105" y="249" fill="#b9d4c6">next</text><text x="235" y="249" fill="#b9d4c6">next</text></g>
-    <text x="16" y="288" fill="#f4d35e" font-size="13">…and circles your gap. That's lesson 1.</text>
+    <g stroke="#3a7059" stroke-width="2"><line x1="80" y1="70" x2="170" y2="130"/><line x1="260" y1="70" x2="170" y2="130"/><line x1="170" y1="130" x2="170" y2="205"/><line x1="170" y1="205" x2="95" y2="285"/><line x1="170" y1="205" x2="245" y2="285"/></g>
+    <g fill="#2a5d47"><circle cx="80" cy="70" r="26"/><circle cx="260" cy="70" r="26"/><circle cx="170" cy="130" r="26"/><circle cx="170" cy="205" r="26"/><circle cx="95" cy="285" r="20"/><circle cx="245" cy="285" r="20"/></g>
+    <circle cx="170" cy="205" r="32" fill="none" stroke="#f4d35e" stroke-width="3" stroke-dasharray="6 5"/>
+    <g fill="#f1f6f2" font-size="12" text-anchor="middle"><text x="80" y="74">✓ tokens</text><text x="260" y="74">✓ vectors</text><text x="170" y="134">✓ embeddings</text><text x="170" y="209" fill="#f4d35e" font-weight="700">attention</text><text x="95" y="289" fill="#b9d4c6">next</text><text x="245" y="289" fill="#b9d4c6">next</text></g>
+    <text x="16" y="326" fill="#f4d35e" font-size="13">…and circles your gap. That's lesson 1.</text>
   </svg>
   <div class="replays">
     <h3>Watch a replay</h3>
@@ -566,11 +568,11 @@
 <!-- Split: the learner's experience on the left, the tutor's brain on the
      right — reasoning streams live in the rail and the receipts accumulate
      there, always in view. -->
-<div class="split">
+<div class="split" id="split" hidden>
   <div class="main-col">
-    <div id="feed"></div>
+    <div id="feed" hidden></div>
   </div>
-  <aside class="brain" id="brain">
+  <aside class="brain" id="brain" hidden>
     <div class="brain-h"><span class="orb" id="orb"></span> Tutor’s brain — <span class="live-dot"></span> live</div>
     <!-- The agent loop as a live flowchart: the active stage pulses, finished
          stages turn green, and the adapt→assess edge shows it's a LOOP. -->
@@ -710,6 +712,7 @@ function runFeatured(i) {
   const f = FEATURED[i];
   showView("learn");
   document.getElementById("user").value = f.user_id;
+  syncLearningAs();
   document.getElementById("domain").value = f.domain_id;
   document.querySelectorAll("#domain-chips .chip").forEach(c =>
     c.setAttribute("aria-pressed", c.dataset.domain === f.domain_id ? "true" : "false"));
@@ -860,6 +863,14 @@ function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN
 
 
 function setStatus(s) { document.getElementById("status").textContent = s; }
+function revealName() {
+  document.getElementById("name-box").hidden = false;
+  document.getElementById("user").focus();
+}
+function syncLearningAs() {
+  document.getElementById("learning-as-name").textContent =
+    document.getElementById("user").value || "learner";
+}
 function resetToSetup() {
   document.querySelector(".featured-row").style.display = "";
   document.getElementById("home").style.display = "";
@@ -1443,6 +1454,7 @@ function startSession() {
   document.getElementById("bar-domain").textContent =
     (dd ? dd.label : domain) + " · autonomous";
   document.getElementById("brain-empty").style.display = "none";
+  ["split", "feed", "brain"].forEach(id => { document.getElementById(id).hidden = false; });
   agentLabelSet = false;
   const card = document.createElement("div");
   card.className = "lesson journey";
