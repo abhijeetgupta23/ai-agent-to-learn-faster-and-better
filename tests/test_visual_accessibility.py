@@ -123,18 +123,6 @@ def test_no_onclick_on_div_or_span():
     assert not re.search(r"createElement\(\s*[\"'](div|span)[\"']\s*\)[^;]*\.onclick", HTML)
 
 
-def test_name_input_has_label_for_user():
-    labels = [e for e in _all() if e.tag == "label" and e.attrs.get("for") == "user"]
-    assert len(labels) == 1
-    assert _by_id("user").tag == "input"
-
-
-def test_name_input_has_name_and_autocomplete():
-    user = _by_id("user")
-    assert user.attrs.get("name")
-    assert user.attrs.get("autocomplete")
-
-
 def test_focus_visible_styles_exist_and_outline_never_dropped():
     css = _css()
     assert ":focus-visible" in css

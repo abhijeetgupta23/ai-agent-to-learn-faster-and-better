@@ -290,21 +290,37 @@ def test_start_reveals_brain_and_feed():
     )
 
 
-# ---------- name box ----------
-def test_name_input_hidden_on_first_load_but_still_labelled():
+# ---------- no name UI ----------
+def test_no_name_ui_and_learner_id_is_a_hidden_alice_default():
     user = _by_id("user")
-    assert _statically_hidden(user)
+    assert user.tag == "input"
+    assert user.attrs.get("type") == "hidden"
     assert user.attrs.get("value") == "alice"
-    labels = [e for e in _all() if e.tag == "label" and e.attrs.get("for") == "user"]
-    assert len(labels) == 1
-
-
-def test_learning_as_alice_with_change_link_reveals_name_box():
-    assert "learning as" in HTML.lower()
+    assert not [e for e in _all() if e.tag == "label" and e.attrs.get("for") == "user"]
+    visible_text_inputs = [
+        e for e in _all()
+        if e.tag == "input"
+        and e.attrs.get("type", "text") in ("text", "search")
+        and (e.attrs.get("id") == "user" or e.attrs.get("name") in ("user", "name", "username"))
+    ]
+    assert not visible_text_inputs
+    assert "learning as" not in HTML.lower()
     change = [e for e in _all() if e.tag in ("button", "a") and _text(e).lower() == "change"]
-    assert len(change) == 1
-    assert change[0].tag == "button" or change[0].attrs.get("href", "").startswith("#")
-    assert "alice" in HTML.lower().split("learning as", 1)[1][:200]
+    assert not change
+
+
+def test_change_topic_control_stays_in_session_bar():
+    assert any(
+        e.tag == "button" and "change topic" in _text(e).lower() for e in _all()
+    )
+
+
+def test_start_session_reads_user_and_run_featured_sets_it():
+    assert re.search(r"""getElementById\(\s*["']user["']\s*\)\.value""", _fn_body("startSession"))
+    assert re.search(
+        r"""getElementById\(\s*["']user["']\s*\)\.value\s*=\s*f\.user_id""",
+        _fn_body("runFeatured"),
+    )
 
 
 # ---------- failure case: running session ----------
