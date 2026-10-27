@@ -1,0 +1,89 @@
+name: Deploy
+
+# Ships main to Fly after CI passes on it, then pings /health. Also has a manual "Run workflow"
+# button for re-deploys. Needs the repo secret FLY_API_TOKEN (a deploy-only token for the app);
+# without it the job skips with a notice instead of failing.
+#
+# No live agent evals here: they cost money. When there are real users, add an eval gate (and a
+# manual approval environment) before the deploy step.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read   # to check that main's newest commit passed CI
+
+concurrency:
+  group: deploy-fly
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only a successful CI run from a push to main (not a PR), or a manual run on main.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_URL: https://adaptive-learning-2.fly.dev
+    steps:
+      # Always ship the newest main, never the commit that happened to trigger this run. GitHub keeps
+      # only one pending run per concurrency group, so a late CI run for an older commit can replace
+      # the newest commit's queued deploy; because every run deploys the current tip (once its CI
+      # has passed), whichever run survives still ships the newest code, and an older commit can
+      # never roll production back.
+      - name: Pick the newest main that passed CI
+        id: token
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::notice::FLY_API_TOKEN is not set, so nothing was deployed. Add it under Settings → Secrets → Actions."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tip=$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)
+          green=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=$tip&event=push&status=success" --jq .total_count)
+          if [ "$green" = "0" ]; then
+            echo "::notice::Skipped: the tip of main ($tip) has not passed CI yet. Its own CI run will deploy it."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Deploying main at $tip"
+          echo "sha=$tip" >> "$GITHUB_OUTPUT"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
+        with:
+          ref: ${{ steps.token.outputs.sha }}
+
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
+        if: steps.token.outputs.ok == 'true'
+
+      - name: fly deploy
+        if: steps.token.outputs.ok == 'true'
+        run: flyctl deploy --remote-only
+
+      - name: Health check
+        if: steps.token.outputs.ok == 'true'
+        run: |
+          # The app scales to zero, so the first request may wait for a machine to boot.
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 30 "$APP_URL/health" | grep -q '"ok"'; then
+              echo "Live: $APP_URL/visual/"
+              exit 0
+            fi
+            echo "Not healthy yet (try $i), waiting..."
+            sleep 10
+          done
+          echo "::error::$APP_URL/health did not answer ok after deploy. Roll back with: fly releases, then fly deploy --image <previous image>."
+          exit 1

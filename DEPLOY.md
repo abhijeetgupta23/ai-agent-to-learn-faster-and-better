@@ -64,6 +64,21 @@ Visit `/visual` for the live walkthrough page (open, no token).
 Machines scale to zero when idle (`auto_stop_machines = 'stop'`), so the first
 request after a quiet period takes a few seconds while a machine boots.
 
+### Automatic deploys (CD)
+
+`.github/workflows/deploy.yml` deploys `main` by itself: when the **CI** workflow passes on a push
+to `main`, it runs `flyctl deploy --remote-only` on the newest commit of `main` that has passed CI
+(never an older one, so a slow run can't roll the site back), then checks `/health`
+(with retries, because machines scale to zero). The **Run workflow** button on the Deploy
+workflow in the Actions tab re-deploys `main` by hand, from a phone too.
+
+One-time setup: create a deploy-only token (`fly tokens create deploy --app adaptive-learning-2`,
+or fly.io → the app → Tokens) and add it as the repository secret `FLY_API_TOKEN`
+(Settings → Secrets and variables → Actions). Without it the job skips with a notice.
+
+It runs no live agent evals (they cost money). Roll back with `fly releases` and
+`fly deploy --image <previous image>`.
+
 ## 5. Guard behaviour at a glance
 
 - **No token** on a protected endpoint when `DEMO_TOKEN` is set → `401` with a
