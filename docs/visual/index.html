@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI Agent to Learn Faster</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <style>
   :root {
     --bg: #f3f5f2;
@@ -42,7 +42,10 @@
     --pill-plan-bg: #fbe8d6;
     --pill-plan-fg: #8a4b12;
     --tint: #e8eeea;
-    --shadow: 0 10px 30px rgba(40, 50, 30, 0.10);
+    --paper-2: #e6ebe7;
+    --ink-2: #3f4f47;
+    --chalk-ink: #f1f6f2;
+    --chalk-ink-2: #c3d6cc;
   }
   @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/fraunces-latin-600-normal.woff2") format("woff2"); }
   @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/fraunces-latin-700-normal.woff2") format("woff2"); }
@@ -59,30 +62,41 @@
     background: var(--bg);
     color: var(--ink);
     margin: 0;
-    padding: 0 16px 80px;
+    padding: 0;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  header { padding: 10px 16px; margin-top: 16px; border-radius: 14px;
-    background: var(--board); color: var(--on-board);
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  header .brand { flex: 1; min-width: 0; white-space: nowrap; }
-  header h1 { white-space: nowrap; }
-  header .nav { margin: 0; }
-  header .nav button { color: var(--on-board-muted); border-color: transparent; min-height: 36px; }
-  header .nav button.active { background: transparent; color: var(--on-board); border-color: transparent; border-radius: 0; box-shadow: inset 0 -3px 0 var(--chalk); }
-  header .nav .badge-pass { color: var(--on-board); background: transparent; }
-  header h1, header .sub { color: var(--on-board); }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .logo {
-    width: 30px; height: 30px; border-radius: 9px; flex: none;
-    background: var(--chalk);
-    display: grid; place-items: center; color: var(--ink); font-size: 16px;
-  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px 80px; }
+  .skip { position: absolute; left: -999px; top: 8px; background: var(--chalk); color: var(--ink);
+    padding: 12px 16px; z-index: 9; font-weight: 600; }
+  .skip:focus { left: 16px; }
+  header { background: var(--board); color: var(--on-board); }
+  .bar-in { max-width: 1280px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 48px);
+    display: flex; align-items: center; gap: 8px 28px; flex-wrap: wrap; min-height: 64px; }
+  .mark { display: flex; align-items: center; gap: 12px; margin-right: auto; padding: 11px 0;
+    font: 700 22px/1 Fraunces, Georgia, serif; color: var(--chalk-ink); text-decoration: none; }
+  .logo { width: 28px; height: 28px; flex: none; background: var(--chalk); color: var(--ink);
+    display: grid; place-items: center; }
   .logo svg { width: 18px; height: 18px; }
+  header nav { display: flex; gap: 24px; align-items: center; }
+  header nav a, header nav button { color: var(--chalk-ink-2); background: none; border: 0; border-radius: 0;
+    padding: 0; min-height: 44px; display: inline-flex; align-items: center; font-size: 16px;
+    font-weight: 400; cursor: pointer; text-decoration: none; }
+  header nav a:hover, header nav button:hover { color: var(--chalk-ink); }
+  header nav button.active { color: var(--chalk-ink); text-decoration: underline;
+    text-decoration-color: var(--chalk); text-decoration-thickness: 3px; text-underline-offset: 8px; }
+  .session-ctl { display: flex; align-items: center; gap: 16px; }
+  .session-ctl[hidden] { display: none; }
+  #status { color: var(--chalk-ink-2); font-size: 14px; }
+  #change-topic { background: var(--board-2); color: var(--chalk-ink); border: 0; border-radius: 0;
+    min-height: 44px; padding: 0 16px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  #change-topic:hover { background: var(--board-line); }
+  footer { background: var(--board); color: var(--chalk-ink-2); }
+  .foot-in { max-width: 1280px; margin: 0 auto; padding: 56px clamp(16px, 4vw, 48px) 40px; }
+  .foot-name { font: 700 clamp(40px, 14.5vw, 200px)/1 Fraunces, Georgia, serif; color: var(--chalk-ink-2);
+    letter-spacing: -0.02em; white-space: nowrap; }
+  .foot-in p { margin: 24px 0 0; font-size: 16px; }
   h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
 
   /* Setup */
   .setup { padding: 28px 4px 8px; margin-top: 8px; text-align: left; }
@@ -93,9 +107,8 @@
     max-width: 520px; margin-bottom: 20px; }
   .chip {
     border: none; background: none; box-shadow: none; color: var(--ink);
-    border-radius: 8px; padding: 0 10px; min-height: 44px; font-size: 16px; text-align: left; cursor: pointer;
+    border-radius: 0; padding: 0 10px; min-height: 44px; font-size: 16px; text-align: left; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    border-bottom: 1px solid var(--border);
     transition: color .12s ease, outline-color .12s ease;
   }
   .chip:hover { color: var(--board); }
@@ -103,8 +116,8 @@
   .chip[aria-pressed="true"]::after { content: "\2713"; color: var(--board); }
   .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
   input[type=text], input.txt {
-    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
-    font-size: 14px; background: #fff; min-width: 160px;
+    padding: 10px 12px; border: 0; border-radius: 0;
+    font-size: 14px; background: var(--paper-2); min-width: 160px;
   }
   input:focus, .chip:focus { outline: 2px solid var(--board-line); outline-offset: 1px; }
   button:focus-visible, a:focus-visible, input:focus-visible, .chip:focus-visible,
@@ -114,18 +127,17 @@
     outline-color: var(--chalk); }
   label.field-label { display: block; }
   button.primary {
-    background: var(--chalk); color: var(--ink); border: 1px solid var(--chalk-d); padding: 11px 22px;
-    border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
-    box-shadow: 0 3px 8px rgba(40,50,30,.18); transition: background .12s;
+    background: var(--chalk); color: var(--ink); border: 0; padding: 0 22px; min-height: 48px;
+    border-radius: 0; font-size: 18px; font-weight: 700; cursor: pointer; transition: background .12s;
   }
   button.primary:hover { background: var(--chalk-d); }
-  button.primary:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
 
   /* Thinking banner */
   .thinking {
     display: none; align-items: center; gap: 12px; margin: 20px 0;
-    background: var(--paper); border: 1px solid var(--border); border-radius: 14px;
-    padding: 14px 18px; box-shadow: var(--shadow);
+    background: var(--paper-2); border-radius: 0;
+    padding: 14px 18px;
   }
   .thinking.show { display: flex; }
   .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none;
@@ -152,21 +164,20 @@
 
   /* Lesson card */
   .lesson {
-    background: var(--paper); border: 1px solid var(--border); border-radius: 18px;
-    padding: 24px 26px; box-shadow: var(--shadow); margin: 18px 0;
+    background: var(--paper); border-radius: 0;
+    padding: 24px 26px; margin: 18px 0;
     animation: rise 260ms ease;
   }
   @keyframes rise { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none; } }
   .lesson-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-  .pill { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
-    padding: 4px 10px; border-radius: 999px; }
-  .pill.reading { background: var(--pill-reading-bg); color: var(--pill-reading-fg); }
-  .pill.socratic { background: var(--pill-socratic-bg); color: var(--pill-socratic-fg); }
-  .pill.interactive { background: var(--pill-interactive-bg); color: var(--pill-interactive-fg); }
+  .mtag { font-size: 14px; font-weight: 700; padding: 2px 8px; border-radius: 0; }
+  .mtag.reading { background: var(--pill-reading-bg); color: var(--pill-reading-fg); }
+  .mtag.socratic { background: var(--pill-socratic-bg); color: var(--pill-socratic-fg); }
+  .mtag.interactive { background: var(--pill-interactive-bg); color: var(--pill-interactive-fg); }
   .progress { display: flex; gap: 5px; align-items: center; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
   .dot.done { background: var(--board); }
-  .dot.cur { background: var(--chalk); box-shadow: 0 0 0 2px var(--board); }
+  .dot.cur { background: var(--chalk); outline: 2px solid var(--board); }
   .lesson h3 { margin: 6px 0 14px; font-size: 22px; letter-spacing: -0.01em; }
   .body { font-size: 15.5px; color: var(--ink); }
   .body p { margin: 0 0 12px; }
@@ -174,62 +185,61 @@
   .body code { background: var(--tint); padding: 1px 6px; border-radius: 5px; font-size: 13.5px; }
   .body ul { margin: 8px 0 12px; padding-left: 22px; }
   .lesson-chart { margin: 16px 0 6px; }
-  .lesson-chart img { width: 100%; max-width: 560px; display: block; border: 1px solid var(--border);
-    border-radius: 10px; background: var(--paper); }
+  .lesson-chart img { width: 100%; max-width: 560px; display: block;
+    border-radius: 0; background: var(--paper); }
   .lesson-chart figcaption { font-size: 12px; color: var(--muted); margin-top: 5px; font-style: italic; }
-  .takeaways { margin-top: 18px; background: var(--tint); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+  .takeaways { margin-top: 18px; background: var(--tint); border-radius: 0; padding: 14px 18px; }
   .takeaways .h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--board); margin-bottom: 8px; }
   .takeaways li { margin-bottom: 6px; }
 
   /* Curriculum / table of contents */
-  .pill.plan { background: var(--pill-plan-bg); color: var(--pill-plan-fg); }
+  .mtag.plan { background: var(--pill-plan-bg); color: var(--pill-plan-fg); }
   .toc { list-style: none; margin: 8px 0 0; padding: 0; }
-  .toc li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 6px; border-bottom: 1px solid var(--border); transition: background .15s; border-radius: 8px; }
-  .toc li:last-child { border-bottom: none; }
+  .toc li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 6px; margin-bottom: 4px; transition: background .15s; border-radius: 0; }
   .toc .num { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--tint); color: var(--muted);
     display: grid; place-items: center; font-size: 13px; font-weight: 700; }
   .toc .c-title { font-weight: 600; font-size: 15.5px; }
   .toc .c-meta { color: var(--muted); font-size: 13px; margin-top: 3px; display: flex; align-items: center; gap: 8px; }
-  .toc .c-meta .pill { font-size: 12px; padding: 2px 8px; }
+  .toc .c-meta .mtag { font-size: 14px; padding: 2px 8px; }
   .toc li.done .num { background: var(--good); color: #fff; }
   .toc li.done .c-title { color: var(--muted); }
   .toc li.cur { background: var(--chalk-soft); }
-  .toc li.cur .num { background: var(--chalk); color: var(--ink); box-shadow: 0 0 0 3px var(--board); }
+  .toc li.cur .num { background: var(--chalk); color: var(--ink); outline: 3px solid var(--board); }
 
   /* Socratic */
   .turn { display: flex; gap: 10px; margin-bottom: 12px; }
   .turn .who { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
     color: var(--muted); min-width: 64px; padding-top: 3px; }
-  .turn .bubble { background: var(--tint); border-radius: 12px; padding: 10px 14px; flex: 1; }
+  .turn .bubble { background: var(--tint); border-radius: 0; padding: 10px 14px; flex: 1; }
   .turn.learner_prompt .bubble { background: var(--chalk-soft); }
 
   /* Quiz */
   .q { margin-bottom: 18px; }
   .q .qt { font-weight: 600; margin-bottom: 10px; }
   .opt {
-    display: block; width: 100%; text-align: left; border: 1px solid var(--border);
-    background: var(--paper); border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
-    font-size: 14.5px; cursor: pointer; transition: border-color .1s, background-color .1s, color .1s;
+    display: block; width: 100%; text-align: left; border: 0;
+    background: var(--paper-2); border-radius: 0; padding: 11px 14px; margin-bottom: 8px; min-height: 56px;
+    font-size: 16px; cursor: pointer; transition: background-color .1s, color .1s;
   }
-  .opt:hover:not(:disabled) { border-color: var(--board); background: var(--tint); }
+  .opt:hover:not(:disabled) { background: var(--tint); }
   .opt:disabled { cursor: default; }
-  .opt.correct { border-color: var(--good); background: var(--good-bg); }
-  .opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+  .opt.correct { box-shadow: inset 4px 0 0 var(--good); background: var(--good-bg); }
+  .opt.wrong { box-shadow: inset 4px 0 0 var(--bad); background: var(--bad-bg); }
   .explain { font-size: 13.5px; color: var(--muted); margin: 2px 0 4px; padding-left: 2px; }
 
   /* Response control */
-  .respond { margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 18px; }
+  .respond { margin-top: 20px; padding-top: 18px; }
   .respond .ask { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
   .respond .ask b { color: var(--ink); }
   .respond input.txt { width: 100%; margin-bottom: 12px; }
   .btns { display: flex; gap: 10px; }
-  button.good { background: var(--good); color: #fff; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
-  button.bad { background: var(--bad); color: #fff; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
-  button.ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--border); padding: 11px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+  button.good { background: var(--good); color: #fff; border: none; padding: 11px 18px; border-radius: 0; font-weight: 600; cursor: pointer; }
+  button.bad { background: var(--bad); color: #fff; border: none; padding: 11px 18px; border-radius: 0; font-weight: 600; cursor: pointer; }
+  button.ghost { background: var(--paper-2); color: var(--ink); border: 0; padding: 11px 18px; border-radius: 0; font-weight: 600; cursor: pointer; }
 
   /* You-said + adapt notes */
   .note-line { display: flex; align-items: center; gap: 10px; margin: 14px 2px; color: var(--muted); font-size: 13.5px; }
-  .note-line .tagk { background: var(--pill-reading-bg); color: var(--pill-reading-fg); border-radius: 999px; padding: 3px 10px; font-weight: 600; font-size: 12px; }
+  .note-line .tagk { background: var(--pill-reading-bg); color: var(--pill-reading-fg); border-radius: 0; padding: 3px 10px; font-weight: 600; font-size: 12px; }
   .note-line.adapt .tagk { background: var(--pill-plan-bg); color: var(--pill-plan-fg); }
 
   /* Done screen */
@@ -239,8 +249,8 @@
 
   /* Under the hood */
   details.internals {
-    margin: 26px 0 10px; background: var(--board); color: var(--on-board); border-radius: 14px;
-    border: 1px solid var(--board-line); overflow: hidden;
+    margin: 26px 0 10px; background: var(--board); color: var(--on-board); border-radius: 0;
+    overflow: hidden;
   }
   details.internals > summary {
     cursor: pointer; padding: 14px 18px; font-size: 13.5px; font-weight: 600; color: var(--on-board-muted);
@@ -248,12 +258,11 @@
   }
   details.internals > summary::-webkit-details-marker { display: none; }
   details.internals > summary:hover { color: #fff; }
-  details.internals[open] > summary { border-bottom: 1px solid var(--board-line); }
   .twirl { transition: transform .15s; }
   details.internals[open] .twirl { transform: rotate(90deg); }
   #trace { padding: 10px 14px 16px; }
-  .stream-card { border: 1px solid var(--board-line); border-left: 3px solid var(--board-line); padding: 10px 12px;
-    margin: 8px 0; background: linear-gradient(180deg, var(--board-2), var(--board-2)); border-radius: 10px; }
+  .stream-card { border: 0; border-left: 3px solid var(--board-line); padding: 10px 12px;
+    margin: 8px 0; background: var(--board-2); border-radius: 0; }
   .stream-card.phase-assess { border-left-color: var(--chalk); }
   .stream-card.phase-plan { border-left-color: var(--phase-plan); }
   .stream-card.phase-generate { border-left-color: var(--phase-generate); }
@@ -262,24 +271,23 @@
   .stream-card .head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
   .stream-card .ticon { font-size: 13px; flex: none; }
   .stream-card .title { font-weight: 600; font-size: 13px; color: var(--on-board); flex: 1; min-width: 0; }
-  .stream-card .label { font-size: 12px; color: var(--on-board-muted); background: var(--board-d); border: 1px solid var(--board-line);
-    padding: 2px 6px; border-radius: 5px; flex: none; max-width: 46%; overflow: hidden;
+  .stream-card .label { font-size: 12px; color: var(--on-board-muted); background: var(--board-d);
+    padding: 2px 6px; border-radius: 0; flex: none; max-width: 46%; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; }
   /* Phase transitions are slim section dividers, not boxes. */
   .trace-sec { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px;
     font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--on-board-muted); }
-  .trace-sec::after { content: ""; flex: 1; height: 1px; background: var(--board-line); }
   .trace-sec.phase-assess { color: var(--chalk); }
   .trace-sec.phase-plan { color: var(--phase-plan); }
   .trace-sec.phase-generate { color: var(--phase-generate); }
   .trace-sec.phase-observe { color: var(--phase-observe); }
   .trace-sec.phase-adapt { color: var(--phase-adapt); }
   .trace-sec .sec-agent { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none;
-    color: var(--on-board-muted); background: var(--board-d); border: 1px solid var(--board-line); padding: 1px 6px;
-    border-radius: 5px; margin-left: 2px; }
+    color: var(--on-board-muted); background: var(--board-d); padding: 1px 6px;
+    border-radius: 0; margin-left: 2px; }
   /* Learner profile chips */
   .lstats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-  .lstat { background: var(--board-d); border: 1px solid var(--board-line); border-radius: 999px;
+  .lstat { background: var(--board-d); border-radius: 0;
     padding: 3px 10px; font-size: 12px; color: var(--on-board); }
   .ldot { width: 6px; height: 6px; border-radius: 50%; background: var(--board-line);
     display: inline-block; margin-left: 3px; vertical-align: 1px; }
@@ -288,9 +296,8 @@
   .stream-card .content b { color: var(--on-board); }
   .stream-card code { background: var(--board-d); color: var(--chalk); padding: 1px 5px; border-radius: 4px; }
   .stream-card pre { background: var(--board-d); color: var(--on-board); padding: 8px 10px; border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
-  .step-mini { display: inline-block; background: var(--board-d); border: 1px solid var(--board-line); border-radius: 6px; padding: 4px 8px; font-size: 12px; margin: 0 5px 5px 0; color: var(--on-board); }
+  .step-mini { display: inline-block; background: var(--board-d); border-radius: 0; padding: 4px 8px; font-size: 12px; margin: 0 5px 5px 0; color: var(--on-board); }
   .step-mini b { color: var(--chalk); }
-  #status { color: var(--muted); font-size: 12.5px; margin-left: 4px; }
 
   /* ---- Responsive: tablet ---- */
   @media (max-width: 820px) {
@@ -299,16 +306,14 @@
   }
   /* ---- Responsive: phone ---- */
   @media (max-width: 560px) {
-    body { padding: 0 12px 56px; }
-    header { padding: 10px 12px; gap: 6px; }
-    header .nav { gap: 2px; }
-    header .nav button { padding: 7px 10px; }
-    header .nav .badge-pass { display: none; }
-    header .brand { flex: none; }
-    header .nav { margin-left: auto; }
+    .wrap { padding: 0 12px 56px; }
+    .bar-in { padding-top: 12px; gap: 0 20px; }
+    .mark { width: 100%; margin-right: 0; padding: 0 0 4px; }
+    header nav { gap: 20px; }
+    .session-ctl { width: 100%; padding-bottom: 8px; }
     h1 { font-size: 17px; }
     .setup h2 { font-size: 28px; }
-    .setup, .lesson { padding: 18px 15px; border-radius: 14px; }
+    .setup, .lesson { padding: 18px 15px; }
     .lesson h3 { font-size: 19px; }
     .body { font-size: 15px; }
     .row { flex-direction: column; align-items: stretch; }
@@ -326,28 +331,24 @@
   /* Split layout: lesson flow left, tutor's brain right (sticky). */
   .split { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 18px; align-items: start; }
   .main-col { min-width: 0; }
-  .brain { background: var(--board); border: 1px solid var(--board-line); border-radius: 14px; padding: 12px 14px;
+  .brain { background: var(--board); border-radius: 0; padding: 12px 14px;
     position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
   .brain-h { font-size: 13px; font-weight: 700; color: var(--on-board-muted); letter-spacing: .03em;
     display: flex; align-items: center; gap: 6px; padding: 2px 2px 10px; }
   .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; display: inline-block;
     animation: pulse 1.4s infinite ease-in-out; }
-  .brain .thinking { background: var(--board-2); border: 1px solid var(--board-line); box-shadow: none;
+  .brain .thinking { background: var(--board-2);
     margin: 0 0 10px; padding: 12px 14px; }
   .brain .thinking .t { color: var(--on-board-muted); }
   .brain .thinking .t b { color: var(--on-board); }
   .brain .thinking .t .reasoning { color: var(--on-board-muted); font-style: normal; }
   .brain #trace { padding: 0; }
   .brain-empty { font-size: 13px; color: var(--on-board-muted); line-height: 1.55; padding: 6px 4px 10px; }
-  .session-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding: 10px 16px;
-    border: 1px solid var(--border); border-radius: 12px; background: var(--paper); font-size: 14px; }
-  .session-bar #status { color: var(--muted); font-size: 12.5px; margin-left: auto; }
 
   /* Journey card — keeps the left column alive while the session builds. */
   .journey h3 { font-size: 17px; margin: 0 0 10px; }
   .jstep { display: flex; align-items: center; gap: 10px; padding: 10px 4px;
-    border-bottom: 1px dashed var(--border); font-size: 14.5px; color: var(--muted); }
-  .jstep:last-child { border-bottom: none; }
+    font-size: 14.5px; color: var(--muted); }
   .jstep .jicon { filter: grayscale(1); opacity: .45; transition: filter .2s, opacity .2s; }
   .jstep.active, .jstep.done { color: var(--ink); }
   .jstep.active .jicon, .jstep.done .jicon { filter: none; opacity: 1; }
@@ -374,12 +375,11 @@
 
   /* The agent orb — its state mirrors what the model is doing. */
   .orb { width: 16px; height: 16px; border-radius: 50%; flex: none; display: inline-block;
-    background: radial-gradient(circle at 30% 30%, #fff3b0, var(--chalk) 62%, var(--chalk-d));
+    background: var(--chalk);
     animation: orb-idle 3.2s ease-in-out infinite; }
   .orb.big { width: 34px; height: 34px; margin-bottom: 8px; }
-  .orb.think { animation: orb-think .9s ease-in-out infinite; box-shadow: 0 0 14px #f4d35e99; }
-  .orb.write { animation: orb-write .55s ease-in-out infinite; box-shadow: 0 0 12px #3fb95088;
-    background: radial-gradient(circle at 30% 30%, #b8f0cf, #2ea043 62%, #0c2818); }
+  .orb.think { animation: orb-think .9s ease-in-out infinite; }
+  .orb.write { animation: orb-write .55s ease-in-out infinite; background: #2ea043; }
   @keyframes orb-idle { 50% { transform: scale(1.07); } }
   @keyframes orb-think { 50% { transform: scale(1.3); filter: hue-rotate(35deg) brightness(1.2); } }
   @keyframes orb-write { 50% { transform: scale(1.15); } }
@@ -389,8 +389,8 @@
   /* Live concept-graph card — full width in the lesson column. The dark
      canvas is deliberate: this is the agent's view, embedded in your page. */
   #graph-viz .gv-h { font-size: 14px; font-weight: 700; margin: 0 0 10px; }
-  #graph-viz svg { width: 100%; display: block; background: var(--board-d); border: 1px solid var(--board-line);
-    border-radius: 12px; }
+  #graph-viz svg { width: 100%; display: block; background: var(--board-d);
+    border-radius: 0; }
   .gv-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;
     font-size: 12px; color: var(--muted); }
   .gv-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
@@ -409,7 +409,7 @@
   .brain-empty { text-align: center; }
   /* Agent-loop flowchart */
   #flowchart { width: 100%; display: block; margin-bottom: 10px; background: var(--board-d);
-    border: 1px solid var(--board-line); border-radius: 10px; }
+    border-radius: 0; }
   .fedge { stroke: var(--board-line); stroke-width: 1.6; fill: none; marker-end: url(#arr); transition: stroke .3s; }
   .fedge.on { stroke: var(--chalk); stroke-dasharray: 6 5; animation: fdash .7s linear infinite; }
   .fedge.loop { stroke-dasharray: 3 4; }
@@ -428,20 +428,11 @@
     .brain { position: static; max-height: none; }
   }
 
-  /* Nav */
-  .nav { display: flex; gap: 8px; align-items: center; margin: 14px 4px 0; }
-  .nav button { background: transparent; border: 1px solid var(--border); color: var(--muted);
-    padding: 7px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-  .nav button.active { background: var(--board); color: var(--on-board); border-color: var(--board); }
-  .nav .grow { flex: 1; }
-  .nav .badge-pass { font-size: 12px; font-weight: 700; color: var(--good); background: var(--good-bg);
-    border-radius: 999px; padding: 3px 10px; }
-
   /* Featured decision launchers — one card per signature adaptive behavior */
   .home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 32px; align-items: start; }
   .home-grid .setup { grid-column: 1; }
   .concept-map { grid-column: 2; grid-row: 1; width: 100%; max-width: 340px; height: auto; display: block; margin-top: 36px; }
-  .replays { grid-column: 1 / -1; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .replays { grid-column: 1 / -1; margin-top: 12px; padding-top: 12px; }
   .replays h3 { margin: 0 0 4px; font-family: "Source Sans 3", system-ui, sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); }
   .featured-row { display: flex; flex-wrap: wrap; gap: 4px 28px; }
   .featured { display: inline-flex; gap: 8px; align-items: center; padding: 0; min-height: 44px;
@@ -462,21 +453,17 @@
   .ev-hero h2 { font-size: 22px; margin: 0 0 4px; }
   .ev-hero .big-pass { display: inline-flex; align-items: baseline; gap: 8px; }
   .ev-hero .pct { font-size: 30px; font-weight: 800; color: var(--good); }
-  .ev-case { background: var(--paper); border: 1px solid var(--border); border-radius: 14px;
-    box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+  .ev-case { background: var(--paper); border-radius: 0;
+    margin-bottom: 12px; overflow: hidden; }
   .ev-case > summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; align-items: center;
     gap: 12px; flex-wrap: wrap; }
   .ev-case > summary::-webkit-details-marker { display: none; }
   .ev-case .cname { font-weight: 600; font-size: 15px; flex: 1; min-width: 180px; }
-  .ev-badge { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
-  .ev-badge.pass { color: var(--good); background: var(--good-bg); }
-  .ev-badge.fail { color: var(--bad); background: var(--bad-bg); }
-  .jchip { font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; color: var(--muted); }
-  .jchip b { color: var(--ink); }
-  .jchip.lo b { color: var(--bad); }
-  .ev-body { padding: 0 18px 16px; border-top: 1px solid var(--border); }
-  .jrow { padding: 12px 0; border-bottom: 1px dashed var(--border); }
-  .jrow:last-child { border-bottom: none; }
+  .ev-flag { font-size: 14px; font-weight: 700; border-radius: 0; padding: 3px 10px; }
+  .ev-flag.pass { color: var(--good); background: var(--good-bg); }
+  .ev-flag.fail { color: var(--bad); background: var(--bad-bg); }
+  .ev-body { padding: 0 18px 16px; }
+  .jrow { padding: 12px 0; }
   .jrow .jh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .jrow .jname { font-weight: 600; font-size: 13.5px; }
   .jrow .jscore { font-size: 12px; font-weight: 700; color: var(--board); }
@@ -489,33 +476,37 @@
   .ev-wf { margin-top: 12px; font-size: 13px; color: var(--muted); }
   .ev-wf b { color: var(--ink); }
   .ev-ctx { margin-bottom: 12px; padding: 10px 12px; font-size: 13px; color: var(--muted);
-    background: var(--tint); border: 1px solid var(--border); border-radius: 8px; }
+    background: var(--tint); border-radius: 0; }
   .ev-ctx b { color: var(--ink); }
   .ev-scn { font-weight: 600; font-size: 15px; flex: 1; min-width: 200px; }
   .ev-cid { color: var(--muted); font-weight: 400; font-size: 12px; }
   .ev-mini { font-size: 12px; color: var(--muted); }
   .ev-hint { font-size: 12px; color: var(--muted); opacity: .8; }
   .jtag { font-size: 12px; color: var(--muted); }
-  .jscore-pill { font-size: 12px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 999px; padding: 2px 9px; }
+  .jscore { font-size: 14px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 0; padding: 2px 9px; }
   .jrow .jname { font-weight: 600; font-size: 14px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
-<div class="wrap">
-
+<a class="skip" href="#main">Skip to content</a>
 <header>
-  <div class="brand">
-    <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5v-4.5"/></svg></div>
-    <h1>Learn Faster</h1>
+  <div class="bar-in">
+    <a class="mark" href="#main"><span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11.5V16c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5v-4.5"/></svg></span>Learn Faster</a>
+    <nav aria-label="Main">
+      <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
+      <a href="#replays" onclick="showView('learn')">Watch a lesson</a>
+      <button id="nav-evals" onclick="showView('evals')">How we test it</button>
+    </nav>
+    <div class="session-ctl" id="session-ctl" hidden="">
+      <span id="status" aria-live="polite">ready</span>
+      <button id="change-topic" type="button" onclick="resetToSetup()">change topic</button>
+    </div>
   </div>
-  <div class="nav">
-  <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
-  <button id="nav-evals" onclick="showView('evals')">Eval harness</button>
-  <span class="grow"></span>
-  <span class="badge-pass" id="nav-pass">6/6 ✓</span>
-</div>
 </header>
+
+<main id="main">
+<div class="wrap">
 
 <div id="learn-view">
 
@@ -528,7 +519,7 @@
   <div class="row">
     <input type="hidden" id="user" name="user" value="alice">
     <input type="text" id="domain" value="ai" style="display:none;" />
-    <button class="primary" id="start" onclick="startSession()">Start learning →</button>
+    <button class="primary" id="start" onclick="startSession()">Start learning</button>
   </div>
 </div>
   <svg class="concept-map" role="img" viewBox="0 0 340 340" width="100%" aria-label="Concept map: known ideas are ticked and the learner's gap, attention, is circled in yellow. That gap is the first lesson.">
@@ -540,7 +531,7 @@
     <g fill="#f1f6f2" font-size="12" text-anchor="middle"><text x="80" y="74">✓ tokens</text><text x="260" y="74">✓ vectors</text><text x="170" y="134">✓ embeddings</text><text x="170" y="209" fill="#f4d35e" font-weight="700">attention</text><text x="95" y="289" fill="#b9d4c6">next</text><text x="245" y="289" fill="#b9d4c6">next</text></g>
     <text x="16" y="326" fill="#f4d35e" font-size="13">…and circles your gap. That's lesson 1.</text>
   </svg>
-  <div class="replays">
+  <div class="replays" id="replays">
     <h3>Watch a replay</h3>
     <div class="featured-row">
     <button type="button" class="featured" onclick="runFeatured(0)"><span class="play" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg></span><span class="ft">Refuses to explain it a third time</span></button>
@@ -551,21 +542,14 @@
 </div>
 </div>
 
-<!-- Slim bar shown while a session runs (the launcher collapses away). -->
-<div class="session-bar" id="session-bar" style="display:none;">
-  <span>Learning <b id="bar-domain"></b></span>
-  <span id="status" aria-live="polite">ready</span>
-  <button class="chip" onclick="resetToSetup()">change topic</button>
-</div>
-
 <!-- Split: the learner's experience on the left, the tutor's brain on the
      right — reasoning streams live in the rail and the receipts accumulate
      there, always in view. -->
-<div class="split" id="split" hidden>
+<div class="split" id="split" hidden="">
   <div class="main-col">
-    <div id="feed" hidden></div>
+    <div id="feed" hidden=""></div>
   </div>
-  <aside class="brain" id="brain" hidden>
+  <aside class="brain" id="brain" hidden="">
     <div class="brain-h"><span class="orb" id="orb"></span> Tutor’s brain — <span class="live-dot"></span> live</div>
     <!-- The agent loop as a live flowchart: the active stage pulses, finished
          stages turn green, and the adapt→assess edge shows it's a LOOP. -->
@@ -618,6 +602,14 @@
 </div>
 
 </div><!-- /wrap -->
+</main>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-name">Learn Faster</div>
+    <p>Open source. About $0.17 a lesson.</p>
+  </div>
+</footer>
 
 <script>
 // The model owns the loop and decides each tool call itself. This is the only
@@ -784,7 +776,6 @@ function loadEvals() {
 function renderEvals(d) {
   evalsLoaded = true;
   document.getElementById("ev-pct").textContent = `${d.n_pass} of ${d.n_total}`;
-  document.getElementById("nav-pass").textContent = `${d.n_pass}/${d.n_total} ✓`;
   const host = document.getElementById("ev-cases");
   host.innerHTML = "";
   d.cases.forEach(c => {
@@ -796,13 +787,13 @@ function renderEvals(d) {
       <div class="jrow">
         <div class="jh">
           <span class="jname" title="${esc(j.judge_name)}">${esc(JUDGE_PLAIN[j.judge_name] || j.judge_name)}</span>
-          <span class="jscore-pill">${j.score.toFixed(2)}</span>
+          <span class="jscore">${j.score.toFixed(2)}</span>
         </div>
         <div class="jr clamp" title="click to expand">“${esc(j.rationale)}”</div>
       </div>`).join("");
     det.innerHTML = `
       <summary>
-        <span class="ev-badge ${c.passed ? "pass" : "fail"}">${c.passed ? "✓ Pass" : "✗ Fail"}</span>
+        <span class="ev-flag ${c.passed ? "pass" : "fail"}">${c.passed ? "✓ Pass" : "✗ Fail"}</span>
         <span class="ev-scn">${esc(scenario)}</span>
         <span class="ev-mini">${nPass}/${c.judges.length} judges agree</span>
         <span class="ev-hint">› details</span>
@@ -859,7 +850,7 @@ function resetToSetup() {
   document.querySelector(".featured-row").style.display = "";
   document.getElementById("home").style.display = "";
   document.getElementById("setup").style.display = "";
-  document.getElementById("session-bar").style.display = "none";
+  document.getElementById("session-ctl").hidden = true;
   document.getElementById("setup").scrollIntoView({ behavior: "smooth" });
 }
 
@@ -957,9 +948,9 @@ function renderGraphViz(nodes) {
     `<svg viewBox="0 0 ${W} ${H}">${edges}${dots}</svg>` +
     `<div class="gv-legend">` +
     `<span><span class="sw" style="background:#2ea043;"></span>you’ve mastered</span>` +
-    `<span><span class="sw" style="background:var(--chalk-d);box-shadow:0 0 4px var(--chalk);"></span>teaching next</span>` +
+    `<span><span class="sw" style="background:var(--chalk-d);"></span>teaching next</span>` +
     `<span><span class="sw" style="background:var(--board-d);border:1.5px dashed var(--chalk);"></span>in your plan</span>` +
-    `<span><span class="sw" style="background:var(--board-2);border:1px solid var(--board-line);"></span>not yet</span>` +
+    `<span><span class="sw" style="background:var(--board-2);"></span>not yet</span>` +
     `</div>`;
 }
 function gvClass(id, cls) {
@@ -1125,11 +1116,11 @@ function renderCurriculum(w) {
       <span class="num">${s.step_number}</span>
       <div>
         <div class="c-title">${esc(humanize(s.concept_id))}</div>
-        <div class="c-meta"><span class="pill ${s.modality}">${s.modality}</span> ${esc(prettyPrinciple(s.pedagogy_principle))}</div>
+        <div class="c-meta"><span class="mtag ${s.modality}">${s.modality}</span> ${esc(prettyPrinciple(s.pedagogy_principle))}</div>
       </div>
     </li>`).join("");
   card.innerHTML = `
-    <div class="lesson-top"><span class="pill plan">Your plan</span></div>
+    <div class="lesson-top"><span class="mtag plan">Your plan</span></div>
     <h3>Your learning plan</h3>
     <div class="body" style="color:var(--muted);font-size: 14px;margin-bottom:4px;">
       ${steps.length} steps, built for you from where you are. We’ll take them one at a time.</div>
@@ -1188,7 +1179,7 @@ function renderLesson(a, step) {
 
   let inner = `
     <div class="lesson-top">
-      <span class="pill ${a.type}">${a.type}</span>
+      <span class="mtag ${a.type}">${a.type}</span>
       ${progressDots(stepNo)}
     </div>
     <h3>${esc(a.title)}</h3>`;
@@ -1279,7 +1270,7 @@ function maybeFinishQuiz(card, step, state) {
   r.innerHTML = `<div class="ask">You got <b>${score}/${state.length}</b>. Ready for the next step?</div>`;
   const cont = document.createElement("button");
   cont.className = "primary";
-  cont.textContent = "Continue →";
+  cont.textContent = "Continue";
   cont.onclick = () => { r.remove(); submitResponse(allRight, `quiz ${score}/${state.length}`); };
   r.appendChild(cont);
   card.appendChild(r);
@@ -1335,7 +1326,7 @@ function showDone(res) {
     <div class="body"><p>${esc(res.note || "Nice work.")}</p>
       <p style="color:var(--muted);font-size: 14px;">Start again and the tutor <b>picks up from everything you just did</b> — nothing resets.</p></div>`;
   const b = document.createElement("button");
-  b.className = "primary"; b.textContent = "Start a new session →";
+  b.className = "primary"; b.textContent = "Start a new session";
   b.onclick = () => { document.getElementById("setup").scrollIntoView({behavior:"smooth"}); startSession(); };
   card.appendChild(b);
   feed.appendChild(card);
@@ -1433,10 +1424,7 @@ function startSession() {
   document.querySelector(".featured-row").style.display = "none";
   document.getElementById("home").style.display = "none";
   document.getElementById("setup").style.display = "none";
-  document.getElementById("session-bar").style.display = "flex";
-  const dd = DOMAINS.find(x => x.id === domain);
-  document.getElementById("bar-domain").textContent =
-    (dd ? dd.label : domain) + " · autonomous";
+  document.getElementById("session-ctl").hidden = false;
   document.getElementById("brain-empty").style.display = "none";
   ["split", "feed", "brain"].forEach(id => { document.getElementById(id).hidden = false; });
   agentLabelSet = false;
