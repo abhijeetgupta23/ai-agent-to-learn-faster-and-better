@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context window · Learn Faster</title>
+<link rel="preload" href="../../../visual/fonts/fraunces-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#1f4a3c">
+<link rel="stylesheet" href="base.css">
+<style>
+/* Lesson on paper (left), the board beside it (right). Board = where you are + why. */
+.layout{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);min-height:calc(100vh - 64px)}
+.lesson{padding:56px var(--gutter) 96px;max-width:780px}
+.lesson .where{color:var(--ink-2);margin:0 0 12px;font-size:17px}
+.lesson h1{font:700 clamp(36px,4.4vw,60px)/1.02 var(--serif);letter-spacing:-.03em;margin:0 0 20px;max-width:14ch}
+.lesson .intro{font-size:21px;line-height:1.5;margin:0 0 40px;max-width:40ch}
+
+.turn{margin:0 0 22px;max-width:62ch}
+.turn b{display:block;font-size:15px;color:var(--ink-2);font-weight:600;margin-bottom:2px}
+.turn p{margin:0;font-size:19px;line-height:1.6}
+.turn.you{background:var(--paper-2);padding:14px 18px;margin-left:48px}
+
+.check{background:var(--paper-2);padding:28px;margin-top:40px;max-width:640px}
+.check h2{font:700 26px/1.15 var(--serif);margin:0 0 6px}
+.check p{margin:0 0 18px;color:var(--ink-2)}
+.check fieldset{border:0;margin:0;padding:0;display:grid;gap:10px}
+.check legend{font-size:19px;font-weight:600;margin-bottom:14px;color:var(--ink)}
+.opt{display:flex;gap:14px;align-items:center;min-height:56px;padding:0 16px;background:var(--paper);cursor:pointer;font-size:18px}
+.opt input{width:22px;height:22px;accent-color:var(--board);flex:none}
+.opt:has(input:checked){outline:3px solid var(--board)}
+.check .actions{display:flex;gap:20px;align-items:center;margin-top:20px;flex-wrap:wrap}
+
+.side{background:var(--board);color:var(--chalk-ink);padding:40px var(--gutter)}
+.side .stick{position:sticky;top:24px}
+.side h2{font:700 24px/1.15 var(--serif);margin:0 0 14px}
+.side p{color:var(--chalk-ink-2);margin:0 0 28px;font-size:17px}
+.side p strong{color:var(--chalk-ink)}
+.mini{width:100%;height:auto;display:block;margin:0 0 28px}
+.mini .e{stroke:var(--chalk-ink-2);stroke-width:2}
+.mini .n{fill:#2d5f4e}.mini .n.todo{fill:var(--board-2)}
+.mini text{font:600 14px var(--sans);fill:var(--chalk-ink);text-anchor:middle}
+.mini .g{fill:none;stroke:var(--chalk);stroke-width:3.5}
+.plan{list-style:none;margin:0 0 28px;padding:0}
+.plan li{padding:12px 14px;font-size:17px;color:var(--chalk-ink-2)}
+.plan li[aria-current]{background:var(--board-2);color:var(--chalk-ink);font-weight:600;box-shadow:inset 4px 0 0 var(--chalk)}
+details{background:var(--board-2);padding:0 16px}
+summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:600}
+details p{margin:0 0 16px;font-size:16px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{order:-1;padding:24px var(--gutter)}
+  .side .stick{position:static}
+  .mini,.plan,details{display:none}
+  .side p{margin:0}
+  .lesson{padding-top:32px}
+  .turn.you{margin-left:24px}
+  .check{padding:20px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar"><div class="wrap">
+  <a class="mark" href="#">Learn Faster</a>
+  <nav aria-label="Main"><a href="#" aria-current="page">Learn</a><a href="#">Watch a lesson</a><a href="#">How we test it</a></nav>
+</div></header>
+
+<div class="layout">
+<main class="lesson" id="main">
+  <p class="where">AI and LLMs</p>
+  <h1>The context window is the model’s desk</h1>
+  <p class="intro">Tool use kept slipping because this idea was missing. A short conversation, then one question.</p>
+
+  <div class="turn"><b>Tutor</b><p>You know attention: every token looks at every other token. So what happens to the cost when the text gets twice as long?</p></div>
+  <div class="turn you"><b>You</b><p>It goes up more than twice, because every token checks every other one.</p></div>
+  <div class="turn"><b>Tutor</b><p>Right, it grows with the square. That’s why every model has a hard limit on how much text it can look at in one go. That limit is the context window. Think of it as a desk: whatever isn’t on the desk, the model can’t see.</p></div>
+  <div class="turn"><b>Tutor</b><p>Now tool use. When a model calls a tool, the result lands back on that same desk. Ten big search results later, what do you think happens?</p></div>
+
+  <form class="check" onsubmit="return false">
+    <h2>Your turn</h2>
+    <p>Pick one. Getting it wrong is useful too: it tells the tutor what to teach next.</p>
+    <fieldset>
+      <legend>An agent has called a search tool ten times. Why might its answers start getting worse?</legend>
+      <label class="opt"><input type="radio" name="a"> The tool results fill the desk, so earlier instructions fall out of view</label>
+      <label class="opt"><input type="radio" name="a"> The model gets tired after many tool calls</label>
+      <label class="opt"><input type="radio" name="a"> Search tools return less accurate results over time</label>
+    </fieldset>
+    <p class="result" aria-live="polite"></p>
+    <div class="actions">
+      <button class="btn" type="submit">Check my answer</button>
+      <button class="btn quiet" type="button">I’m not sure yet</button>
+    </div>
+  </form>
+</main>
+
+<aside class="side" aria-label="Where you are">
+  <div class="stick">
+    <svg class="mini" viewBox="0 0 320 170" role="img" aria-label="Your map: attention known, context window in progress, tool use next">
+      <line class="e" x1="60" y1="50" x2="160" y2="110"/><line class="e" x1="160" y1="110" x2="265" y2="50"/>
+      <circle class="n" cx="60" cy="50" r="40"/><text x="60" y="55">attention</text>
+      <circle class="n todo" cx="160" cy="110" r="46"/><text x="160" y="106">context</text><text x="160" y="123">window</text>
+      <circle class="g" cx="160" cy="110" r="54"/>
+      <circle class="n todo" cx="265" cy="50" r="40"/><text x="265" y="55">tool use</text>
+    </svg>
+    <h2>Why this lesson</h2>
+    <p>You failed tool use twice, both times by reading. <strong>The real gap is one step earlier</strong>, so we’re fixing that with a conversation instead.</p>
+    <ol class="plan" aria-label="Plan for this session">
+      <li aria-current="step">Context window, as a conversation</li>
+      <li>Quick check</li>
+      <li>Back to tool use, with the gap filled</li>
+    </ol>
+    <details>
+      <summary>See how the tutor decided</summary>
+      <p>Diagnosis: target context window, difficulty 2 of 5, confidence high. Three judges agreed this was the right call.</p>
+    </details>
+  </div>
+</aside>
+</div>
+</body>
+</html>

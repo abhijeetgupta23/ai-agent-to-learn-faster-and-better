@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn Faster</title>
+<link rel="preload" href="../../../visual/fonts/fraunces-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#1f4a3c">
+<link rel="stylesheet" href="base.css">
+<style>
+/* HERO: the board is the page. One bold thing: the map with the gap circled. */
+.hero{background:var(--board);color:var(--chalk-ink);padding:56px 0 72px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:48px;align-items:center}
+.hero h1{font:700 clamp(36px,4.6vw,64px)/1.0 var(--serif);letter-spacing:-.03em;margin:0 0 24px}
+.hero .lede{font-size:21px;line-height:1.5;color:var(--chalk-ink-2);max-width:36ch;margin:0 0 32px}
+.pick-subject{border:0;margin:0;padding:0}
+.pick-subject legend{font-weight:600;margin-bottom:10px;padding:0}
+.pick-subject ul{list-style:none;margin:0 0 24px;padding:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 24px}
+.pick-subject button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;padding:0 12px;
+  background:transparent;color:var(--chalk-ink);border:0;font:600 18px var(--sans);text-align:left;cursor:pointer}
+.pick-subject button span{font-weight:400;font-size:15px;color:var(--chalk-ink-2)}
+.pick-subject button:hover{background:var(--board-2)}
+.pick-subject button[aria-pressed="true"]{background:var(--board-2);box-shadow:inset 4px 0 0 var(--chalk)}
+.hero .hint{margin:12px 0 0;color:var(--chalk-ink-2);font-size:16px}
+.map{width:100%;height:auto;display:block}
+.map.small{display:none}
+.map .edge{stroke:var(--chalk-ink-2);stroke-width:2;fill:none;stroke-linecap:round}
+.map .edge.ok{stroke:var(--chalk-ink)}
+.map .node{fill:var(--board-2)}
+.map .node.ok{fill:#2d5f4e}
+.map text{font:600 17px var(--sans);fill:var(--chalk-ink);text-anchor:middle}
+.map .tick{fill:var(--chalk-ink-2);font-weight:400;font-size:15px}
+.map .gap{fill:none;stroke:var(--chalk);stroke-width:4;stroke-linecap:round}
+.map .gaplabel{fill:var(--chalk);font:700 18px var(--sans)}
+.map .note{fill:var(--chalk);font:400 italic 17px var(--sans);text-anchor:start}
+@media (prefers-reduced-motion:no-preference){
+  .map .gap{stroke-dasharray:100;stroke-dashoffset:100;animation:draw 1.1s .5s ease-out both}
+  @keyframes draw{to{stroke-dashoffset:0}}
+}
+
+section.s{padding:112px 0}
+section.s h2{font:700 clamp(30px,3.4vw,44px)/1.08 var(--serif);letter-spacing:-.02em;margin:0 0 12px}
+section.s .sub{color:var(--ink-2);margin:0 0 40px;max-width:60ch}
+
+/* replay: a real interface fragment on a tone-step field */
+.replay{background:var(--paper-2)}
+.replay .wrap{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:start}
+.replay .pick{list-style:none;padding:0;margin:24px 0 0}
+.replay .pick a{display:block;padding:12px 0;font-size:19px;text-underline-offset:5px}
+.replay .pick a[aria-current]{font-weight:700;text-decoration-color:var(--chalk);text-decoration-thickness:3px}
+.chat{background:var(--paper);padding:28px}
+.msg{max-width:52ch;margin:0 0 18px}
+.msg b{display:block;font-size:15px;color:var(--ink-2);font-weight:600;margin-bottom:2px}
+.msg.tutor p{margin:0;font-size:19px}
+.msg.tutor .why{background:var(--board);color:var(--chalk-ink);padding:14px 16px;margin-top:10px;font-size:17px}
+.msg.tutor .why mark{background:none;color:var(--chalk);font-weight:700}
+.msg.you{margin-left:auto;background:var(--paper-2);padding:12px 16px;width:fit-content}
+.msg.you p{margin:0}
+
+/* proof */
+.proof .wrap{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px}
+.proof table{width:100%;border-collapse:collapse;font-size:17px}
+.proof th{text-align:left;font-weight:600;color:var(--ink-2);padding:0 12px 10px 0}
+.proof td{padding:14px 12px 14px 0;vertical-align:top}
+.proof tr:nth-child(even) td{background:var(--paper-2)}
+.proof td:first-child,.proof th:first-child{padding-left:12px}
+.proof .pass{font-weight:700;color:var(--board)}
+
+footer{background:var(--board);color:var(--chalk-ink);padding:72px 0 32px}
+footer .name{font:700 clamp(56px,13vw,184px)/.9 var(--serif);letter-spacing:-.04em;margin:0}
+footer p{color:var(--chalk-ink-2);margin:24px 0 0}
+
+@media (max-width:860px){
+  .hero{padding:32px 0 48px}
+  .hero .wrap,.replay .wrap,.proof .wrap{grid-template-columns:1fr;gap:32px}
+  .hero .lede{font-size:19px}
+  section.s{padding:72px 0}
+  .chat{padding:18px}
+  .proof td:nth-child(3),.proof th:nth-child(3){display:none}
+  .map.full{display:none}
+  .pick-subject ul{gap:4px 8px}
+  .pick-subject button{font-size:17px;padding:0 10px}
+  .pick-subject button span{display:none}
+  .map.small{display:block}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar"><div class="wrap">
+  <a class="mark" href="#">Learn Faster</a>
+  <nav aria-label="Main"><a href="#" aria-current="page">Learn</a><a href="#replay">Watch a lesson</a><a href="#proof">How we test it</a></nav>
+</div></header>
+
+<main id="main">
+<section class="hero" aria-labelledby="h1"><div class="wrap">
+  <div>
+    <h1 id="h1">Learn the missing piece first.</h1>
+    <p class="lede">Pick a subject. The tutor maps it, finds the one idea holding the rest up, and teaches that.</p>
+    <form onsubmit="return false">
+      <fieldset class="pick-subject">
+        <legend>What do you want to learn?</legend>
+        <ul>
+          <li><button type="button" aria-pressed="true">AI and LLMs <span>13 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Cognitive biases <span>7 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Psychology <span>7 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Persuasion <span>8 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Game theory <span>7 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Microeconomics <span>7 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Mathematics <span>8 ideas</span></button></li>
+          <li><button type="button" aria-pressed="false">Ethics <span>7 ideas</span></button></li>
+        </ul>
+      </fieldset>
+      <button class="btn" type="submit">Start learning</button>
+      <p class="hint">No account needed.</p>
+    </form>
+  </div>
+
+  <svg class="map full" viewBox="0 0 600 440" role="img" aria-labelledby="map-t">
+    <title id="map-t">A map of AI ideas. Tokens, embeddings, attention and transformers are known. Context window is circled as the gap that blocks tool use.</title>
+    <path class="edge ok" d="M110 70 L230 140"/><path class="edge ok" d="M230 140 L380 90"/>
+    <path class="edge ok" d="M230 140 L250 250"/><path class="edge ok" d="M380 90 L470 190"/>
+    <path class="edge" d="M250 250 L330 320"/><path class="edge" d="M470 190 L330 320"/>
+    <path class="edge" d="M330 320 L500 380"/>
+    <g><circle class="node ok" cx="110" cy="70" r="46"/><text x="110" y="68">tokens</text><text class="tick" x="110" y="88">known</text></g>
+    <g><circle class="node ok" cx="230" cy="140" r="56"/><text x="230" y="138">embeddings</text><text class="tick" x="230" y="158">known</text></g>
+    <g><circle class="node ok" cx="380" cy="90" r="50"/><text x="380" y="88">attention</text><text class="tick" x="380" y="108">known</text></g>
+    <g><circle class="node ok" cx="470" cy="190" r="56"/><text x="470" y="188">transformers</text><text class="tick" x="470" y="208">known</text></g>
+    <g><circle class="node ok" cx="250" cy="250" r="46"/><text x="250" y="248">prompts</text><text class="tick" x="250" y="268">known</text></g>
+    <g><circle class="node" cx="330" cy="320" r="58"/><text x="330" y="318">context</text><text x="330" y="338">window</text></g>
+    <path class="gap" pathLength="100" d="M262 300 C270 245 395 250 398 318 C401 380 290 395 266 350 C258 335 262 318 268 308"/>
+    <g><circle class="node" cx="500" cy="380" r="48"/><text x="500" y="378">tool use</text><text class="tick" x="500" y="398">failed twice</text></g>
+    <text class="note" x="40" y="400">This is the gap.</text>
+    <text class="note" x="40" y="424">Lesson one starts here.</text>
+  </svg>
+  <svg class="map small" viewBox="0 0 360 250" role="img" aria-label="Attention is known. Context window is circled as the gap that blocks tool use.">
+    <path class="edge ok" d="M70 70 L180 130"/><path class="edge" d="M180 130 L290 70"/>
+    <g><circle class="node ok" cx="70" cy="70" r="52"/><text x="70" y="68">attention</text><text class="tick" x="70" y="88">known</text></g>
+    <g><circle class="node" cx="180" cy="130" r="56"/><text x="180" y="128">context</text><text x="180" y="148">window</text></g>
+    <path class="gap" pathLength="100" d="M116 120 C122 65 240 68 243 128 C246 190 140 200 120 158"/>
+    <g><circle class="node" cx="290" cy="70" r="52"/><text x="290" y="68">tool use</text><text class="tick" x="290" y="88">failed twice</text></g>
+    <text class="note" x="20" y="232">This is the gap. Lesson one starts here.</text>
+  </svg>
+</div></section>
+
+<section class="s replay" id="replay" aria-labelledby="rp"><div class="wrap">
+  <div>
+    <h2 id="rp">Watch it teach Alice</h2>
+    <p class="sub">Real sessions, replayed. Pick one to see how the tutor changes course.</p>
+    <ul class="pick">
+      <li><a href="#" aria-current="true">It won’t explain the same thing a third time</a></li>
+      <li><a href="#">It overrides “I learn by reading”</a></li>
+      <li><a href="#">It makes the next step easier</a></li>
+    </ul>
+  </div>
+  <div class="chat" data-ui>
+    <div class="msg you"><p>I still don’t get tool use. Can you explain it again?</p></div>
+    <div class="msg tutor"><b>Tutor</b>
+      <p>Tool use isn’t the problem. You haven’t met the context window yet, and tool use sits on top of it. Let’s fix that first.</p>
+      <div class="why">Why: you failed tool use twice, both times by reading. You know attention, so I’ll start from there. <mark>Next: context window, as a short dialogue.</mark></div>
+    </div>
+    <div class="msg you"><p>OK, go.</p></div>
+  </div>
+</div></section>
+
+<section class="s proof" id="proof" aria-labelledby="pf"><div class="wrap">
+  <div>
+    <h2 id="pf">Every lesson choice is checked</h2>
+    <p class="sub">Three separate AI judges grade each decision against learning-science rules. Six test learners, run on every change.</p>
+    <a class="btn quiet" href="#">See the full results</a>
+  </div>
+  <table>
+    <thead><tr><th>Test learner</th><th>Result</th><th>What it had to get right</th></tr></thead>
+    <tbody>
+      <tr><td>New to the subject</td><td class="pass">Passed</td><td>Start at the root idea</td></tr>
+      <tr><td>Failed twice by reading</td><td class="pass">Passed</td><td>Switch to a dialogue</td></tr>
+      <tr><td>Stuck on the wrong idea</td><td class="pass">Passed</td><td>Teach the missing prerequisite</td></tr>
+      <tr><td>Finding it too hard</td><td class="pass">Passed</td><td>Lower the difficulty one step</td></tr>
+      <tr><td>Ready to move on</td><td class="pass">Passed</td><td>Space out an earlier idea</td></tr>
+      <tr><td>Says “just give me reading”</td><td class="pass">Passed</td><td>Respect it unless it’s failing</td></tr>
+    </tbody>
+  </table>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p class="name">Learn Faster</p>
+  <p>Open source. About $0.17 a lesson.</p>
+</div></footer>
+</body>
+</html>
