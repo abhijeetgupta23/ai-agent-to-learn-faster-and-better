@@ -792,3 +792,42 @@ def test_two_column_sections_collapse_to_one_column_on_a_phone():
         w = svg.attrs.get("width", "")
         assert w in ("", "100%") or (w.isdigit() and int(w) <= 340)
     assert not re.search(r"overflow-x\s*:\s*hidden", CSS_NC), "hiding sideways scroll is not a fix"
+
+
+# ---------- plain words and status (added: criteria the first test pass missed) ----------
+def _event_branch(name):
+    body = _fn_body("dispatch")
+    m = re.search(r'if\s*\(\s*event\s*===\s*"' + name + r'"\s*\)\s*\{', body)
+    assert m, f"dispatch has no {name} branch"
+    depth, i = 1, m.end()
+    while depth and i < len(body):
+        depth += {"{": 1, "}": -1}.get(body[i], 0)
+        i += 1
+    return body[m.end():i]
+
+
+def test_status_reads_your_turn_after_artifact_and_session_ready():
+    for ev in ("artifact", "session_ready"):
+        assert re.search(r'setStatus\(\s*"Your turn"\s*\)', _event_branch(ev)), ev
+    assert "Writing your lesson" not in _event_branch("artifact")
+
+
+def test_status_is_empty_after_reset_to_setup():
+    assert re.search(r'setStatus\(\s*(""|\'\')\s*\)', _fn_body("resetToSetup"))
+
+
+def test_why_this_lesson_text_passes_through_the_plain_words_filter():
+    assert re.search(r'why-text["\']\)\.textContent\s*=\s*plainIds\(', _event_branch("gap"))
+
+
+def test_plan_items_use_readable_concept_names():
+    body = _fn_body("renderCurriculum")
+    assert "humanizeConcept(" in body and "concept_id}" not in body
+
+
+def test_plain_words_helper_has_no_underscores_for_unknown_ids():
+    # the helper must strip underscores whether or not the graph knows the id
+    body = _fn_body("humanizeConcept")
+    assert re.search(r'replace\(\s*/_/g\s*,\s*" "\s*\)', body)
+    ids = _fn_body("plainIds")
+    assert "humanizeConcept(" in ids and "_" in ids
