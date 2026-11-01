@@ -90,28 +90,29 @@ def _reduced_motion_css():
     return "\n".join(out)
 
 
-def _featured_cards():
-    cards = [e for e in _all() if "featured" in e.attrs.get("class", "").split()]
-    assert len(cards) == 3
-    return cards
+def _replay_controls():
+    """Links/buttons in the 'Watch it teach Alice' section (#73 replaced the three featured cards)."""
+    head = [e for e in _all() if e.tag in ("h2", "h3") and "watch it teach alice" in "".join(
+        [e.text] + [c.text for c in e.descendants()]).lower()]
+    assert len(head) == 1, "replay section heading 'Watch it teach Alice' not found"
+    sec = next(a for a in head[0].ancestors() if a.tag == "section")
+    return [e for e in sec.descendants() if e.tag in ("a", "button")]
 
 
-def _is_button_or_has(el):
-    return el.tag == "button" or any(d.tag == "button" for d in el.descendants())
+def test_replay_controls_are_real_links_or_buttons():
+    ctrls = _replay_controls()
+    assert len(ctrls) >= 4  # three replay links + the watch control
+    for c in ctrls:
+        assert c.tag == "button" or c.attrs.get("href"), "an <a> without href is not keyboard-focusable"
 
 
-def test_featured_cards_are_real_buttons():
-    for card in _featured_cards():
-        assert _is_button_or_has(card)
-
-
-def test_featured_buttons_start_the_same_session_as_click():
-    for i, card in enumerate(_featured_cards()):
-        btns = [card] if card.tag == "button" else [d for d in card.descendants() if d.tag == "button"]
-        handlers = " ".join(b.attrs.get("onclick", "") for b in btns + list(card.ancestors()))
-        assert f"runFeatured({i})" in handlers
-        # Enter/Space come free from <button>; extra key handlers would double-start.
-        assert not any(k in b.attrs for b in btns for k in ("onkeydown", "onkeyup", "onkeypress"))
+def test_watch_control_starts_the_same_session_as_click():
+    watch = [c for c in _replay_controls() if "watch this replay" in "".join(
+        [c.text] + [d.text for d in c.descendants()]).lower()]
+    assert len(watch) == 1
+    assert "runFeatured(" in watch[0].attrs.get("onclick", "")
+    # Enter/Space come free from <button>; extra key handlers would double-start.
+    assert not any(k in c.attrs for c in _replay_controls() for k in ("onkeydown", "onkeyup", "onkeypress"))
 
 
 def test_no_onclick_on_div_or_span():
@@ -149,10 +150,11 @@ def test_trace_is_not_a_live_region():
 
 
 def test_logo_and_decorative_icons_hidden_from_screen_readers():
-    logo = next(e for e in _all() if "logo" in e.attrs.get("class", "").split())
-    assert "🎓" in logo.text or any(d.tag == "svg" for d in logo.descendants())
-    assert logo.attrs.get("aria-hidden") == "true" or any(
-        a.attrs.get("aria-hidden") == "true" for a in logo.ancestors())
+    logo = next((e for e in _all() if "logo" in e.attrs.get("class", "").split()), None)
+    if logo is not None:  # #73: the plain bar may carry just the wordmark
+        assert "🎓" in logo.text or any(d.tag == "svg" for d in logo.descendants())
+        assert logo.attrs.get("aria-hidden") == "true" or any(
+            a.attrs.get("aria-hidden") == "true" for a in logo.ancestors())
     for e in _all():
         if "play" in e.attrs.get("class", "").split() and "▶" in e.text:
             assert e.attrs.get("aria-hidden") == "true"
@@ -186,7 +188,7 @@ def test_keyboard_start_of_featured_cannot_double_start():
     assert m
     body = m.group(1)
     assert 'getElementById("start").disabled = true' in body
-    assert '.featured-row").style.display = "none"' in HTML
+    assert "setFeaturedEnabled(false)" in body
     guard = re.search(r"function runFeatured\(i\)\s*\{(.*?)\n\}", HTML, re.S).group(1)
     assert "startSession()" in guard
     # keyboard path must not bypass: no separate key handler calling startSession
