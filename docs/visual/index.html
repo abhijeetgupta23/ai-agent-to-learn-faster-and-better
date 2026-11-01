@@ -759,7 +759,14 @@ const MODALITY_PLAIN = {
   interactive: "hands-on questions",
   socratic: "a back-and-forth dialogue",
 };
-function humanizeConcept(id) { return (id || "").replace(/_/g, " "); }
+function humanizeConcept(id) {
+  const n = (GV_NODES || []).find(x => x.id === id);
+  return ((n && n.name) || id || "").replace(/_/g, " ");
+}
+// Turn any concept ids inside a sentence into readable names.
+function plainIds(text) {
+  return String(text || "").replace(/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g, id => humanizeConcept(id).toLowerCase());
+}
 
 // Clamped rationales expand/collapse on click (delegated — cards re-render).
 document.addEventListener("click", (e) => {
@@ -903,7 +910,7 @@ function resetToSetup() {
   document.getElementById("split").hidden = true;
   document.getElementById("home").style.display = "";
   document.getElementById("session-ctl").hidden = true;
-  setStatus("ready");
+  setStatus("");
   document.getElementById("start").disabled = false;
   setFeaturedEnabled(true);
   window.scrollTo(0, 0);
@@ -1118,7 +1125,7 @@ function renderCurriculum(w) {
   const steps = w.steps || [];
   const host = document.getElementById("plan-host");
   host.innerHTML = '<ol class="plan" aria-label="Plan for this session">' + steps.map(s => `
-    <li data-step="${s.step_number}">${esc(humanize(s.concept_id))}
+    <li data-step="${s.step_number}">${esc(humanizeConcept(s.concept_id).replace(/^\w/, c => c.toUpperCase()))}
       <span class="plan-how">${esc(HOW_PLAIN[s.modality] || s.modality || "")}</span></li>`).join("") + "</ol>";
   host.hidden = !steps.length;
   const list = host;
@@ -1277,7 +1284,7 @@ function maybeFinishQuiz(card, step, state) {
 
 // ---- response control for reading / socratic ----
 function addRespond(card, step, artifact) {
-  const concept = step ? `<b>${esc(step.concept_id)}</b>` : "this";
+  const concept = step ? `<b>${esc(humanizeConcept(step.concept_id))}</b>` : "this";
   const r = document.createElement("div");
   r.className = "respond";
   r.innerHTML = `
@@ -1575,10 +1582,10 @@ function dispatch(event, p) {
     journeyDone("assess", `next: ${humanizeConcept(g.target_concept_id)}`);
     flowDone("assess");
     gvTarget(g.target_concept_id);
-    document.getElementById("why-text").textContent = g.rationale;
+    document.getElementById("why-text").textContent = plainIds(g.rationale);
     trace("phase-assess", "diagnose_learner → GapEstimate", "What you need next",
       `<b>topic:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
-       <div style="margin-top:6px;">${esc(g.rationale)}</div>`);
+       <div style="margin-top:6px;">${esc(plainIds(g.rationale))}</div>`);
     return;
   }
   if (event === "workflow") {
@@ -1599,6 +1606,7 @@ function dispatch(event, p) {
     trace("phase-generate", "generate_artifact → Artifact", `Lesson ready (${p.artifact.type}, step ${p.step.step_number})`,
       `Shown above.`);
     renderLesson(p.artifact, p.step);
+    setStatus("Your turn");
     return;
   }
   if (event === "chart") {
@@ -1609,6 +1617,7 @@ function dispatch(event, p) {
     flushReasoning(); // archive the generate phase's reasoning too
     orbState("");
     currentSessionId = p.session_id;
+    setStatus("Your turn");
     flowActive("observe");
     traceSection("generate", "✓ ready — waiting for your answer");
     return;
