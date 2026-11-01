@@ -421,7 +421,7 @@
     <a class="mark" href="#main">Learn Faster</a>
     <nav aria-label="Main">
       <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
-      <a href="#replays" onclick="showView('learn')">Watch a lesson</a>
+      <a id="nav-replays" href="#replays" onclick="showView('learn')">Watch a lesson</a>
       <button id="nav-evals" onclick="showView('evals')">How we test it</button>
     </nav>
     <div class="session-ctl" id="session-ctl" hidden="">
@@ -910,6 +910,7 @@ function resetToSetup() {
   document.getElementById("split").hidden = true;
   document.getElementById("home").style.display = "";
   document.getElementById("session-ctl").hidden = true;
+  document.getElementById("nav-replays").hidden = false; // the replay section is on home again
   setStatus("");
   document.getElementById("start").disabled = false;
   setFeaturedEnabled(true);
@@ -1428,6 +1429,7 @@ function startSession() {
   // Swap the home for the lesson area; the header shows status and "change topic".
   document.getElementById("home").style.display = "none";
   document.getElementById("session-ctl").hidden = false;
+  document.getElementById("nav-replays").hidden = true; // its target (#replays, on home) is hidden during a session
   document.getElementById("why-text").textContent = WHY_DEFAULT;
   document.getElementById("plan-host").hidden = true;
   ["split", "feed"].forEach(id => { document.getElementById(id).hidden = false; });
@@ -1558,6 +1560,7 @@ function dispatch(event, p) {
       noteLine("", "error", "This session reached its budget cap — start a new one to continue.");
     } else {
       flowActive("observe");
+      setStatus("Your turn"); // the turn is over: the tutor is waiting for the learner
     }
     return;
   }
