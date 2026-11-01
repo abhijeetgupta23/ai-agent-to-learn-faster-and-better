@@ -72,3 +72,33 @@ How to use it:
 - replaces: D-008 (name behind a "change" link)
 - affects: `#user` (now a hidden input, value `alice`), removed "Learning as alice · change" line
 - why: accounts come later, once this is a product. Until then a name box is a form with no purpose. The request still sends the same default id, so the server sees no change.
+
+## D-011 · The board is the page
+- date: 2026-11-01 · status: active · source: owner (#73)
+- replaces: D-009's board-as-one-map-beside-a-list layout
+- affects: home in `docs/visual/index.html` (full-width board hero, big footer repeating the name)
+- why: the chalkboard is the product's one bold idea, so the hero is the board itself with the subject list and the map with the gap circled. The footer repeats the name, very large, to close the page the same way.
+
+## D-012 · "Why this lesson" is always visible; the tutor's internals sit behind a closed disclosure
+- date: 2026-11-01 · status: active · source: owner (#73)
+- replaces: the always-open "Tutor's brain" panel beside the lesson
+- affects: lesson screen (`#split`, board column, `<details>` "See how the tutor decided" holding `#flowchart`, `#thinking`, `#trace`)
+- why: a learner needs the reason in plain words, not function names. The full trace is still one click away (progressive disclosure).
+
+## D-013 · Square flat buttons; no arrows, resting shadows, gradients, thin rules, eyebrows or badges
+- date: 2026-11-01 · status: active · source: owner (#73, skills installed in #70)
+- replaces: rounded and shadowed controls, pill tags, 1px dividers
+- affects: every control and surface in `docs/visual/index.html`
+- why: taste-skill and frontend-design name these as template chrome. Surfaces are separated by a step in tone (`--paper-2`), and the one chalk button marks the main action.
+
+## D-014 · The home shows proof; the 6/6 badge is gone
+- date: 2026-11-01 · status: active · source: owner (#73)
+- replaces: the `6/6` badge in the header
+- affects: "Watch it teach Alice" (replay excerpt) and "Every lesson choice is checked" (results table from `/evals`)
+- why: a badge asks the visitor to trust a number. A replay excerpt and a per-case table let them see the evidence.
+
+## D-015 · The free-topic box is deferred to its own story
+- date: 2026-11-01 · status: active · source: owner (#73)
+- replaces: the typed-topic box in the first mock
+- affects: none (not built)
+- why: it needs a server route that takes untrusted input, which is tier L.
