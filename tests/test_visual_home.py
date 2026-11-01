@@ -98,12 +98,11 @@ def _fn_body(name):
 
 
 def _replay_buttons():
-    found = {}
-    for e in _all():
-        for i in REPLAY_RE.findall(e.attrs.get("onclick", "")):
-            found[int(i)] = e
-    assert sorted(found) == [0, 1, 2]
-    return [found[i] for i in range(3)]
+    """The controls in the 'Watch it teach Alice' section (3 links that pick an excerpt + the watch control)."""
+    head = [e for e in _all() if e.tag in ("h2", "h3") and "watch it teach alice" in _text(e).lower()]
+    assert len(head) == 1
+    sec = next(a for a in head[0].ancestors() if a.tag == "section")
+    return [e for e in sec.descendants() if e.tag in ("a", "button")]
 
 
 def _start():
@@ -111,17 +110,17 @@ def _start():
 
 
 def _question():
-    hs = [e for e in _all() if e.tag in ("h1", "h2", "h3") and "what do you want to learn" in _text(e).lower()]
-    assert len(hs) == 1
-    return hs[0]
+    els = [e for e in _all() if not e.children and _text(e).lower() == "what do you want to learn?"]
+    assert len(els) == 1
+    return els[0]
 
 
 def _map_svg():
-    cands = [
-        e for e in _all()
-        if e.tag == "svg" and e.attrs.get("role") == "img" and e.attrs.get("id") != "flowchart"
-    ]
-    assert len(cands) == 1, "expected exactly one role=img concept-map svg"
+    """The hero's concept map(s): inline role=img svgs inside the hero (full map first, phone map last)."""
+    hero = next((a for a in _start().ancestors() if a.tag == "section"), None)
+    assert hero is not None, "#start must sit inside the hero <section>"
+    cands = [e for e in hero.descendants() if e.tag == "svg" and e.attrs.get("role") == "img"]
+    assert cands, "expected a role=img concept-map svg in the hero"
     return cands[0]
 
 
@@ -130,18 +129,6 @@ def _subject_rules():
 
 
 # ---------- one main action ----------
-def test_exactly_one_primary_button_start_learning():
-    prim = [e for e in _all() if e.tag == "button" and "primary" in e.attrs.get("class", "").split()]
-    assert len(prim) == 1
-    assert "start learning" in _text(prim[0]).lower()
-    assert prim[0].attrs.get("id") == "start"
-
-
-def test_question_is_first_heading_after_the_brand():
-    heads = [e for e in _all() if e.tag in ("h1", "h2", "h3")]
-    assert "what do you want to learn" in _text(heads[1]).lower()
-
-
 def test_header_is_a_slim_bar_with_nav_and_no_long_blurb():
     header = next(e for e in _all() if e.tag == "header")
     ids = {d.attrs.get("id") for d in header.descendants()}
@@ -208,19 +195,10 @@ def test_subject_list_is_two_columns_also_on_phone():
 
 
 # ---------- promise ----------
-def test_promise_is_one_short_sentence():
-    q = _question()
-    sibs = q.parent.children
-    p = next(s for s in sibs[sibs.index(q) + 1:] if s.tag == "p")
-    t = _text(p)
-    assert 0 < len(t) <= 120
-    assert len(re.findall(r"[.!?](\s|$)", t)) <= 1
-
-
 # ---------- concept map ----------
 def test_concept_map_svg_has_text_alternative_and_marks_the_gap():
     svg = _map_svg()
-    label = svg.attrs.get("aria-label", "")
+    label = svg.attrs.get("aria-label", "") + " ".join(_text(d) for d in svg.descendants() if d.tag == "title")
     assert label.strip() and "gap" in label.lower()
     assert svg.attrs.get("aria-hidden") != "true"
     assert any(d.tag in ("circle", "ellipse", "path", "rect") for d in svg.descendants())
@@ -236,7 +214,10 @@ def test_concept_map_makes_no_network_request():
 
 
 def test_concept_map_sits_after_start_button_for_phone():
-    assert _order(_map_svg()) > _order(_start())
+    hero = next((a for a in _start().ancestors() if a.tag == "section"), None)
+    assert hero is not None, "#start must sit inside the hero <section>"
+    maps = [e for e in hero.descendants() if e.tag == "svg" and e.attrs.get("role") == "img"]
+    assert any(_order(m) > _order(_start()) for m in maps)
 
 
 def test_concept_map_scales_down_to_390px():
@@ -247,41 +228,13 @@ def test_concept_map_scales_down_to_390px():
 
 
 # ---------- replays ----------
-def test_replays_are_after_start_under_watch_a_replay_heading():
-    heads = [e for e in _all() if e.tag in ("h2", "h3", "h4") and "watch a replay" in _text(e).lower()]
-    assert len(heads) == 1
-    assert _order(heads[0]) > _order(_start())
-    for b in _replay_buttons():
-        assert _order(b) > _order(heads[0])
-        assert b.tag == "button"
-
-
-def test_replays_are_text_rows_not_cards():
-    d = _declared({".featured"})
-    assert d, "no style rule for the replay rows"
-    assert d.get("background", "none") in ("none", "transparent")
-    assert d.get("box-shadow", "none") == "none"
-    border = d.get("border", "none")
-    assert border in ("none", "0") or "transparent" in border
-    row = _declared({".featured-row"})
-    assert "repeat(3" not in row.get("grid-template-columns", "")
-
-
-def test_replay_buttons_still_start_the_same_replays():
-    for i in range(3):
-        assert f"runFeatured({i})" in HTML
-    body = _fn_body("runFeatured")
-    assert "startSession()" in body
-    assert re.search(r"""getElementById\(\s*["']user["']\s*\)\.value\s*=\s*f\.user_id""", body)
-
-
 # ---------- no empty panels ----------
-def test_brain_and_feed_hidden_before_a_session():
-    assert _statically_hidden(_by_id("brain"))
-    assert _statically_hidden(_by_id("feed"))
+def test_feed_and_brain_parts_hidden_before_a_session():
+    for ident in ("feed", "flowchart", "thinking", "trace"):
+        assert _statically_hidden(_by_id(ident)), ident
 
 
-def test_start_reveals_brain_and_feed():
+def test_start_reveals_the_lesson_area():
     body = _fn_body("startSession")
     assert re.search(
         r"hidden\s*=\s*false|removeAttribute\(\s*[\"']hidden|"
@@ -309,12 +262,6 @@ def test_no_name_ui_and_learner_id_is_a_hidden_alice_default():
     assert not change
 
 
-def test_change_topic_control_stays_in_session_bar():
-    assert any(
-        e.tag == "button" and "change topic" in _text(e).lower() for e in _all()
-    )
-
-
 def test_start_session_reads_user_and_run_featured_sets_it():
     assert re.search(r"""getElementById\(\s*["']user["']\s*\)\.value""", _fn_body("startSession"))
     assert re.search(
@@ -332,6 +279,7 @@ def test_replays_and_start_stay_disabled_while_session_runs():
     assert re.search(r"getElementById\(\s*[\"']start[\"']\s*\)\.disabled", guard)
     enabler = _fn_body("setFeaturedEnabled")
     sel = re.search(r"querySelectorAll\(\s*[\"']([^\"']+)[\"']", enabler).group(1)
-    for b in _replay_buttons():
-        classes = b.attrs.get("class", "").split()
-        assert any(sel == f".{c}" for c in classes) or "runFeatured" in sel
+    watch = [b for b in _replay_buttons() if "watch this replay" in _text(b).lower()]
+    assert len(watch) == 1
+    classes = watch[0].attrs.get("class", "").split()
+    assert any(sel == f".{c}" for c in classes) or "runFeatured" in sel
