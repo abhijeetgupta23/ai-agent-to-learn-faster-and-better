@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Learn Faster</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --paper: #f3f5f2;
+    --paper-2: #e6ebe7;
+    --border: #d0d9d3;
+    --ink: #1a2420;
+    --ink-2: #3f4f47;
+    --muted: #55605a;
+    --board: #1f4d3a;
+    --board-d: #163a2b;
+    --board-2: #285a4a;
+    --board-line: #3a7059;
+    --on-board: #f1f6f2;
+    --on-board-muted: #b9d4c6;
+    --chalk: #f4d35e;
+    --chalk-d: #c9a227;
+    --chalk-ink: #f1f6f2;
+    --chalk-ink-2: #c3d6cc;
+    --phase-plan: #fbbf24;
+    --phase-generate: #6ee7b7; /* 5.2:1 on --board-2 (was #34d399, 4.1:1) */
+    --phase-observe: #f9a8d4;
+    --phase-adapt: #7dd3fc;
+    --accent: #1f4d3a;
+    --good: #1d7a45;
+    --good-bg: #e3f3e9;
+    --bad: #b4234f;
+    --bad-bg: #fbe6ed;
+    --tint: #e8eeea;
+    --gutter: clamp(16px, 4vw, 48px);
+  }
+  @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../../visual/fonts/fraunces-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 700; font-display: swap; src: url("../../../visual/fonts/fraunces-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 400; font-display: swap; src: url("../../../visual/fonts/source-sans-3-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../../visual/fonts/source-sans-3-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 700; font-display: swap; src: url("../../../visual/fonts/source-sans-3-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Source Sans 3"; font-style: italic; font-weight: 400; font-display: swap; src: url("../../../visual/fonts/source-sans-3-latin-400-italic.woff2") format("woff2"); }
+  * { box-sizing: border-box; }
+  /* Form controls don't inherit the page font by default. */
+  button, input, select, textarea { font-family: inherit; }
+  h1, h2, h3, h4 { font-family: Fraunces, Georgia, serif; font-weight: 700; margin: 0; text-wrap: balance; }
+  body {
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 16px 80px; }
+  .skip { position: absolute; left: -999px; top: 8px; background: var(--paper); color: var(--ink);
+    padding: 12px 16px; z-index: 9; font-weight: 600; }
+  .skip:focus { left: 16px; }
+
+  /* Frame: plain board bar and a big footer */
+  header { background: var(--board); color: var(--on-board); }
+  .bar-in { max-width: 1280px; margin: 0 auto; padding: 0 var(--gutter);
+    display: flex; align-items: center; gap: 8px 28px; flex-wrap: wrap; min-height: 64px; }
+  .mark { margin-right: auto; padding: 11px 0;
+    font: 700 22px/1 Fraunces, Georgia, serif; color: var(--chalk-ink); text-decoration: none; }
+  header nav { display: flex; gap: 24px; align-items: center; }
+  header nav a, header nav button { color: var(--chalk-ink-2); background: none; border: 0; border-radius: 0;
+    padding: 0; min-height: 44px; display: inline-flex; align-items: center; font-size: 16px;
+    font-weight: 400; cursor: pointer; text-decoration: none; }
+  header nav a:hover, header nav button:hover { color: var(--chalk-ink); }
+  header nav button.active { color: var(--chalk-ink); text-decoration: underline;
+    text-decoration-color: var(--chalk); text-decoration-thickness: 3px; text-underline-offset: 8px; }
+  .session-ctl { display: flex; align-items: center; gap: 16px; }
+  .session-ctl[hidden] { display: none; }
+  #status { color: var(--chalk-ink-2); font-size: 14px; }
+  #change-topic { background: var(--board-2); color: var(--chalk-ink); border: 0; border-radius: 0;
+    min-height: 44px; padding: 0 16px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  #change-topic:hover { background: var(--board-line); }
+  footer { background: var(--board); color: var(--chalk-ink-2); }
+  .foot-in { max-width: 1280px; margin: 0 auto; padding: 56px var(--gutter) 40px; }
+  .foot-name { font: 700 clamp(40px, 14.5vw, 200px)/1 Fraunces, Georgia, serif; color: var(--chalk-ink-2);
+    letter-spacing: -0.02em; white-space: nowrap; }
+  .foot-in p { margin: 24px 0 0; font-size: 16px; }
+
+  /* Focus: always visible; chalk on the board, green on paper */
+  button:focus-visible, a:focus-visible, input:focus-visible, .chip:focus-visible,
+  summary:focus-visible, .opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  header :focus-visible, .hero :focus-visible, .side :focus-visible, footer :focus-visible { outline-color: var(--chalk); }
+
+  /* Buttons: square and flat. One chalk button per screen. */
+  button.primary {
+    background: var(--chalk); color: var(--ink); border: 0; padding: 0 28px; min-height: 52px;
+    border-radius: 0; font-size: 18px; font-weight: 700; cursor: pointer; transition: background-color .12s;
+  }
+  button.primary:hover { background: var(--chalk-d); }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
+  button.good { background: var(--chalk); color: var(--ink); border: 0; padding: 0 24px; min-height: 48px;
+    border-radius: 0; font-size: 18px; font-weight: 700; cursor: pointer; }
+  button.good:hover { background: var(--chalk-d); }
+  button.quiet { background: transparent; color: var(--ink); border: 0; padding: 0 4px; min-height: 48px;
+    border-radius: 0; font-size: 18px; font-weight: 600; cursor: pointer;
+    text-decoration: underline; text-decoration-color: var(--chalk-d); text-decoration-thickness: 3px; text-underline-offset: 5px; }
+  button.ghost { background: var(--paper-2); color: var(--ink); border: 0; padding: 0 18px; min-height: 44px;
+    border-radius: 0; font-size: 16px; font-weight: 600; cursor: pointer; }
+  input[type=text], input.txt { padding: 0 14px; min-height: 48px; border: 0; border-radius: 0;
+    font-size: 16px; background: var(--paper-2); color: var(--ink); min-width: 160px; }
+
+  /* Home: the hero is the board */
+  .hero { background: var(--board); color: var(--chalk-ink); padding: 56px 0 72px; }
+  .hero-in { max-width: 1280px; margin: 0 auto; padding: 0 var(--gutter);
+    display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 48px; align-items: center; }
+  .hero-h1 { font-size: clamp(34px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 24px; }
+  .lede { font-size: 21px; line-height: 1.5; color: var(--chalk-ink-2); max-width: 36ch; margin: 0 0 32px; }
+  .field-q { font-weight: 600; margin: 0 0 10px; }
+  .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 24px; margin: 0 0 28px; }
+  .chip {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%;
+    border: 0; background: transparent; box-shadow: none; color: var(--chalk-ink);
+    border-radius: 0; padding: 0 12px; min-height: 48px; font: 600 18px "Source Sans 3", system-ui, sans-serif;
+    text-align: left; cursor: pointer; transition: background-color .12s;
+  }
+  .chip:hover { background: var(--board-2); }
+  .chip[aria-pressed="true"] { background: var(--board-2); box-shadow: inset 4px 0 0 var(--chalk); }
+  .idea-count { font-weight: 400; font-size: 15px; color: var(--chalk-ink-2); }
+  .hint { margin: 12px 0 0; color: var(--chalk-ink-2); font-size: 16px; }
+  .map-full, .map-small { width: 100%; height: auto; }
+  .map-small { display: none; margin-top: 32px; }
+  .hero svg .edge { stroke: var(--chalk-ink-2); stroke-width: 2; fill: none; stroke-linecap: round; }
+  .hero svg .edge.ok { stroke: var(--chalk-ink); }
+  .hero svg .node { fill: var(--board-2); }
+  .hero svg .node.ok { fill: #2d5f4e; }
+  .hero svg text { font: 600 17px "Source Sans 3", system-ui, sans-serif; fill: var(--chalk-ink); text-anchor: middle; }
+  .hero svg .tick { fill: var(--chalk-ink-2); font-weight: 400; font-size: 15px; }
+  .hero svg .gap-ring { fill: none; stroke: var(--chalk); stroke-width: 4; stroke-linecap: round; }
+  .hero svg .note { fill: var(--chalk); font: italic 400 17px "Source Sans 3", system-ui, sans-serif; text-anchor: start; }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero svg .gap-ring { stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw 1.1s .5s ease-out both; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+  }
+
+  /* Home: sections on paper, each composed differently */
+  .s { padding: 112px 0; }
+  .s-in { max-width: 1280px; margin: 0 auto; padding: 0 var(--gutter);
+    display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: start; }
+  .s-h { font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 12px; }
+  .sub { color: var(--ink-2); margin: 0 0 32px; max-width: 60ch; }
+  .replay { background: var(--paper-2); }
+  .pick { list-style: none; padding: 0; margin: 0 0 24px; }
+  .pick a { display: block; padding: 12px 0; font-size: 19px; text-underline-offset: 5px; }
+  .pick a[aria-current] { font-weight: 700; text-decoration-color: var(--chalk-d); text-decoration-thickness: 3px; }
+  button.watch-replay { background: var(--board); color: var(--chalk-ink); border: 0; border-radius: 0;
+    min-height: 48px; padding: 0 22px; font-size: 18px; font-weight: 700; cursor: pointer; }
+  button.watch-replay:hover { background: var(--board-2); }
+  button.watch-replay:disabled { opacity: .5; cursor: not-allowed; }
+  .chat { background: var(--paper); padding: 28px; }
+  .msg { max-width: 52ch; margin: 0 0 18px; }
+  .msg b { display: block; font-size: 15px; color: var(--ink-2); font-weight: 600; margin-bottom: 2px; }
+  .msg p { margin: 0; font-size: 19px; }
+  .why { background: var(--board); color: var(--chalk-ink); padding: 14px 16px; margin-top: 10px; font-size: 17px; }
+  .why mark { background: none; color: var(--chalk); font-weight: 700; }
+  .msg.you { margin-left: auto; background: var(--paper-2); padding: 12px 16px; width: fit-content; }
+  .quiet-link { font-weight: 700; text-underline-offset: 5px; text-decoration-color: var(--chalk-d); text-decoration-thickness: 3px; }
+  .res { width: 100%; border-collapse: collapse; font-size: 17px; }
+  .res th { text-align: left; font-weight: 600; color: var(--ink-2); padding: 0 12px 10px 12px; }
+  .res td { padding: 14px 12px; vertical-align: top; }
+  .res tr:nth-child(even) td { background: var(--paper-2); }
+  .res .pass { font-weight: 700; color: var(--board); }
+  .res .fail { font-weight: 700; color: var(--bad); }
+  .res-note { margin: 0; color: var(--ink-2); }
+
+  /* Lesson: paper on the left, the board beside it */
+  .split { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); align-items: stretch;
+    min-height: calc(100vh - 64px); }
+  .main-col { min-width: 0; padding: 56px var(--gutter) 96px; }
+  #feed { max-width: 760px; }
+  .lesson { background: var(--paper); color: var(--ink); font-size: 18px; line-height: 1.55; max-width: 760px;
+    margin: 0 0 40px; animation: rise 260ms ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none; } }
+  .where { color: var(--ink-2); margin: 0 0 12px; font-size: 17px; }
+  .lesson-h1 { font-size: clamp(34px, 4.4vw, 56px); line-height: 1.04; letter-spacing: -0.03em; margin: 0 0 20px; }
+  .body { font-size: 19px; line-height: 1.6; color: var(--ink); }
+  .body p { margin: 0 0 16px; font-size: 19px; line-height: 1.6; }
+  .body h4 { margin: 24px 0 8px; font-size: 22px; }
+  .body code { background: var(--paper-2); padding: 1px 6px; border-radius: 0; font-size: 16px; }
+  .body ul { margin: 8px 0 16px; padding-left: 24px; }
+  .body li { margin-bottom: 6px; }
+  .lesson-chart { margin: 16px 0 6px; }
+  .lesson-chart img { width: 100%; max-width: 560px; display: block; border-radius: 0; background: var(--paper); }
+  .lesson-chart figcaption { font-size: 14px; color: var(--ink-2); margin-top: 5px; font-style: italic; }
+  .takeaways { margin-top: 24px; background: var(--paper-2); padding: 18px 22px; }
+  .tk-h { font-weight: 700; margin: 0 0 8px; color: var(--board); }
+  .takeaways li { margin-bottom: 6px; }
+  .turn { margin: 0 0 22px; max-width: 62ch; }
+  .turn .who { display: block; font-size: 15px; color: var(--ink-2); font-weight: 600; margin-bottom: 2px; }
+  .turn .bubble { font-size: 19px; line-height: 1.6; }
+  .turn.you { background: var(--paper-2); padding: 14px 18px; margin-left: 48px; }
+
+  /* Quiz: rows at least 56px tall */
+  .check { background: var(--paper-2); padding: 28px; margin-top: 40px; max-width: 640px; }
+  .check-h { font-size: 26px; line-height: 1.15; margin: 0 0 6px; }
+  .check-sub { margin: 0 0 18px; color: var(--ink-2); }
+  .q { margin-bottom: 18px; }
+  .q .qt { font-weight: 600; font-size: 19px; margin-bottom: 12px; }
+  .opt { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; border: 0;
+    background: var(--paper); color: var(--ink); border-radius: 0; padding: 8px 16px; margin-bottom: 10px;
+    min-height: 56px; font-size: 18px; cursor: pointer; transition: background-color .1s; }
+  .opt:hover:not(:disabled) { background: var(--tint); }
+  .opt:disabled { cursor: default; }
+  .opt.correct { box-shadow: inset 4px 0 0 var(--good); background: var(--good-bg); }
+  .opt.wrong { box-shadow: inset 4px 0 0 var(--bad); background: var(--bad-bg); }
+  .explain { font-size: 16px; color: var(--ink-2); margin: 2px 0 14px; }
+
+  /* Answering */
+  .respond { margin-top: 32px; }
+  .respond .ask { font-size: 17px; color: var(--ink-2); margin-bottom: 12px; }
+  .respond .ask b { color: var(--ink); }
+  .respond input.txt { display: block; width: 100%; max-width: 560px; margin-bottom: 16px; }
+  .btns { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .note-line { margin: 14px 0; color: var(--ink-2); font-size: 16px; }
+  .note-line .tagk { font-weight: 700; color: var(--ink); margin-right: 6px; }
+  .done-card .big { font-size: 40px; font-family: Fraunces, Georgia, serif; font-weight: 700; }
+  .done-card h3 { margin: 10px 0 6px; }
+
+  /* Thinking banner (lives behind "See how the tutor decided") */
+  .thinking { display: none; align-items: center; gap: 12px; margin: 0 0 12px; background: var(--board-d); padding: 12px 14px; }
+  .thinking.show { display: flex; }
+  .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--chalk); flex: none;
+    animation: pulse 1s infinite ease-in-out; }
+  @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8);} 50% { opacity: 1; transform: scale(1.15);} }
+  .thinking .t { font-size: 14px; color: var(--on-board-muted); }
+  .thinking .t b { color: var(--on-board); font-weight: 600; }
+  .thinking .t .reasoning { display: block; margin-top: 5px; font-size: 13px; line-height: 1.5;
+    color: var(--on-board-muted); max-height: 132px; overflow-y: auto; white-space: pre-wrap; }
+  .caret { display: inline-block; width: 7px; color: var(--chalk); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Journey card: shown while the first lesson is being built */
+  .journey h3 { font-size: 22px; margin: 0 0 10px; }
+  .jstep { display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 17px; color: var(--ink-2); }
+  .jstep .jicon { opacity: .45; font-weight: 700; transition: opacity .2s; }
+  .jstep.active, .jstep.done { color: var(--ink); }
+  .jstep.active .jicon, .jstep.done .jicon { opacity: 1; }
+  .jstep .jspin { display: none; width: 13px; height: 13px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; margin-left: auto; animation: spin .8s linear infinite; }
+  .jstep.active .jspin { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .jstep .jstate { margin-left: auto; font-size: 15px; color: var(--ink-2); }
+  .jstep.active .jstate { display: none; }
+  .jstep.done .jstate::before { content: "\2713  "; color: var(--good); font-weight: 700; }
+
+  /* The board column: map, why, plan, details */
+  .side { background: var(--board); color: var(--chalk-ink); padding: 40px var(--gutter); }
+  .board-col { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+  .board-map { width: 100%; height: auto; display: block; margin: 0 0 28px; }
+  .board-map .gedge { stroke: var(--chalk-ink-2); stroke-width: 2; fill: none; }
+  .board-map .gnode circle { fill: var(--board-2); }
+  .board-map .gnode.known circle { fill: #2d5f4e; }
+  .board-map text { font: 600 14px "Source Sans 3", system-ui, sans-serif; fill: var(--chalk-ink); text-anchor: middle; }
+  .board-map .gtarget { fill: none; stroke: var(--chalk); stroke-width: 3.5; }
+  .why-box h2 { font-size: 24px; line-height: 1.15; margin: 0 0 12px; }
+  .why-box p { color: var(--chalk-ink-2); font-size: 17px; margin: 0 0 28px; }
+  .plan { list-style: none; margin: 0 0 28px; padding: 0; }
+  .plan li { padding: 12px 14px; font-size: 17px; color: var(--chalk-ink-2); }
+  .plan li.done { color: var(--on-board-muted); }
+  .plan li[aria-current] { background: var(--board-2); color: var(--chalk-ink); font-weight: 600;
+    box-shadow: inset 4px 0 0 var(--chalk); }
+  .plan-how { display: block; font-size: 15px; font-weight: 400; }
+  details.how { background: var(--board-2); padding: 0 16px; }
+  details.how > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center;
+    font-weight: 600; color: var(--chalk-ink); list-style: none; user-select: none; }
+  details.how > summary::-webkit-details-marker { display: none; }
+  details.how > summary::before { content: "+"; margin-right: 10px; font-weight: 700; }
+  details.how[open] > summary::before { content: "\2212"; }
+  details.how #trace { padding: 0 0 16px; max-height: 60vh; overflow-y: auto; }
+  #flowchart { width: 100%; display: block; margin-bottom: 12px; background: var(--board-d); }
+  .fedge { stroke: var(--board-line); stroke-width: 1.6; fill: none; marker-end: url(#arr); transition: stroke .3s; }
+  .fedge.on { stroke: var(--chalk); stroke-dasharray: 6 5; animation: fdash .7s linear infinite; }
+  .fedge.loop { stroke-dasharray: 3 4; }
+  @keyframes fdash { to { stroke-dashoffset: -11; } }
+  .fnode rect { fill: var(--board-2); stroke: var(--board-line); stroke-width: 1.5; transition: fill .3s, stroke .3s, stroke-width .3s; }
+  .fnode text { fill: var(--on-board-muted); font-size: 12px; }
+  .fnode.active rect { stroke: var(--chalk); animation: fpulse 1.2s ease-in-out infinite; }
+  .fnode.active text { fill: var(--on-board); font-weight: 700; }
+  .fnode.done rect { stroke: #2ea043; }
+  .fnode.done text { fill: #7ee2a8; }
+  @keyframes fpulse { 50% { stroke-opacity: .35; stroke-width: 3; } }
+
+  /* The trace: receipts for each decision */
+  .stream-card { border: 0; border-left: 3px solid var(--board-line); padding: 10px 12px;
+    margin: 8px 0; background: var(--board-d); border-radius: 0; animation: rise 240ms ease; }
+  .stream-card.phase-assess { border-left-color: var(--chalk); }
+  .stream-card.phase-plan { border-left-color: var(--phase-plan); }
+  .stream-card.phase-generate { border-left-color: var(--phase-generate); }
+  .stream-card.phase-observe { border-left-color: var(--phase-observe); }
+  .stream-card.phase-adapt { border-left-color: var(--phase-adapt); }
+  .stream-card .head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+  .stream-card .ticon { font-size: 13px; flex: none; }
+  .stream-card .title { font-weight: 600; font-size: 14px; color: var(--on-board); flex: 1; min-width: 0; }
+  .stream-card .label { font-size: 12px; color: var(--on-board-muted); background: var(--board);
+    padding: 2px 6px; border-radius: 0; flex: none; max-width: 46%; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .stream-card .reason-full { font-size: 13px; line-height: 1.55; color: var(--on-board-muted);
+    white-space: pre-wrap; max-height: 260px; overflow-y: auto; margin-top: 6px; }
+  .stream-card details summary { cursor: pointer; font-size: 13px; color: var(--on-board-muted); }
+  .stream-card details summary:hover { color: var(--on-board); }
+  .trace-sec { margin: 16px 0 6px; font-size: 13px; font-weight: 700; color: var(--on-board-muted); }
+  .trace-sec.phase-assess { color: var(--chalk); }
+  .trace-sec.phase-plan { color: var(--phase-plan); }
+  .trace-sec.phase-generate { color: var(--phase-generate); }
+  .trace-sec.phase-observe { color: var(--phase-observe); }
+  .trace-sec.phase-adapt { color: var(--phase-adapt); }
+  .trace-sec .sec-agent { font-size: 12px; font-weight: 500; color: var(--on-board-muted);
+    background: var(--board); padding: 1px 6px; border-radius: 0; margin-left: 6px; }
+  .lstats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .lstat { background: var(--board); border-radius: 0; padding: 3px 10px; font-size: 12px; color: var(--on-board); }
+  .ldot { width: 6px; height: 6px; border-radius: 50%; background: var(--board-line);
+    display: inline-block; margin-left: 3px; vertical-align: 1px; }
+  .ldot.on { background: var(--chalk); }
+  .stream-card .content { font-size: 13px; color: var(--on-board-muted); }
+  .stream-card .content b { color: var(--on-board); }
+  .stream-card code { background: var(--board); color: var(--chalk); padding: 1px 5px; border-radius: 0; }
+  .stream-card pre { background: var(--board); color: var(--on-board); padding: 8px 10px; border-radius: 0; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
+  .step-mini { display: inline-block; background: var(--board); border-radius: 0; padding: 4px 8px; font-size: 12px; margin: 0 5px 5px 0; color: var(--on-board); }
+  .step-mini b { color: var(--chalk); }
+  .orb { display: none; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* Reduce motion: stop every looping animation, make entrances instant.
+     The #status text still says what the tutor is doing. */
+  @media (prefers-reduced-motion: reduce) {
+    .pulse, .live-dot, .jstep .jspin, .orb, .orb.think, .orb.write, .caret,
+    .gnode, .gnode.target circle, .fedge, .fedge.on, .fnode, .fnode.active rect,
+    .jstep, .stream-card, .lesson, .featured {
+      animation: none !important; transition: none !important; }
+  }
+
+  /* Evals view */
+  .ev-hero { margin: 6px 4px 18px; }
+  .ev-hero h2 { font-size: 22px; margin: 0 0 4px; }
+  .ev-hero .big-pass { display: inline-flex; align-items: baseline; gap: 8px; }
+  .ev-hero .pct { font-size: 30px; font-weight: 800; color: var(--good); }
+  .ev-case { background: var(--paper); border-radius: 0; margin-bottom: 12px; overflow: hidden; }
+  .ev-case > summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; align-items: center;
+    gap: 12px; flex-wrap: wrap; }
+  .ev-case > summary::-webkit-details-marker { display: none; }
+  .ev-case .cname { font-weight: 600; font-size: 15px; flex: 1; min-width: 180px; }
+  .ev-flag { font-size: 14px; font-weight: 700; border-radius: 0; padding: 3px 10px; }
+  .ev-flag.pass { color: var(--good); background: var(--good-bg); }
+  .ev-flag.fail { color: var(--bad); background: var(--bad-bg); }
+  .ev-body { padding: 0 18px 16px; }
+  .jrow { padding: 12px 0; }
+  .jrow .jh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .jrow .jname { font-weight: 600; font-size: 14px; }
+  .jrow .jr { font-size: 14px; color: var(--muted); }
+  /* Verbatim rationales are dense by nature: clamp to 2 lines, expand on click. */
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; cursor: pointer; }
+  .clamp.open { -webkit-line-clamp: unset; display: block; }
+  .clamp:not(.open):hover { color: var(--ink); }
+  .ev-wf { margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .ev-wf b { color: var(--ink); }
+  .ev-ctx { margin-bottom: 12px; padding: 10px 12px; font-size: 14px; color: var(--muted);
+    background: var(--tint); border-radius: 0; }
+  .ev-ctx b { color: var(--ink); }
+  .ev-scn { font-weight: 600; font-size: 15px; flex: 1; min-width: 200px; }
+  .ev-mini { font-size: 12px; color: var(--muted); }
+  .ev-hint { font-size: 12px; color: var(--muted); }
+  .jscore { font-size: 14px; font-weight: 700; color: var(--board); background: var(--tint); border-radius: 0; padding: 2px 9px; }
+  [hidden] { display: none !important; }
+
+  /* Tablet: one column everywhere */
+  @media (max-width: 900px) {
+    .hero-in, .s-in, .split { grid-template-columns: 1fr; gap: 32px; }
+    .split { gap: 0; min-height: 0; }
+    .hero { padding: 32px 0 48px; }
+    .s { padding: 72px 0; }
+    .board-col { position: static; max-height: none; }
+  }
+  /* Phone */
+  @media (max-width: 600px) {
+    .hero-in, .s-in, .split { grid-template-columns: 1fr; }
+    .bar-in { padding-top: 12px; gap: 0 20px; }
+    .mark { width: 100%; margin-right: 0; padding: 0 0 4px; }
+    header nav { gap: 20px; }
+    .session-ctl { width: 100%; padding-bottom: 8px; }
+    .lede { font-size: 19px; }
+    .chips { gap: 4px 8px; }
+    .chip { font-size: 17px; padding: 0 10px; }
+    .chip .idea-count { display: none; }
+    .map-full { display: none; }
+    .map-small { display: block; }
+    .chat { padding: 18px; }
+    .res td:nth-child(3), .res th:nth-child(3) { display: none; }
+    .main-col { padding-top: 32px; padding-bottom: 40px; }
+    .check { padding: 20px; }
+    .turn.you { margin-left: 24px; }
+    .side, .board-col { display: contents; }
+    .board-map { display: none; }
+    .why-box { order: -1; background: var(--board); color: var(--chalk-ink); padding: 24px var(--gutter); }
+    .why-box p { margin: 0; }
+    .plan { background: var(--board); margin: 0; padding: 16px var(--gutter); }
+    details.how { margin: 0 var(--gutter) 48px; }
+    .btns { flex-direction: column; align-items: stretch; }
+    button.good, button.quiet { width: 100%; }
+    button.primary { width: 100%; }
+    button.watch-replay { width: 100%; }
+    input.txt, input[type=text] { width: 100%; min-width: 0; }
+  }
+  /* MOCK #75: how-it-works strip */
+  .steps { list-style: none; margin: 28px 0 32px; padding: 0; display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; max-width: 560px; }
+  .steps li { display: grid; gap: 8px; align-content: start; color: var(--chalk-ink);
+    font-size: 17px; line-height: 1.3; font-weight: 600; }
+  .steps svg { width: 44px; height: 44px; stroke: var(--chalk); fill: none; stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round; }
+  @media (max-width: 560px) {
+    .steps { grid-template-columns: 1fr; gap: 14px; }
+    .steps li { grid-template-columns: 44px 1fr; align-items: center; gap: 14px; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <div class="bar-in">
+    <a class="mark" href="#main">Learn Faster</a>
+    <nav aria-label="Main">
+      <button id="nav-learn" class="active" onclick="showView('learn')">Learn</button>
+      <a id="nav-replays" href="#replays" onclick="showView('learn')">Watch a lesson</a>
+      <button id="nav-evals" onclick="showView('evals')">How we test it</button>
+    </nav>
+    <div class="session-ctl" id="session-ctl" hidden="">
+      <span id="status" aria-live="polite">ready</span>
+      <button id="change-topic" type="button" onclick="resetToSetup()">change topic</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div id="learn-view">
+
+<div id="home">
+
+<section class="hero" aria-labelledby="hero-h">
+  <div class="hero-in">
+    <div>
+      <h1 class="hero-h1" id="hero-h">Learn the missing piece first.</h1>
+      <p class="lede">Pick a subject and the tutor finds the one idea holding the rest up, then teaches that.</p>
+      <p class="field-q" id="pick-q">What do you want to learn?</p>
+      <div class="chips" id="domain-chips" role="group" aria-labelledby="pick-q"></div>
+      <div class="row">
+        <input type="hidden" id="user" name="user" value="alice">
+        <input type="hidden" id="domain" value="ai" />
+        <button class="primary" id="start" onclick="startSession()">Start learning</button>
+      </div>
+      <p class="hint">No account needed.</p>
+      <ol class="steps" aria-label="How it works">
+        <li><svg aria-hidden="true" viewBox="0 0 44 44"><rect x="7" y="7" width="30" height="30"/><path d="M14 17h16M14 24h11M14 31h7"/></svg>Pick a subject</li>
+        <li><svg aria-hidden="true" viewBox="0 0 44 44"><circle cx="19" cy="19" r="11"/><path d="M27 27l10 10"/></svg>We find your gap</li>
+        <li><svg aria-hidden="true" viewBox="0 0 44 44"><path d="M6 33c6-15 11-15 14-7s9 7 17-12"/><path d="M30 14h7v7"/></svg>Lessons that adjust to you</li>
+      </ol>
+      <svg class="map-small" viewBox="0 0 360 250" role="img" aria-label="Attention is known. Context window is circled as the gap that blocks tool use.">
+        <path class="edge ok" d="M70 70 L180 130"/><path class="edge" d="M180 130 L290 70"/>
+        <g><circle class="node ok" cx="70" cy="70" r="52"/><text x="70" y="68">attention</text><text class="tick" x="70" y="88">known</text></g>
+        <g><circle class="node" cx="180" cy="130" r="56"/><text x="180" y="128">context</text><text x="180" y="148">window</text></g>
+        <path class="gap-ring" pathLength="100" d="M116 120 C122 65 240 68 243 128 C246 190 140 200 120 158"/>
+        <g><circle class="node" cx="290" cy="70" r="52"/><text x="290" y="68">tool use</text><text class="tick" x="290" y="88">failed twice</text></g>
+        <text class="note" x="20" y="232">This is the gap. Lesson one starts here.</text>
+      </svg>
+    </div>
+    <svg class="map-full" viewBox="0 0 600 440" role="img" aria-labelledby="map-t">
+      <title id="map-t">A map of AI ideas. Tokens, embeddings, attention and transformers are known. Context window is circled as the gap that blocks tool use.</title>
+      <path class="edge ok" d="M110 70 L230 140"/><path class="edge ok" d="M230 140 L380 90"/>
+      <path class="edge ok" d="M230 140 L250 250"/><path class="edge ok" d="M380 90 L470 190"/>
+      <path class="edge" d="M250 250 L330 320"/><path class="edge" d="M470 190 L330 320"/>
+      <path class="edge" d="M330 320 L500 380"/>
+      <g><circle class="node ok" cx="110" cy="70" r="46"/><text x="110" y="68">tokens</text><text class="tick" x="110" y="88">known</text></g>
+      <g><circle class="node ok" cx="230" cy="140" r="56"/><text x="230" y="138">embeddings</text><text class="tick" x="230" y="158">known</text></g>
+      <g><circle class="node ok" cx="380" cy="90" r="50"/><text x="380" y="88">attention</text><text class="tick" x="380" y="108">known</text></g>
+      <g><circle class="node ok" cx="470" cy="190" r="56"/><text x="470" y="188">transformers</text><text class="tick" x="470" y="208">known</text></g>
+      <g><circle class="node ok" cx="250" cy="250" r="46"/><text x="250" y="248">prompts</text><text class="tick" x="250" y="268">known</text></g>
+      <g><circle class="node" cx="330" cy="320" r="58"/><text x="330" y="318">context</text><text x="330" y="338">window</text></g>
+      <path class="gap-ring" pathLength="100" d="M262 300 C270 245 395 250 398 318 C401 380 290 395 266 350 C258 335 262 318 268 308"/>
+      <g><circle class="node" cx="500" cy="380" r="48"/><text x="500" y="378">tool use</text><text class="tick" x="500" y="398">failed twice</text></g>
+      <text class="note" x="40" y="400">This is the gap.</text>
+      <text class="note" x="40" y="424">Lesson one starts here.</text>
+    </svg>
+  </div>
+</section>
+
+<section class="s replay" id="replays" aria-labelledby="rp-h">
+  <div class="s-in">
+    <div>
+      <h2 class="s-h" id="rp-h">Watch it teach Alice</h2>
+      <p class="sub">Real sessions, replayed. Pick one to see how the tutor changes course.</p>
+      <ul class="pick" id="replay-picks">
+        <li><a href="#replays" data-replay="0" aria-current="true" onclick="pickReplay(0); return false">It won’t explain the same thing a third time</a></li>
+        <li><a href="#replays" data-replay="1" onclick="pickReplay(1); return false">It overrides “I learn by reading”</a></li>
+        <li><a href="#replays" data-replay="2" onclick="pickReplay(2); return false">It makes the next step easier</a></li>
+      </ul>
+      <button type="button" class="watch-replay" onclick="runFeatured(selectedReplay)">Watch this replay</button>
+    </div>
+    <div class="chat" id="excerpts">
+      <div class="excerpt" data-ex="0">
+        <div class="msg you"><p>I still don’t get tool use. Can you explain it again?</p></div>
+        <div class="msg tutor"><b>Tutor</b>
+          <p>Tool use isn’t the problem. You haven’t met the context window yet, and tool use sits on top of it. Let’s fix that first.</p>
+          <div class="why">Why: you failed tool use twice, both times by reading. You know attention, so I’ll start from there. <mark>Next: context window, as a short dialogue.</mark></div>
+        </div>
+        <div class="msg you"><p>OK, go.</p></div>
+      </div>
+      <div class="excerpt" data-ex="1" hidden="">
+        <div class="msg you"><p>I learn best by reading. Just give me another passage on base rates.</p></div>
+        <div class="msg tutor"><b>Tutor</b>
+          <p>You’ve read it twice and it hasn’t stuck, so a third passage won’t help. Let’s try a short back-and-forth instead.</p>
+          <div class="why">Why: you missed base rate neglect twice, both times by reading. A dialogue brings the misconception out. <mark>Next: base rate neglect, as a dialogue.</mark></div>
+        </div>
+        <div class="msg you"><p>Fine, let’s try it.</p></div>
+      </div>
+      <div class="excerpt" data-ex="2" hidden="">
+        <div class="msg you"><p>These questions are too hard. I keep getting them wrong.</p></div>
+        <div class="msg tutor"><b>Tutor</b>
+          <p>Then we’ll drop back a level and take it one step at a time. Pushing on now would only make it worse.</p>
+          <div class="why">Why: you missed three exercises in a row at level 4 of 5, across two ideas. <mark>Next: conditional probability, one level easier.</mark></div>
+        </div>
+        <div class="msg you"><p>That sounds better.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s proof" id="proof" aria-labelledby="pf-h">
+  <div class="s-in">
+    <div>
+      <h2 class="s-h" id="pf-h">Every lesson choice is checked</h2>
+      <p class="sub">Three separate AI judges grade each decision against learning-science rules. Six test learners, run on every change.</p>
+      <a class="quiet-link" href="#evals" onclick="showView('evals'); return false">See the full results</a>
+    </div>
+    <div id="results-host"><p class="res-note">Loading the results.</p></div>
+  </div>
+</section>
+
+</div><!-- /home -->
+
+<!-- Lesson: the lesson on paper, the board beside it. Hidden until a session starts. -->
+<div class="split" id="split" hidden="">
+  <div class="main-col">
+    <div id="feed" hidden=""></div>
+  </div>
+  <aside class="side" aria-label="Where you are">
+    <div class="board-col">
+      <svg class="board-map" id="board-map" viewBox="0 0 360 196" role="img" aria-label="Your map" hidden=""></svg>
+      <div class="why-box">
+        <h2>Why this lesson</h2>
+        <p id="why-text">The tutor is working out what you need first.</p>
+      </div>
+      <div id="plan-host" hidden=""></div>
+      <details class="how" id="how">
+        <summary>See how the tutor decided</summary>
+        <svg id="flowchart" viewBox="0 0 372 130">
+          <defs>
+            <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" style="fill:var(--board-line)"/>
+            </marker>
+          </defs>
+          <path class="fedge" id="fe-assess" d="M110,25 L132,25"/>
+          <path class="fedge" id="fe-plan" d="M236,25 L258,25"/>
+          <path class="fedge" id="fe-teach" d="M311,42 L311,82"/>
+          <path class="fedge" id="fe-observe" d="M258,99 L236,99"/>
+          <path class="fedge" id="fe-adapt" d="M132,99 L110,99"/>
+          <path class="fedge loop" id="fe-loop" d="M58,82 C58,56 100,48 130,38"/>
+          <g class="fnode" id="fn-map"><rect x="6" y="8" width="104" height="34" rx="9"/><text x="58" y="29" text-anchor="middle">map</text></g>
+          <g class="fnode" id="fn-assess"><rect x="132" y="8" width="104" height="34" rx="9"/><text x="184" y="29" text-anchor="middle">assess</text></g>
+          <g class="fnode" id="fn-plan"><rect x="258" y="8" width="104" height="34" rx="9"/><text x="310" y="29" text-anchor="middle">plan</text></g>
+          <g class="fnode" id="fn-teach"><rect x="258" y="82" width="104" height="34" rx="9"/><text x="310" y="103" text-anchor="middle">teach</text></g>
+          <g class="fnode" id="fn-observe"><rect x="132" y="82" width="104" height="34" rx="9"/><text x="184" y="103" text-anchor="middle">observe</text></g>
+          <g class="fnode" id="fn-adapt"><rect x="6" y="82" width="104" height="34" rx="9"/><text x="58" y="103" text-anchor="middle">adapt</text></g>
+        </svg>
+        <div class="thinking" id="thinking">
+          <div class="pulse"></div>
+          <div class="t" id="thinking-text" aria-live="polite"><span id="thinking-label">Thinking…</span><span id="thinking-tail" aria-live="off"></span></div>
+        </div>
+        <div id="trace"></div>
+      </details>
+    </div>
+  </aside>
+</div>
+
+</div><!-- /learn-view -->
+
+<div id="evals-view" class="wrap" style="display:none;">
+  <div class="ev-hero">
+    <h2>Does the agent actually teach well?</h2>
+    <p style="color:var(--muted);font-size: 16px;margin:0 0 6px;max-width:680px;">
+      We test the tutor the way you'd test a person: hand it six deliberately tricky learner
+      situations, let it decide what to teach, and have three independent AI judges check each call —
+      <b style="color:var(--ink);">right topic</b>, <b style="color:var(--ink);">right format</b>,
+      <b style="color:var(--ink);">right difficulty</b>. These re-run whenever the tutor changes;
+      everything below is from a real run, unedited.</p>
+    <div class="big-pass"><span class="pct" id="ev-pct">—</span>
+      <span style="color:var(--muted);font-size: 16px;">handled correctly. Tap any case to read the judges’ reasoning.</span></div>
+  </div>
+  <div id="ev-cases"></div>
+</div>
+
+</main>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-name">Learn Faster</div>
+    <p>Open source. About $0.17 a lesson.</p>
+  </div>
+</footer>
+
+<script>
+// The model owns the loop and decides each tool call itself. This is the only
+// orchestration mode; the retired fixed-pipeline ("workflow") view is gone.
+const MODE = "agent";
+const DOMAINS = [
+  { id: "ai", label: "AI and LLMs", ideas: 13 },
+  { id: "cognitive_biases", label: "Cognitive biases", ideas: 7 },
+  { id: "psychology", label: "Psychology", ideas: 7 },
+  { id: "persuasion", label: "Persuasion", ideas: 8 },
+  { id: "game_theory", label: "Game theory", ideas: 7 },
+  { id: "microeconomics", label: "Microeconomics", ideas: 7 },
+  { id: "mathematics", label: "Mathematics", ideas: 8 },
+  { id: "ethics", label: "Ethics", ideas: 7 },
+];
+
+// --- session state ---
+let currentSessionId = null;
+let lastStep = null;
+let totalSteps = 0;
+let curriculumItems = {};
+
+function humanize(id) { return (id || "").replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase()); }
+function prettyPrinciple(p) { return (p || "").replace(/_/g, " "); }
+
+// ---- view switching: Learn vs Eval harness ----
+function showView(name) {
+  const learn = name === "learn";
+  document.getElementById("learn-view").style.display = learn ? "" : "none";
+  document.getElementById("evals-view").style.display = learn ? "none" : "";
+  document.getElementById("nav-learn").classList.toggle("active", learn);
+  document.getElementById("nav-evals").classList.toggle("active", !learn);
+  if (!learn) loadEvals();
+  window.scrollTo(0, 0);
+}
+
+// ---- featured decisions: seeded learners reproducing signature adaptive
+// behaviors. Seeds 1 and 2 are the eval harness's golden cases (case_02 /
+// case_04) verbatim, so the live demo shows the same decisions the judges
+// score 6/6.
+let pendingSeed = null;
+const FEATURED = [
+  { // prerequisite backfill (AI)
+    user_id: "demo-prereq", domain_id: "ai",
+    learner: {
+      mastered_concepts: ["tokens", "embeddings", "attention", "transformers"],
+      struggling_concepts: ["tool_use"],
+      modality_preference: "reading",
+      difficulty_level: 2,
+      session_history: [
+        { concept_id: "tool_use", modality: "reading", correct: false },
+        { concept_id: "tool_use", modality: "reading", correct: false },
+      ],
+    },
+  },
+  { // preference override → socratic (eval golden case_02)
+    user_id: "demo-override", domain_id: "cognitive_biases",
+    learner: {
+      mastered_concepts: ["base_rate", "conditional_probability"],
+      struggling_concepts: ["base_rate_neglect"],
+      modality_preference: "reading",
+      difficulty_level: 3,
+      session_history: [
+        { concept_id: "base_rate_neglect", modality: "reading", correct: false, notes: "got the medical-test problem wrong" },
+        { concept_id: "base_rate_neglect", modality: "reading", correct: false, notes: "still missing the base rate" },
+      ],
+    },
+  },
+  { // difficulty step-down (eval golden case_04)
+    user_id: "demo-stepdown", domain_id: "cognitive_biases",
+    learner: {
+      mastered_concepts: ["base_rate"],
+      struggling_concepts: ["conditional_probability", "bayesian_updating"],
+      modality_preference: "interactive",
+      difficulty_level: 4,
+      session_history: [
+        { concept_id: "bayesian_updating", modality: "interactive", correct: false },
+        { concept_id: "bayesian_updating", modality: "interactive", correct: false },
+        { concept_id: "conditional_probability", modality: "interactive", correct: false },
+      ],
+    },
+  },
+];
+let selectedReplay = 0;
+function pickReplay(i) {
+  selectedReplay = i;
+  document.querySelectorAll("#replay-picks a").forEach(a => {
+    if (+a.dataset.replay === i) a.setAttribute("aria-current", "true");
+    else a.removeAttribute("aria-current");
+  });
+  document.querySelectorAll("#excerpts .excerpt").forEach(e => { e.hidden = +e.dataset.ex !== i; });
+}
+function runFeatured(i) {
+  if (document.getElementById("start").disabled) return; // a session is already starting/running
+  const f = FEATURED[i];
+  showView("learn");
+  document.getElementById("user").value = f.user_id;
+  document.getElementById("domain").value = f.domain_id;
+  document.querySelectorAll("#domain-chips .chip").forEach(c =>
+    c.setAttribute("aria-pressed", c.dataset.domain === f.domain_id ? "true" : "false"));
+  pendingSeed = f.learner;
+  startSession();
+}
+
+// ---- eval harness view ----
+let evalsLoaded = false;
+
+// Plain-English translations so non-experts aren't overwhelmed.
+const JUDGE_PLAIN = {
+  gap_to_pedagogy: "Right topic & method",
+  modality_fit: "Right format",
+  adaptive_progression: "Right difficulty",
+};
+const CASE_PLAIN = {
+  case_01_novice_start: "A total beginner → start from the basics, as a reading.",
+  case_02_struggling_use_socratic: "Keeps failing a concept → switch to back-and-forth dialogue, not more reading.",
+  case_03_mastered_basics_practice: "Mastered the basics → step up to hands-on practice.",
+  case_04_step_down_overwhelmed: "Overwhelmed at a hard level → ease the difficulty back down.",
+  case_05_interleave_confusables: "Learned an idea → mix in a look-alike one so they don’t get confused.",
+  case_06_prereq_gap_blocks_advance: "Wants an advanced topic but missing a prerequisite → teach that first.",
+};
+// The setup each case hands the agent, and what good teaching looks like —
+// mirrors the golden fixtures in evals/golden/.
+const CASE_CONTEXT = {
+  case_01_novice_start: {
+    given: "A brand-new learner: nothing mastered, no history, no stated preference.",
+    expect: "Start at a foundational concept with no prerequisites, as an easy reading — don’t throw them into the deep end.",
+  },
+  case_02_struggling_use_socratic: {
+    given: "Says they learn best by reading. They’ve mastered the basics, but failed the same tricky concept twice — both times as a reading.",
+    expect: "Stop re-serving readings. Switch to a guided dialogue that surfaces the misconception — even though that overrides their stated preference.",
+  },
+  case_03_mastered_basics_practice: {
+    given: "A learner who has mastered the foundational concepts and answered everything correctly so far.",
+    expect: "Move them forward to the next concept and let them practice hands-on, instead of more passive explanation.",
+  },
+  case_04_step_down_overwhelmed: {
+    given: "Studying at difficulty 4 of 5 and failing every exercise across two concepts.",
+    expect: "Ease the difficulty down and consolidate — pushing forward at this level would just compound the failure.",
+  },
+  case_05_interleave_confusables: {
+    given: "A learner who just learned a concept that’s commonly mixed up with a similar-looking one.",
+    expect: "Teach the two side by side so the learner sees the difference — not one in isolation.",
+  },
+  case_06_prereq_gap_blocks_advance: {
+    given: "A learner asking for an advanced topic — but they were never taught one of its building blocks.",
+    expect: "Refuse to jump ahead. Teach the missing building block first, then bridge up to what they asked for.",
+  },
+};
+function caseTitle(id) {
+  const m = id.match(/^case_(\d+)_(.*)$/);
+  return m ? `Case ${m[1]} · ${m[2].replace(/_/g, " ")}` : id;
+}
+const MODALITY_PLAIN = {
+  reading: "a reading passage",
+  interactive: "hands-on questions",
+  socratic: "a back-and-forth dialogue",
+};
+function humanizeConcept(id) {
+  const n = (GV_NODES || []).find(x => x.id === id);
+  return ((n && n.name) || id || "").replace(/_/g, " ");
+}
+// Turn any concept ids inside a sentence into readable names.
+function plainIds(text) {
+  return String(text || "").replace(/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g, id => humanizeConcept(id).toLowerCase());
+}
+
+// Clamped rationales expand/collapse on click (delegated — cards re-render).
+document.addEventListener("click", (e) => {
+  const el = e.target.closest(".clamp");
+  if (el) el.classList.toggle("open");
+});
+
+// One request feeds both the home results table and the full eval view.
+let evalsPromise = null;
+function getEvals() {
+  if (!evalsPromise) {
+    evalsPromise = fetch("/evals").then(r => {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+    evalsPromise.catch(() => { evalsPromise = null; });
+  }
+  return evalsPromise;
+}
+// Short names and goals for the home table, one per eval case.
+const CASE_BRIEF = {
+  case_01_novice_start: { name: "New to the subject", expect: "Start at the root idea" },
+  case_02_struggling_use_socratic: { name: "Failed twice by reading", expect: "Switch to a dialogue" },
+  case_03_mastered_basics_practice: { name: "Mastered the basics", expect: "Move on to practice" },
+  case_04_step_down_overwhelmed: { name: "Finding it too hard", expect: "Lower the difficulty one step" },
+  case_05_interleave_confusables: { name: "Just learned an idea", expect: "Mix in a look-alike idea" },
+  case_06_prereq_gap_blocks_advance: { name: "Wants an advanced topic", expect: "Teach the missing prerequisite first" },
+};
+function showResultsFailure() {
+  document.getElementById("results-host").innerHTML =
+    '<p class="res-note">The results couldn’t be loaded. <a class="quiet-link" href="#evals" onclick="showView(\'evals\'); return false">Open the eval view</a></p>';
+}
+function renderHomeResults(d) {
+  if (!d || !d.cases || !d.cases.length) { showResultsFailure(); return; }
+  const rows = d.cases.map(c => {
+    const brief = CASE_BRIEF[c.case_id] || { name: caseTitle(c.case_id), expect: "" };
+    return `<tr><td>${esc(brief.name)}</td>` +
+      `<td class="${c.passed ? "pass" : "fail"}">${c.passed ? "Passed" : "Failed"}</td>` +
+      `<td>${esc(brief.expect)}</td></tr>`;
+  }).join("");
+  document.getElementById("results-host").innerHTML =
+    '<table class="res" aria-label="Results for each test learner"><thead><tr><th>Test learner</th><th>Result</th>' +
+    "<th>What it had to get right</th></tr></thead><tbody>" + rows + "</tbody></table>";
+}
+
+function loadEvals() {
+  if (evalsLoaded) return;
+  getEvals().then(renderEvals).catch(err => {
+    document.getElementById("ev-cases").innerHTML =
+      `<div class="ev-case" style="padding:16px;">Couldn’t load evals: ${esc(err.message)}</div>`;
+  });
+}
+function renderEvals(d) {
+  evalsLoaded = true;
+  document.getElementById("ev-pct").textContent = `${d.n_pass} of ${d.n_total}`;
+  const host = document.getElementById("ev-cases");
+  host.innerHTML = "";
+  d.cases.forEach(c => {
+    const det = document.createElement("details"); // all collapsed by default
+    det.className = "ev-case";
+    const nPass = c.judges.filter(j => j.score >= d.pass_threshold).length;
+    const scenario = CASE_PLAIN[c.case_id] || caseTitle(c.case_id);
+    const rationales = c.judges.map(j => `
+      <div class="jrow">
+        <div class="jh">
+          <span class="jname" title="${esc(j.judge_name)}">${esc(JUDGE_PLAIN[j.judge_name] || j.judge_name)}</span>
+          <span class="jscore">${j.score.toFixed(2)}</span>
+        </div>
+        <div class="jr clamp" title="click to expand">“${esc(j.rationale)}”</div>
+      </div>`).join("");
+    det.innerHTML = `
+      <summary>
+        <span class="ev-flag ${c.passed ? "pass" : "fail"}">${c.passed ? "✓ Pass" : "✗ Fail"}</span>
+        <span class="ev-scn">${esc(scenario)}</span>
+        <span class="ev-mini">${nPass}/${c.judges.length} judges agree</span>
+        <span class="ev-hint">› details</span>
+      </summary>
+      <div class="ev-body">
+        ${CASE_CONTEXT[c.case_id] ? `
+        <div class="ev-ctx">
+          <div><b>The situation we gave the agent:</b> ${esc(CASE_CONTEXT[c.case_id].given)}</div>
+          <div style="margin-top:4px;"><b>What a good tutor should do:</b> ${esc(CASE_CONTEXT[c.case_id].expect)}</div>
+        </div>` : ""}
+        ${rationales}
+        <div class="ev-wf"><b>What the agent decided:</b> teach
+          “${esc(humanizeConcept(c.workflow.target_concept_id))}” over ${(c.workflow.steps || []).length} short steps,
+          as ${MODALITY_PLAIN[c.workflow.modality] || esc(c.workflow.modality || "")}.
+          <div class="clamp" style="margin-top:6px;" title="click to expand"><i>Its reasoning, verbatim:</i> ${esc(c.workflow.rationale || "")}</div></div>
+      </div>`;
+    host.appendChild(det);
+  });
+}
+
+(function initChips() {
+  const wrap = document.getElementById("domain-chips");
+  DOMAINS.forEach((d, i) => {
+    const el = document.createElement("button");
+    el.className = "chip";
+    el.type = "button";
+    el.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    el.innerHTML = esc(d.label) + `<span class="idea-count">${d.ideas} ideas</span>`;
+    el.dataset.domain = d.id;
+    el.onclick = () => {
+      document.querySelectorAll("#domain-chips .chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+      el.setAttribute("aria-pressed", "true");
+      document.getElementById("domain").value = d.id;
+    };
+    wrap.appendChild(el);
+  });
+})();
+
+// Demo token for the gated deployment: read once from ?token=… in the page
+// URL (then remembered in localStorage) and sent as X-Demo-Token on session
+// calls. Locally, with no DEMO_TOKEN configured, everything stays open.
+const DEMO_TOKEN = (() => {
+  const fromUrl = new URLSearchParams(location.search).get("token");
+  try {
+    if (fromUrl) { localStorage.setItem("demo_token", fromUrl); return fromUrl; }
+    return localStorage.getItem("demo_token") || "";
+  } catch (e) { return fromUrl || ""; }
+})();
+function authHeaders(h) { return DEMO_TOKEN ? { ...h, "X-Demo-Token": DEMO_TOKEN } : h; }
+
+
+function setStatus(s) { document.getElementById("status").textContent = s; }
+let streamCtl = null; // lets "change topic" stop a stream that is still running
+function resetToSetup() {
+  if (streamCtl) { streamCtl.abort(); streamCtl = null; }
+  currentSessionId = null; totalSteps = 0; pendingSeed = null;
+  setThinking(null);
+  document.getElementById("feed").innerHTML = "";
+  document.getElementById("feed").hidden = true;
+  document.getElementById("trace").innerHTML = "";
+  document.getElementById("plan-host").innerHTML = "";
+  document.getElementById("plan-host").hidden = true;
+  document.getElementById("why-text").textContent = WHY_DEFAULT;
+  document.getElementById("how").open = false;
+  GV_NODES = null; GV_TARGET = null; GV_KNOWN = new Set();
+  drawBoardMap();
+  flowReset();
+  document.getElementById("split").hidden = true;
+  document.getElementById("home").style.display = "";
+  document.getElementById("session-ctl").hidden = true;
+  document.getElementById("nav-replays").hidden = false; // the replay section is on home again
+  setStatus("");
+  document.getElementById("start").disabled = false;
+  setFeaturedEnabled(true);
+  window.scrollTo(0, 0);
+}
+
+// ---- journey card: live progress on the left while the session builds ----
+const JOURNEY_STEPS = [
+  { key: "load_graph", icon: "1", label: "Map the subject" },
+  { key: "assess", icon: "2", label: "Work out what you need" },
+  { key: "plan", icon: "3", label: "Design your lesson plan" },
+  { key: "generate", icon: "4", label: "Write your lesson" },
+];
+function showJourney() {
+  const card = document.createElement("div");
+  card.className = "lesson journey";
+  card.id = "journey";
+  card.innerHTML = "<h3>Building your session</h3>" + JOURNEY_STEPS.map(s =>
+    `<div class="jstep" id="jstep-${s.key}">
+       <span class="jicon">${s.icon}</span>
+       <span class="jlabel">${s.label}</span>
+       <span class="jspin"></span>
+       <span class="jstate"></span>
+     </div>`).join("");
+  document.getElementById("feed").appendChild(card);
+}
+function journeyPhase(name) {
+  const el = document.getElementById("jstep-" + name);
+  if (el) el.classList.add("active");
+}
+function journeyDone(name, summary) {
+  const el = document.getElementById("jstep-" + name);
+  if (!el) return;
+  el.classList.remove("active");
+  el.classList.add("done");
+  if (summary) el.querySelector(".jstate").textContent = summary;
+}
+
+// ---- the board map: the idea being taught, what it builds on, what comes next ----
+let GV_NODES = null, GV_TARGET = null, GV_KNOWN = new Set();
+const WHY_DEFAULT = "The tutor is working out what you need first.";
+function renderGraphViz(nodes) {
+  GV_NODES = nodes; GV_TARGET = null; GV_KNOWN = new Set();
+  drawBoardMap();
+}
+function gvTarget(id) { GV_TARGET = id; drawBoardMap(); }
+function wrapName(name) {
+  const lines = [""];
+  (name || "").split(/\s+/).filter(Boolean).forEach(w => {
+    const cur = lines[lines.length - 1];
+    if (!cur) lines[lines.length - 1] = w;
+    else if ((cur + " " + w).length <= 11) lines[lines.length - 1] = cur + " " + w;
+    else lines.push(w);
+  });
+  return lines.slice(0, 2).map(l => l.length > 12 ? l.slice(0, 11) + "…" : l);
+}
+function drawBoardMap() {
+  const svg = document.getElementById("board-map");
+  const byId = {};
+  (GV_NODES || []).forEach(n => byId[n.id] = n);
+  const t = GV_TARGET && byId[GV_TARGET];
+  if (!t) { svg.toggleAttribute("hidden", true); svg.innerHTML = ""; return; }
+  const pre = (t.prerequisites || []).filter(p => byId[p]).slice(0, 2).map(p => byId[p]);
+  const post = GV_NODES.filter(n => (n.prerequisites || []).includes(t.id)).slice(0, 1);
+  const top = [...pre, ...post];
+  const H = top.length ? 196 : 120, ty = top.length ? 142 : 62;
+  const topPos = top.map((n, i) => ({ n, x: 360 * (i + 0.5) / top.length, y: 52 }));
+  const label = (n, x, y) => {
+    const ls = wrapName(n.name || n.id);
+    return ls.map((l, i) => `<text x="${x}" y="${y + (i - (ls.length - 1) / 2) * 16 + 5}">${esc(l)}</text>`).join("");
+  };
+  let html = topPos.map(q => `<path class="gedge" d="M${q.x} ${q.y} L180 ${ty}"/>`).join("");
+  html += topPos.map(q => `<g class="gnode${GV_KNOWN.has(q.n.id) ? " known" : ""}"><circle cx="${q.x}" cy="${q.y}" r="38"/>${label(q.n, q.x, q.y)}</g>`).join("");
+  html += `<g class="gnode"><circle cx="180" cy="${ty}" r="42"/>${label(t, 180, ty)}</g>` +
+          `<circle class="gtarget" cx="180" cy="${ty}" r="50"/>`;
+  svg.setAttribute("viewBox", `0 0 360 ${H}`);
+  svg.setAttribute("aria-label", `Your map. Teaching now: ${t.name || t.id}. ` +
+    (pre.length ? "It builds on " + pre.map(n => n.name || n.id).join(" and ") + ". " : "") +
+    (post.length ? "Next: " + (post[0].name || post[0].id) + "." : ""));
+  svg.innerHTML = html;
+  svg.toggleAttribute("hidden", false);
+}
+
+// ---- the agent orb: its animation state mirrors the model's activity ----
+function orbState(s) {
+  document.querySelectorAll(".orb").forEach(o => {
+    o.className = "orb" + (o.classList.contains("big") ? " big" : "") + (s ? " " + s : "");
+  });
+}
+
+// ---- agent-loop flowchart: active stage pulses, finished stages go green ----
+const FLOW_BY_PHASE = { load_graph: "map", assess: "assess", plan: "plan", generate: "teach" };
+const FLOW_EDGE_IN = { assess: "fe-assess", plan: "fe-plan", teach: "fe-teach",
+                       observe: "fe-observe", adapt: "fe-adapt" };
+function flowReset() {
+  document.querySelectorAll("#flowchart .fnode").forEach(n => n.className.baseVal = "fnode");
+  document.querySelectorAll("#flowchart .fedge").forEach(e =>
+    e.classList.remove("on"));
+}
+function flowActive(stage) {
+  if (!stage) return;
+  document.querySelectorAll("#flowchart .fnode.active").forEach(n => {
+    n.classList.remove("active");
+    n.classList.add("done");
+  });
+  document.querySelectorAll("#flowchart .fedge.on").forEach(e => e.classList.remove("on"));
+  const node = document.getElementById("fn-" + stage);
+  if (node) { node.classList.remove("done"); node.classList.add("active"); }
+  const edge = document.getElementById(FLOW_EDGE_IN[stage]);
+  if (edge) edge.classList.add("on");
+  if (stage === "adapt") {
+    const loop = document.getElementById("fe-loop");
+    if (loop) loop.classList.add("on");
+  }
+}
+function flowDone(stage) {
+  const node = document.getElementById("fn-" + stage);
+  if (node) { node.classList.remove("active"); node.classList.add("done"); }
+  const edge = document.getElementById(FLOW_EDGE_IN[stage]);
+  if (edge) edge.classList.remove("on");
+}
+let thinkingBuf = "", writingChars = 0;
+function setThinking(text) {
+  const t = document.getElementById("thinking");
+  const live = document.getElementById("thinking-text");
+  live.setAttribute("aria-busy", text === null ? "false" : "true");
+  if (text === null) { t.classList.remove("show"); orbState(""); return; }
+  thinkingBuf = ""; writingChars = 0;
+  document.getElementById("thinking-label").innerHTML = text;
+  setStatus(text.replace(/<[^>]+>/g, "")); // the header status is the live region that stays visible
+  document.getElementById("thinking-tail").innerHTML = "";
+  t.classList.add("show");
+  orbState("think");
+}
+// Live progress: reasoning deltas stream into a tail under the phase label;
+// while the model writes its answer (reasoning goes quiet), a character
+// counter keeps the pane moving instead of freezing for tens of seconds.
+function renderThinking() {
+  // Only the tail changes here, so screen readers announce the phase label once
+  // (from setThinking) and not every streamed delta.
+  let html = "";
+  if (thinkingBuf) {
+    html += '<span class="reasoning" id="live-reason">' + esc(thinkingBuf) +
+      '<span class="caret">▍</span></span>';
+  }
+  if (writingChars > 0) {
+    const k = writingChars >= 1000 ? (writingChars / 1000).toFixed(1) + "k" : String(writingChars);
+    html += '<span class="reasoning">writing… ' + k + ' characters<span class="caret">▍</span></span>';
+  }
+  document.getElementById("thinking-tail").innerHTML = html;
+  document.getElementById("thinking").classList.add("show");
+  const live = document.getElementById("live-reason");
+  if (live) live.scrollTop = live.scrollHeight; // pin to the newest line
+}
+function appendThinking(delta) {
+  thinkingBuf += delta;
+  writingChars = 0; // back to reasoning — clear the writing counter
+  orbState("think");
+  renderThinking();
+}
+function showProgress(chars) {
+  writingChars = chars;
+  orbState("write");
+  renderThinking();
+}
+// Archive the finished phase's full reasoning into the trace timeline, so it
+// stays reviewable after the live pane moves on to the next phase.
+let currentPhase = "";
+function flushReasoning() {
+  if (!thinkingBuf || !currentPhase) return;
+  trace("phase-" + currentPhase, "reasoning", "Why — in the model's own words",
+    `<details><summary>read the full reasoning</summary>` +
+    `<div class="reason-full">${esc(thinkingBuf)}</div></details>`);
+}
+
+const THINKING = {
+  load_graph: "Loading the knowledge map for this subject…",
+  assess:     "Figuring out <b>what you need next</b>…",
+  plan:       "Designing <b>your lesson plan</b>…",
+  generate:   "Writing <b>your lesson</b>…",
+  adapt:      "Updating your profile from your answer…",
+};
+
+// ---- tiny markdown renderer (bold / italic / code / headings / lists / paras) ----
+function esc(s) { return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function inline(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+}
+function mdToHtml(md) {
+  const lines = (md || "").split("\n");
+  let html = "", list = false;
+  const closeList = () => { if (list) { html += "</ul>"; list = false; } };
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    if (line.startsWith("## ")) { closeList(); html += `<h4>${inline(line.slice(3))}</h4>`; }
+    else if (line.startsWith("# ")) { closeList(); html += `<h4>${inline(line.slice(2))}</h4>`; }
+    else if (/^[-*]\s+/.test(line)) { if (!list) { html += "<ul>"; list = true; } html += `<li>${inline(line.replace(/^[-*]\s+/, ""))}</li>`; }
+    else { closeList(); html += `<p>${inline(line)}</p>`; }
+  }
+  closeList();
+  return html;
+}
+
+// ---- the plan: readable concept names, the current step marked ----
+const HOW_PLAIN = { reading: "reading", socratic: "dialogue", interactive: "practice" };
+function renderCurriculum(w) {
+  setThinking(null);
+  curriculumItems = {};
+  const steps = w.steps || [];
+  const host = document.getElementById("plan-host");
+  host.innerHTML = '<ol class="plan" aria-label="Plan for this session">' + steps.map(s => `
+    <li data-step="${s.step_number}">${esc(humanizeConcept(s.concept_id).replace(/^\w/, c => c.toUpperCase()))}
+      <span class="plan-how">${esc(HOW_PLAIN[s.modality] || s.modality || "")}</span></li>`).join("") + "</ol>";
+  host.hidden = !steps.length;
+  const list = host;
+  steps.forEach(s => { curriculumItems[s.step_number] = list.querySelector(`li[data-step="${s.step_number}"]`); });
+}
+
+// KaTeX: render $...$ / $$...$$ inside an element once the library has loaded.
+function renderMath(el) {
+  try {
+    if (window.renderMathInElement) {
+      renderMathInElement(el, { delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false },
+        { left: "\(", right: "\)", display: false },
+        { left: "\[", right: "\]", display: true },
+      ], throwOnError: false });
+    }
+  } catch (e) { /* math is a nicety; never break the lesson */ }
+}
+
+// A teaching chart (PNG data URL) arrived for a lesson — slot it into that card.
+function attachChart(stepNo, dataUrl) {
+  let card = document.querySelector('.lesson[data-step="' + stepNo + '"]');
+  if (!card) { const all = document.querySelectorAll(".lesson"); card = all[all.length - 1]; }
+  if (!card || card.querySelector(".lesson-chart")) return;
+  const fig = document.createElement("figure");
+  fig.className = "lesson-chart";
+  fig.innerHTML = '<img alt="teaching chart" src="' + dataUrl + '">' +
+    '<figcaption>Chart written and run by the agent in a code sandbox</figcaption>';
+  const body = card.querySelector(".body");
+  if (body) body.after(fig); else card.appendChild(fig);
+}
+
+function markCurriculum(stepNo) {
+  Object.entries(curriculumItems).forEach(([n, el]) => {
+    if (!el) return;
+    el.classList.toggle("done", +n < stepNo);
+    if (+n === stepNo) el.setAttribute("aria-current", "step");
+    else el.removeAttribute("aria-current");
+  });
+}
+
+// ---- render a lesson (the user-facing artifact) ----
+function renderLesson(a, step) {
+  setThinking(null);
+  markCurriculum(step?.step_number || 1);
+  const feed = document.getElementById("feed");
+  // One lesson on screen at a time, so the page has one h1.
+  feed.querySelectorAll(".lesson, .note-line:not(.err)").forEach(e => e.remove());
+  const card = document.createElement("div");
+  card.className = "lesson";
+  const stepNo = step?.step_number || 1;
+  card.dataset.step = stepNo;
+  const dom = DOMAINS.find(d => d.id === document.getElementById("domain").value);
+
+  let inner = `
+    <p class="where">${esc(dom ? dom.label : "")}</p>
+    <h1 class="lesson-h1">${esc(a.title)}</h1>`;
+
+  if (a.type === "reading") {
+    inner += `<div class="body">${mdToHtml(a.body)}</div>`;
+    if ((a.key_takeaways || []).length) {
+      inner += `<div class="takeaways"><p class="tk-h">Key takeaways</p><ul>` +
+        a.key_takeaways.map(k => `<li>${inline(k)}</li>`).join("") + `</ul></div>`;
+    }
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    addRespond(card, step, a);
+  } else if (a.type === "socratic") {
+    inner += `<div class="body"><p>${inline(a.opening || "")}</p></div>`;
+    inner += (a.dialogue || []).map(t =>
+      `<div class="turn ${t.role === "agent" ? "tutor" : "you"}"><span class="who">${t.role === "agent" ? "Tutor" : "You"}</span>
+       <div class="bubble">${inline(t.text)}</div></div>`).join("");
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    addRespond(card, step, a);
+  } else if (a.type === "interactive") {
+    inner += `<div class="body"><p>${inline(a.intro || "")}</p></div>
+      <div class="check"><h2 class="check-h">Your turn</h2>
+      <p class="check-sub">Pick one. Getting it wrong is useful too: it tells the tutor what to teach next.</p>
+      <div id="quiz-${stepNo}"></div></div>`;
+    card.innerHTML = inner;
+    feed.appendChild(card);
+    renderQuiz(card, a, step, stepNo);
+  }
+  renderMath(card);
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ---- playable quiz: click options, get graded, then continue ----
+function renderQuiz(card, a, step, stepNo) {
+  const host = card.querySelector(`#quiz-${stepNo}`);
+  const qs = a.questions || [];
+  const state = qs.map(() => null); // true/false once answered
+
+  qs.forEach((q, qi) => {
+    const qEl = document.createElement("div");
+    qEl.className = "q";
+    qEl.innerHTML = `<div class="qt">${qi + 1}. ${inline(q.question)}</div>`;
+    if (q.options && q.options.length) {
+      q.options.forEach(opt => {
+        const b = document.createElement("button");
+        b.className = "opt";
+        b.textContent = opt;
+        b.onclick = () => {
+          if (state[qi] !== null) return;
+          const right = opt === q.correct_answer;
+          state[qi] = right;
+          qEl.querySelectorAll(".opt").forEach(o => {
+            o.disabled = true;
+            if (o.textContent === q.correct_answer) o.classList.add("correct");
+          });
+          if (!right) b.classList.add("wrong");
+          const ex = document.createElement("div");
+          ex.className = "explain";
+          ex.innerHTML = (right ? "✓ Correct. " : "✗ ") + inline(q.explanation || "");
+          qEl.appendChild(ex);
+          maybeFinishQuiz(card, step, state);
+        };
+        qEl.appendChild(b);
+      });
+    } else {
+      // free response → reveal + self-grade
+      const reveal = document.createElement("button");
+      reveal.className = "ghost"; reveal.textContent = "Show answer";
+      reveal.onclick = () => {
+        reveal.remove();
+        const ex = document.createElement("div");
+        ex.className = "explain";
+        ex.innerHTML = `<b>Answer:</b> ${inline(q.correct_answer)}<br/>${inline(q.explanation || "")}`;
+        qEl.appendChild(ex);
+        state[qi] = true; // counted as seen
+        maybeFinishQuiz(card, step, state);
+      };
+      qEl.appendChild(reveal);
+    }
+    host.appendChild(qEl);
+  });
+}
+
+function maybeFinishQuiz(card, step, state) {
+  if (state.some(s => s === null)) return;
+  const allRight = state.every(s => s === true);
+  const r = document.createElement("div");
+  r.className = "respond";
+  const score = state.filter(Boolean).length;
+  r.innerHTML = `<div class="ask">You got <b>${score}/${state.length}</b>. Ready for the next step?</div>`;
+  const cont = document.createElement("button");
+  cont.className = "primary";
+  cont.textContent = "Continue";
+  cont.onclick = () => { r.remove(); submitResponse(allRight, `quiz ${score}/${state.length}`); };
+  r.appendChild(cont);
+  card.appendChild(r);
+  r.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+// ---- response control for reading / socratic ----
+function addRespond(card, step, artifact) {
+  const concept = step ? `<b>${esc(humanizeConcept(step.concept_id))}</b>` : "this";
+  const r = document.createElement("div");
+  r.className = "respond";
+  r.innerHTML = `
+    <div class="ask">How did that land? Be honest. It changes what you get next.</div>
+    <input class="txt" id="resp-notes" placeholder="optional: a note to the tutor (e.g. “the desk analogy clicked”)" />
+    <div class="btns">
+      <button class="good" onclick="this.closest('.respond').remove(); submitResponse(true, getNotes())">I’ve got it</button>
+      <button class="quiet" onclick="this.closest('.respond').remove(); submitResponse(false, getNotes())">I’m stuck, explain it differently</button>
+    </div>`;
+  card.appendChild(r);
+  r.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+function getNotes() { const e = document.getElementById("resp-notes"); return e ? e.value.trim() : ""; }
+
+// ---- you answered + send to server ----
+function noteLine(cls, key, text) {
+  const feed = document.getElementById("feed");
+  const el = document.createElement("div");
+  el.className = "note-line " + cls + (key === "error" ? " err" : "");
+  el.innerHTML = `<span class="tagk">${key}</span> <span>${text}</span>`;
+  feed.appendChild(el);
+}
+
+function submitResponse(correct, notes) {
+  noteLine("", "you", (correct ? "Got it" : "Stuck") + (notes ? ` — “${esc(notes)}”` : ""));
+  flowDone("observe");
+  flowActive("adapt");
+  setThinking(THINKING.adapt);
+  trace("phase-observe", "observe", "Your answer", `${correct ? "correct" : "incorrect"}${notes ? " · " + esc(notes) : ""}`);
+
+  agentLabelSet = false;
+  streamSSE(`/agent/sessions/${currentSessionId}/respond_stream`, { correct, notes }, null);
+}
+
+function showDone(res) {
+  setThinking(null);
+  setStatus("complete");
+  const feed = document.getElementById("feed");
+  const card = document.createElement("div");
+  card.className = "lesson done-card";
+  card.innerHTML = `
+    <div class="big">Done</div>
+    <h3>Session complete</h3>
+    <div class="body"><p>${esc(res.note || "Nice work.")}</p>
+      <p style="color:var(--muted);font-size: 14px;">Start again and the tutor <b>picks up from everything you just did</b> — nothing resets.</p></div>`;
+  const b = document.createElement("button");
+  b.className = "primary"; b.textContent = "Start a new session";
+  b.onclick = () => startSession();
+  card.appendChild(b);
+  feed.appendChild(card);
+  currentSessionId = null;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ================= Under the hood (trace) =================
+// Agent-mode tool → flowchart node / labels
+const TOOL_FLOW = { diagnose: "assess", plan_lessons: "plan", teach: "teach",
+                    record_observation: "adapt", view_learner: "adapt" };
+const TOOL_TITLES = {
+  diagnose: "Agent chose: diagnose the learner",
+  plan_lessons: "Agent chose: plan the lessons",
+  teach: "Agent chose: teach a lesson",
+  record_observation: "Agent chose: update your profile",
+  view_learner: "Agent chose: review your profile",
+};
+const TOOL_RUN = {
+  diagnose: "diagnosing what you need",
+  plan_lessons: "planning your lessons",
+  teach: "writing your lesson",
+  record_observation: "updating your profile",
+  view_learner: "reviewing your profile",
+};
+let agentLabelSet = false;
+
+const TRACE_ICONS = {
+  "phase-assess": "•", "phase-plan": "•", "phase-generate": "•",
+  "phase-observe": "•", "phase-adapt": "•",
+};
+function _railFollow(fn) {
+  const box = document.getElementById("trace");
+  // Follow the newest entry only if the user hasn't scrolled up to read.
+  const follow = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+  fn();
+  if (follow) box.scrollTop = box.scrollHeight;
+}
+function trace(phaseClass, label, title, contentHTML) {
+  _railFollow(() => {
+    const card = document.createElement("div");
+    card.className = "stream-card " + phaseClass;
+    const icon = TRACE_ICONS[phaseClass] || "•";
+    card.innerHTML =
+      `<div class="head"><span class="ticon">${icon}</span>` +
+      `<div class="title">${title}</div>` +
+      `<div class="label" title="${label}">${label}</div></div>` +
+      `<div class="content">${contentHTML}</div>`;
+    document.getElementById("trace").appendChild(card);
+  });
+}
+function traceSection(phaseName, text, agent) {
+  _railFollow(() => {
+    const sec = document.createElement("div");
+    sec.className = "trace-sec phase-" + phaseName;
+    sec.innerHTML = esc(text) + (agent ? `<span class="sec-agent">${esc(agent)}()</span>` : "");
+    document.getElementById("trace").appendChild(sec);
+  });
+}
+function renderLearnerTrace(learner) {
+  const m = (learner.mastered_concepts || []).length;
+  const s = (learner.struggling_concepts || []).length;
+  const dots = [1, 2, 3, 4, 5].map(i =>
+    `<span class="ldot${i <= learner.difficulty_level ? " on" : ""}"></span>`).join("");
+  trace("phase-adapt", "LearnerModel", "What the tutor knows about you",
+    `<div class="lstats">
+       <span class="lstat">${m} mastered</span>
+       <span class="lstat">${s} to revisit</span>
+       <span class="lstat">prefers ${esc(learner.modality_preference || "—")}</span>
+       <span class="lstat">level ${dots}</span>
+     </div>
+     <details><summary>raw learner state</summary><pre>${esc(JSON.stringify(learner, null, 2))}</pre></details>`);
+}
+
+// ================= SSE start =================
+// The "Watch this replay" control is off while a session runs, like #start.
+function setFeaturedEnabled(on) {
+  document.querySelectorAll(".watch-replay").forEach(b => { b.disabled = !on; });
+}
+function startSession() {
+  document.getElementById("start").disabled = true;
+  setFeaturedEnabled(false);
+  document.getElementById("feed").innerHTML = "";
+  document.getElementById("trace").innerHTML = "";
+  GV_NODES = null; GV_TARGET = null; GV_KNOWN = new Set(); drawBoardMap();
+  document.getElementById("plan-host").innerHTML = "";
+  flowReset();
+  currentSessionId = null; totalSteps = 0;
+  setStatus("connecting…");
+
+  const user = document.getElementById("user").value || "learner";
+  const domain = document.getElementById("domain").value || "ai";
+
+  // Swap the home for the lesson area; the header shows status and "change topic".
+  document.getElementById("home").style.display = "none";
+  document.getElementById("session-ctl").hidden = false;
+  document.getElementById("nav-replays").hidden = true; // its target (#replays, on home) is hidden during a session
+  document.getElementById("why-text").textContent = WHY_DEFAULT;
+  document.getElementById("plan-host").hidden = true;
+  ["split", "feed"].forEach(id => { document.getElementById(id).hidden = false; });
+  agentLabelSet = false;
+  showJourney();
+  window.scrollTo(0, 0);
+
+  setThinking(THINKING.load_graph);
+
+  const payload = { user_id: user, domain_id: domain };
+  if (pendingSeed) { payload.learner = pendingSeed; pendingSeed = null; }
+
+  streamSSE(
+    "/agent/sessions/start_stream",
+    payload,
+    () => { document.getElementById("start").disabled = false; setFeaturedEnabled(true); }
+  );
+}
+
+// Shared SSE POST-and-stream reader (session start in both modes; agent respond).
+function streamSSE(url, payload, onDone) {
+  streamCtl = new AbortController();
+  fetch(url, {
+    method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload), signal: streamCtl.signal,
+  }).then(async (resp) => {
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      setThinking(null); setStatus("error");
+      noteLine("", "error", esc(err.message || err.detail ||
+        `Request failed (${resp.status}).`) +
+        (resp.status === 401 ? " Append <code>?token=&lt;demo token&gt;</code> to this page's URL and retry." : ""));
+      if (onDone) onDone();
+      return;
+    }
+    setStatus("learning");
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+      for (const ev of events) handleSSE(ev);
+    }
+    if (onDone) onDone();
+  }).catch((err) => {
+    if (err.name === "AbortError") return; // "change topic" stopped it and has already reset the page
+    setThinking(null); setStatus("error: " + err.message);
+    if (onDone) onDone();
+  });
+}
+
+function handleSSE(raw) {
+  const lines = raw.split("\n").filter(Boolean);
+  let event = "message", data = "";
+  for (const line of lines) {
+    if (line.startsWith("event: ")) event = line.slice(7);
+    else if (line.startsWith("data: ")) data += line.slice(6);
+  }
+  let p = {};
+  try { p = JSON.parse(data); } catch (e) { return; }
+  dispatch(event, p);
+}
+
+function dispatch(event, p) {
+  if (event === "phase") {
+    flushReasoning(); // archive the previous phase's reasoning before resetting
+    currentPhase = p.name;
+    if (THINKING[p.name]) setThinking(THINKING[p.name]);
+    const PHASE_TITLES = {
+      load_graph: "reading the subject map",
+      assess: "working out what you need",
+      plan: "designing your lesson plan",
+      generate: "writing your lesson",
+    };
+    const PHASE_AGENT = {
+      load_graph: "extract_learning_graph",
+      assess: "diagnose_learner",
+      plan: "plan_workflow",
+      generate: "generate_artifact",
+    };
+    journeyPhase(p.name);
+    flowActive(FLOW_BY_PHASE[p.name]);
+    traceSection(p.name === "load_graph" ? "assess" : p.name,
+      PHASE_TITLES[p.name] || p.name, PHASE_AGENT[p.name]);
+    return;
+  }
+  if (event === "thinking") {
+    if (p.phase === "agent" && !agentLabelSet) {
+      setThinking("Deciding the next move…");
+      agentLabelSet = true;
+    }
+    appendThinking(p.delta);
+    return;
+  }
+  if (event === "tool_call") {
+    flushReasoning(); // archive the deliberation that led to this decision
+    const node = TOOL_FLOW[p.tool];
+    if (node) { currentPhase = node; flowActive(node); }
+    if (p.tool === "teach" && p.args && p.args.concept_id) gvTarget(p.args.concept_id);
+    setThinking("" + (TOOL_RUN[p.tool] || "running " + p.tool) + "…");
+    agentLabelSet = true;
+    const args = p.args && Object.keys(p.args).length
+      ? `<code>${esc(JSON.stringify(p.args)).slice(0, 260)}</code>` : "(no arguments)";
+    trace("phase-" + (node || "assess"), p.tool + "()", TOOL_TITLES[p.tool] || p.tool, args);
+    return;
+  }
+  if (event === "tool_result") {
+    const node = TOOL_FLOW[p.tool];
+    if (p.ok && node) flowDone(node);
+    if (!p.ok) trace("phase-observe", p.tool + "()", "Tool error — the agent will adapt", esc(p.error || ""));
+    agentLabelSet = false; // next deliberation gets a fresh label
+    return;
+  }
+  if (event === "agent_text") {
+    flushReasoning();
+    setThinking(null);
+    noteLine("adapt", "tutor", inline(p.text));
+    return;
+  }
+  if (event === "turn_done") {
+    setThinking(null);
+    orbState("");
+    if (p.status === "session_budget_reached") {
+      noteLine("", "error", "This session reached its budget cap — start a new one to continue.");
+    } else {
+      flowActive("observe");
+      setStatus("Your turn"); // the turn is over: the tutor is waiting for the learner
+    }
+    return;
+  }
+  if (event === "progress") {
+    showProgress(p.chars);
+    return;
+  }
+  if (event === "graph") {
+    journeyDone("load_graph", `${p.n_nodes} concepts`);
+    flowDone("map");
+    if (p.nodes) renderGraphViz(p.nodes); // the map card on the left IS this event's receipt
+    return;
+  }
+  if (event === "learner") {
+    (p.learner.mastered_concepts || []).forEach(id => GV_KNOWN.add(id));
+    drawBoardMap();
+    renderLearnerTrace(p.learner);
+    return;
+  }
+  if (event === "gap") {
+    const g = p.gap;
+    journeyDone("assess", `next: ${humanizeConcept(g.target_concept_id)}`);
+    flowDone("assess");
+    gvTarget(g.target_concept_id);
+    document.getElementById("why-text").textContent = plainIds(g.rationale);
+    trace("phase-assess", "diagnose_learner → GapEstimate", "What you need next",
+      `<b>topic:</b> <code>${esc(g.target_concept_id)}</code> · difficulty ${g.suggested_difficulty}/5 · confidence ${g.confidence}
+       <div style="margin-top:6px;">${esc(plainIds(g.rationale))}</div>`);
+    return;
+  }
+  if (event === "workflow") {
+    const w = p.workflow;
+    totalSteps = (w.steps || []).length;
+    const steps = w.steps.map(s => `<span class="step-mini"><b>${s.step_number}.</b> ${esc(s.concept_id)} · ${s.modality} · ${esc(s.pedagogy_principle)}</span>`).join("");
+    journeyDone("plan", `${(w.steps || []).length} steps · ${w.modality}`);
+    flowDone("plan");
+    trace("phase-plan", "plan_workflow → Workflow", `Your lesson plan (${esc(w.modality)})`,
+      `${steps}<div style="margin-top:6px;">${esc(w.rationale)}</div>`);
+    renderCurriculum(w);
+    return;
+  }
+  if (event === "artifact") {
+    lastStep = p.step;
+    journeyDone("generate", "ready");
+    flowDone("teach");
+    trace("phase-generate", "generate_artifact → Artifact", `Lesson ready (${p.artifact.type}, step ${p.step.step_number})`,
+      `Shown above.`);
+    renderLesson(p.artifact, p.step);
+    setStatus("Your turn");
+    return;
+  }
+  if (event === "chart") {
+    attachChart(p.step_number, p.chart);
+    return;
+  }
+  if (event === "session_ready") {
+    flushReasoning(); // archive the generate phase's reasoning too
+    orbState("");
+    currentSessionId = p.session_id;
+    setStatus("Your turn");
+    flowActive("observe");
+    traceSection("generate", "✓ ready — waiting for your answer");
+    return;
+  }
+  if (event === "error") {
+    setThinking(null);
+    orbState("");
+    noteLine("", "error", esc(p.message || "error"));
+    trace("phase-observe", "error", esc(p.type || "Error"), esc(p.message || ""));
+    return;
+  }
+}
+
+// The home shows the same results the eval view does.
+getEvals().then(renderHomeResults).catch(showResultsFailure);
+</script>
+</body>
+</html>
