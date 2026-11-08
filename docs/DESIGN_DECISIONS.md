@@ -102,3 +102,9 @@ How to use it:
 - replaces: the typed-topic box in the first mock
 - affects: none (not built)
 - why: it needs a server route that takes untrusted input, which is tier L.
+
+## D-016 · The pitch lives on the board, not on a cover page
+- date: 2026-11-08 · status: active · source: owner (#75)
+- replaces: the idea of a separate cover page before the home
+- affects: home hero in `docs/visual/index.html` (3-step strip under "No account needed.")
+- why: the board already holds the promise and the gap map, so a short strip of three drawn steps (pick a subject, we find your gap, lessons adjust) answers "what happens after Start" without an extra click. No buttons, no numbers, icons decorative.
