@@ -39,6 +39,7 @@ Rules:
 - Product/design questions from a coder go back to the planner; the plan comment is updated.
 - Planning stage: "Don't implement yet." Claude never reviews its own PR; Codex does.
 - Bloat is handled by the weekly cleanup subagent, not per PR.
+- Anything deliberately put off until there are real users goes in `docs/PARKED.md`, so it isn't forgotten at launch. Add the entry in the same PR that parks it.
 - Stay under ~60% of the context window per phase; split if needed.
 - In cloud sessions `gh` may be unauthenticated: use the GitHub MCP tools instead.
 
@@ -46,7 +47,7 @@ Rules:
 
 Pick the **highest** row that matches. When unsure, go one tier up.
 
-**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Process/tooling changes you've approved in chat skip the story; the PR is the record (L still means no auto-merge and your "merge"). Revisit when real users arrive: everything parked until then is listed in `docs/PARKED.md`.
+**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Process/tooling changes you've approved in chat skip the story; the PR is the record (L still means no auto-merge and your "merge"). Revisit when real users arrive.
 
 | Tier | Any of these makes it this tier | Merge |
 |------|------|------|
