@@ -48,6 +48,8 @@ Pick the **highest** row that matches. When unsure, go one tier up.
 
 **Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Process/tooling changes you've approved in chat skip the story; the PR is the record (L still means no auto-merge and your "merge"). Revisit when real users arrive.
 
+**Goal now: proof of work for AI reliability consulting.** Optimise for a prospect's first 2 minutes: no sign-in, fast first lesson, visible adaptation, and visible reliability work (judges, evals, caps). Learner answers are fixed, tappable choices, never free text to the model: one call per lesson keeps cost flat and lets demo paths be pre-recorded. Billing, sign-in and a real database come later.
+
 | Tier | Any of these makes it this tier | Merge |
 |------|------|------|
 | **L** | Touches a path in `.github/sensitive-paths.txt` (money, user data or its shape, secrets, untrusted-input defences, auth/payments, deploy/deps/CI) · changes more than one `src/` package · new module or data model change | You say "merge" and approved the plan; Claude checks CI + Codex first |
