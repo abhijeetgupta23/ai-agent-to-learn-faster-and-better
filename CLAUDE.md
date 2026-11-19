@@ -43,7 +43,7 @@ Rules:
 - **Frontend coders see the design.** A frontend story names its committed mockup PNG (`docs/issues/<n>/…png`). The coder opens it before building, then screenshots its own work at 1280px and 390px and compares it with the mockup before committing (`.claude/agents/coder.md`). The tester still works from the text only. The coder also reads the four design skills in `.claude/skills/` (frontend-design, ui-ux-pro-max, taste-skill, web-design-guidelines); project rules win over them.
 - **Design decisions live in `docs/DESIGN_DECISIONS.md`.** Any design change adds an entry in the same PR (id, date, why, replaces, affects); changing your mind adds a new entry and marks the old one replaced.
 - The tester gets only the issue number and reads only the issue body.
-- Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.
+- Coders never edit `tests/`; they log unrelated mess as `tech-debt` issues instead of fixing it.
 - Product/design questions from a coder go back to the planner; the plan comment is updated.
 - Planning stage: "Don't implement yet." Claude never reviews its own PR; Codex does.
 - After opening a PR, Claude subscribes to its activity without asking and acts whenever something needs it: answers Codex, fixes CI, and turns on auto-merge for S once every thread is resolved, or merges directly if checks are already green.

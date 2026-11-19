@@ -98,7 +98,7 @@ one rule keeps them honest.
 | Current stage | Issue label `stage:*` |
 | Tests and code | Branch commits, pushed after every step |
 | Review | PR comments |
-| Tech debt | Issues labelled `tech` |
+| Tech debt | Issues labelled `tech-debt` |
 | Lessons | CLAUDE.md |
 
 ## Files
@@ -124,14 +124,14 @@ git switch -c cleanup/$(date +%G-w%V)
 ruff check . --select F401,F841,ERA001 --fix
 vulture src/ --min-confidence 80
 npx jscpd src/
-# then: "Use the cleanup subagent on the findings and open tech issues."
+# then: "Use the cleanup subagent on the findings and open tech-debt issues."
 pytest tests/
 ```
 
 ## One-time setup (manual)
 
 - Labels: `stage:research`, `stage:plan`, `stage:tests`, `stage:code`, `stage:review`,
-  `tier:S`, `tier:M`, `tier:L`, `story`, `tech`, `cleanup`, `hold` (blocks any merge while applied)
+  `tier:S`, `tier:M`, `tier:L`, `story`, `tech-debt`, `cleanup`, `hold` (blocks any merge while applied)
   (`for l in research plan tests code review; do gh label create "stage:$l"; done`).
 - Branch protection on `main`: require the `test (py3.10/3.11/3.12)` checks and the
   `tier-check` status, and "Require conversation resolution before merging" (so Codex
