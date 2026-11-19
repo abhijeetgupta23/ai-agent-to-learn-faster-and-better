@@ -189,7 +189,7 @@ Head-to-head benchmark vs plain Claude and plain GPT. Publish the scripts and sc
 
 ## 12. Build order
 
-Ordered by dependency. Each step ends with a commit. Record every eval score and failure count in `docs/baseline.md` (Phase 1) and `docs/scores.md` (after).
+Ordered by dependency. Each step is a story that goes through the repo's issue-to-PR flow (`CLAUDE.md`, `docs/SDLC.md`). Record every eval score and failure count in `docs/baseline.md` (Phase 1) and `docs/scores.md` (after).
 
 Phase 1: foundations (one session)
 1. Baseline: run current tests and evals; save scores to `docs/baseline.md`.
