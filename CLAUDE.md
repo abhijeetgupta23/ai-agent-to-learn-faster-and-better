@@ -1,6 +1,6 @@
 # Project
 Learn Faster: a personal AI tutor that teaches a work skill by having you build a real project, one piece a day. For now, for people who already code.
-Build brief: `docs/learn-faster-agent-architecture.md` (build order: §12).
+Build brief: `docs/learn-faster-agent-architecture.md` (build order: §12). Next step per session: `docs/learn-faster-handoff.md`.
 - The model decides: that's where personalisation and flexibility come from. Code guarantees: rules live in gates, never only in the prompt.
 - Every build-order step runs through the issue-to-PR flow below (story → … → PR), never as ad-hoc commits, even if a pasted handoff or prompt says "plan mode, commit per step".
 - Log every eval score with a date (`docs/baseline.md`, then `docs/scores.md`). Never invent a number.
