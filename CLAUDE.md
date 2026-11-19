@@ -15,8 +15,8 @@ Prefer visuals over prose in every response. Prose is boring — **especially** 
 - For architecture / data-flow / system-design questions, render an actual diagram (visualize `show_widget` tool or an Artifact) — don't describe it in sentences.
 - When explaining code, show structure visually (boxes/arrows/tables) rather than narrating it line-by-line.
 - Keep any accompanying prose short and summary-first.
-- **Every reply in chat opens with "In plain words"**: 2–3 short sentences a non-engineer understands (plus a tiny picture when it helps), then the detail. This applies to status updates too.
-- **Default to the `anthropic-skills:explain-tech` skill** (`/anthropic-skills:explain-tech`) for every substantive answer, and always publish its page (HTML artifact) and link it in the reply. Actually invoke it (Skill tool, `anthropic-skills:explain-tech`) every time; a page in its style made without calling the skill does not count. Use `/eli5` only when the owner asks for it. This covers explanations (concepts, code, architecture, PRs, errors, results) **and** lookups, web research, recommendations, comparisons and lists. Skip it only for status updates, yes/no or one-line answers, and routine git/CI chores.
+- **Bare minimum first.** Every chat reply opens with the answer in 1–2 plain lines. Add detail only when the owner asks for it.
+- **Default to the `anthropic-skills:explain-tech` skill** (`/anthropic-skills:explain-tech`) for every substantive answer, and always publish its page (HTML artifact) and link it in the reply. Actually invoke it (Skill tool, `anthropic-skills:explain-tech`) every time; a page in its style made without calling the skill does not count. Use `/eli5` only when the owner asks for it. The page headline states the answer; everything else goes below it under "Details: read if the headline isn't clear". This covers explanations (concepts, code, architecture, PRs, errors, results) **and** lookups, web research, recommendations, comparisons and lists. Skip it only for status updates, yes/no or one-line answers, and routine git/CI chores.
 <!-- vester:visual-first:end -->
 
 # How we work: SDLC workflow
