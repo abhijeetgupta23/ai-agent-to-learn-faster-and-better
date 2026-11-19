@@ -1,3 +1,3 @@
 Use the tester subagent on issue $ARGUMENTS. Pass it only the issue number — no
 summary, research or plan.
-Then, in the main session, post the step's result on the issue as text ("In plain words" first). No picture: one explain-tech page per story, posted with the PR (see CLAUDE.md).
+Then, in the main session, post the step's result on the issue as text ("In plain words" first). No picture: one visual-explainer page per story, posted with the PR (see CLAUDE.md).
