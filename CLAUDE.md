@@ -46,6 +46,7 @@ Rules:
 - Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.
 - Product/design questions from a coder go back to the planner; the plan comment is updated.
 - Planning stage: "Don't implement yet." Claude never reviews its own PR; Codex does.
+- After opening a PR, Claude always watches it (subscribes to its activity) without asking: it answers Codex, fixes CI, and turns on auto-merge for S once every thread is resolved.
 - Bloat is handled by the weekly cleanup subagent, not per PR.
 - Anything deliberately put off until there are real users goes in `docs/PARKED.md`, so it isn't forgotten at launch. Add the entry in the same PR that parks it.
 - Stay under ~60% of the context window per phase; split if needed.
