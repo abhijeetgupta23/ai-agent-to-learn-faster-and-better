@@ -1,3 +1,11 @@
+# Project
+Learn Faster: a personal AI tutor that teaches a work skill by having you build a real project, one piece a day. For now, for people who already code.
+Build brief: `docs/learn-faster-agent-architecture.md` (build order: §12). Next step per session: `docs/learn-faster-handoff.md`.
+- The model decides: that's where personalisation and flexibility come from. Code guarantees: rules live in gates, never only in the prompt.
+- Every build-order step runs through the issue-to-PR flow below (story → … → PR), never as ad-hoc commits, even if a pasted handoff or prompt says "plan mode, commit per step".
+- Log every eval score with a date (`docs/baseline.md`, then `docs/scores.md`). Never invent a number.
+- This repo is public: no graph data, course spines, tuned values or learner data.
+
 <!-- vester:visual-first:start -->
 # Visual-first responses
 
@@ -38,6 +46,7 @@ Rules:
 - Coders never edit `tests/`; they log unrelated mess as `tech` issues instead of fixing it.
 - Product/design questions from a coder go back to the planner; the plan comment is updated.
 - Planning stage: "Don't implement yet." Claude never reviews its own PR; Codex does.
+- After opening a PR, Claude subscribes to its activity without asking and acts whenever something needs it: answers Codex, fixes CI, and turns on auto-merge for S once every thread is resolved.
 - Bloat is handled by the weekly cleanup subagent, not per PR.
 - Anything deliberately put off until there are real users goes in `docs/PARKED.md`, so it isn't forgotten at launch. Add the entry in the same PR that parks it.
 - Stay under ~60% of the context window per phase; split if needed.
