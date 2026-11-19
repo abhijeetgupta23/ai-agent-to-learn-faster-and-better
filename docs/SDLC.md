@@ -29,6 +29,14 @@ flowchart TD
 
 > **Pre-launch mode (0 real users):** "a user can notice" doesn't raise the tier and "when unsure, go up" is off. Label the lowest tier tier-check allows; the L rules still apply. Revisit when real users arrive.
 
+After launch: pick the **highest** row that matches, and when unsure go one tier up.
+
+Merge mechanics:
+- The PR carries the same `tier:*` label as its issue. If tier-check raises it, relabel both.
+- S: Claude turns on GitHub auto-merge once Codex has reviewed and every thread is resolved; if checks are already green, it merges directly. Before Codex reviews and every thread is resolved, neither happens.
+- If an S PR waiting on auto-merge is promoted to M or L, tier-check fails it and Claude turns auto-merge off.
+- M and L: Claude checks CI and Codex, then merges only when you say "merge" (L also needs your approved plan).
+
 ```mermaid
 flowchart TD
   D[PR diff] --> Q1{Sensitive path?<br/>2+ src packages?}

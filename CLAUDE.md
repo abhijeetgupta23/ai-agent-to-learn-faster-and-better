@@ -52,25 +52,19 @@ Rules:
 - Stay under ~60% of the context window per phase; split if needed.
 - In cloud sessions `gh` may be unauthenticated: use the GitHub MCP tools instead.
 
-# Tiers: how to classify S / M / L
+# Tiers: S / M / L
+Full rules and how tier-check works: `docs/SDLC.md` § Tiers.
 
-Pick the **highest** row that matches. When unsure, go one tier up.
+**Pre-launch mode (0 real users):** label the lowest tier tier-check allows; the L rules still apply in full. Process changes you approve in chat skip the story; the PR is the record. Revisit when real users arrive.
 
-**Pre-launch mode (now: 0 real users): pace over process.** "A user can notice" doesn't raise a tier on its own, and "when unsure, go up" is off: label the lowest tier tier-check allows. L rules (sensitive paths, more than one `src/` package, new module or data model) still apply in full. Process/tooling changes you've approved in chat skip the story; the PR is the record (L still means no auto-merge and your "merge"). Revisit when real users arrive.
-
-| Tier | Any of these makes it this tier | Merge |
+| Tier | Any of these | Merge |
 |------|------|------|
-| **L** | Touches a path in `.github/sensitive-paths.txt` (money, user data or its shape, secrets, untrusted-input defences, auth/payments, deploy/deps/CI) · changes more than one `src/` package · new module or data model change | You say "merge" and approved the plan; Claude checks CI + Codex first |
-| **M** | New or changed behaviour a user can notice · adds a `src/` file | You say "merge"; Claude checks CI + Codex first |
-| **S** | None of the above: a fix or tweak in one area, no new behaviour | Auto-merge (rules below) |
+| **L** | Path in `.github/sensitive-paths.txt` · 2+ `src/` packages · new module or data model | Your "merge" + approved plan |
+| **M** | New behaviour a user can notice · new `src/` file | Your "merge" |
+| **S** | None of the above | Claude, once Codex is clear (rule above) |
 
-- `tier-check` CI computes the minimum tier from the diff and fails a PR labelled below it. Judgement can raise a tier, never lower it.
-- The PR carries the same `tier:*` label as its issue. If tier-check raises it, relabel both.
-- Auto-merge for S: Claude enables GitHub auto-merge only after Codex has reviewed and every thread is resolved. GitHub then merges when the required checks are green.
-- To stop a merge, add the `hold` label: tier-check fails while it is on. tier-check also fails if auto-merge is on for an M or L PR, so promoting a queued S PR blocks it; Claude then disables auto-merge.
-- tier-check runs from the default branch (`workflow_run` after the no-op "Tier trigger"; the PR's commits are diffed, never run), so a PR can't loosen its own grading. Its own edits apply only after merge.
-- tier-check reads file paths **and** changed lines: secrets/env, model clients outside `src/llm.py`, HTTP routes, `UNTRUSTED` prompt text and command execution force L in any file. Codex applies the meaning-level rules in `AGENTS.md`.
-- Claude never merges M or L without your instruction, and never enables auto-merge on them.
+- tier-check sets the minimum tier from the diff and fails a PR labelled below it. Judgement can raise a tier, never lower it; relabel the issue and PR together.
+- The `hold` label stops any merge. Claude never merges M or L, or turns on auto-merge for them, without your "merge".
 
 # Code conventions
 - Lint: `ruff check .` — Tests: `pytest tests/` (offline, no API key). CI runs both on every PR.
