@@ -81,8 +81,9 @@ jobs:
 
       - name: Report tier-check on the PR
         # Not on cancel: a newer run for the same commit replaced this one
-        # (concurrency above) and will report. Skipping leaves "pending",
-        # which still blocks a merge, instead of a false red.
+        # (concurrency above) and will report. Skipping leaves the status as
+        # it was (pending, or none if cancelled before "Mark pending"); both
+        # still block a merge, unlike a false red that alarms for nothing.
         if: ${{ !cancelled() }}
         env:
           SUMMARY: ${{ steps.grade.outputs.summary }}
