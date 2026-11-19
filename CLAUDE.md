@@ -1,3 +1,10 @@
+# Project
+Learn Faster: a personal AI tutor that teaches a work skill by having you build a real project, one piece a day. For now, for people who already code.
+Build brief: `docs/learn-faster-agent-architecture.md` (build order: §12).
+- The model decides: that's where personalisation and flexibility come from. Code guarantees: rules live in gates, never only in the prompt.
+- Log every eval score with a date (`docs/baseline.md`, then `docs/scores.md`). Never invent a number.
+- This repo is public: no graph data, course spines, tuned values or learner data.
+
 <!-- vester:visual-first:start -->
 # Visual-first responses
 
