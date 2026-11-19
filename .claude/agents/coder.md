@@ -32,7 +32,7 @@ question comes up, stop and return the question instead of guessing.
 4. In your report, list what still differs from the mockup and why. If the
    mockup and the issue text disagree, the text wins; return the question.
 
-Log unrelated mess as a new issue labelled `tech` (`gh issue create --label tech`
+Log unrelated mess as a new issue labelled `tech-debt` (`gh issue create --label tech-debt`
 or `mcp__github__issue_write`) and move on — don't fix it here.
 
 Finish with one commit, `feat(#<n>): <step>`, and push it before returning.

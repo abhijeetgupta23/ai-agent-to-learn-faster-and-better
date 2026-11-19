@@ -265,11 +265,11 @@ Read the plan comment with `gh issue view &lt;n&gt; --comments` and
 implement only the step you are given. Do not edit tests/. Run
 pytest after changes. If a product or design question comes up,
 stop and return the question instead of guessing. Log unrelated
-mess with `gh issue create --label tech` and move on. Finish with
+mess with `gh issue create --label tech-debt` and move on. Finish with
 one commit, feat(#&lt;n&gt;): &lt;step&gt;, and push it before returning.</pre></div></details><details class="sub"><summary>Learn Faster: a question comes back</summary><div class="subbody"><div class="ex">
 <p>During step 3 the coder stops: “What happens after repeated misses? The learner could loop forever.”</p>
 <p>You decide with the planner: after two misses, show the model answer and move on. The planner updates the plan and adds a criterion to #42. The tester adds one test. The coder reruns step 3.</p>
-<pre>gh issue create --label tech --title "Two LLM helpers with overlapping retries"</pre></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>A coder editing tests to make them pass. Its instructions forbid <code>tests/</code>.</p></div></details></div></div><div class="stage" data-kind="you" data-n="7" data-t="Review"><div class="dwho">CI and Codex, then you merge</div><p class="purpose">An independent check from a different model family, plus CI as the floor. A person always merges.</p><p class="donel"><b>Done when:</b> CI green, Codex comments resolved.</p><p class="loop">↻ Requested changes go back to a coder session on the same branch.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
+<pre>gh issue create --label tech-debt --title "Two LLM helpers with overlapping retries"</pre></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>A coder editing tests to make them pass. Its instructions forbid <code>tests/</code>.</p></div></details></div></div><div class="stage" data-kind="you" data-n="7" data-t="Review"><div class="dwho">CI and Codex, then you merge</div><p class="purpose">An independent check from a different model family, plus CI as the floor. A person always merges.</p><p class="donel"><b>Done when:</b> CI green, Codex comments resolved.</p><p class="loop">↻ Requested changes go back to a coder session on the same branch.</p><div class="stack"><details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
 <li>Open the PR and link the issue.</li>
 <li>CI runs lint and tests. Branch protection blocks merging on red.</li>
 <li>Ask Codex to review on the PR.</li>
@@ -299,13 +299,13 @@ Short, plain words. Do not touch code.</pre></div></details><details class="sub"
 <p><code>docs/tutor-loop.md</code> gains the checkpoint flow and the grader schema.</p>
 <p>New CLAUDE.md line: “Mock all LLM calls in tests. pytest never hits the API.”</p></div></div></details><details class="sub"><summary>Watch out</summary><div class="subbody"><p>CLAUDE.md growing past 200 lines. Every subagent pays for it.</p></div></details></div></div><div class="stage" data-kind="sub" data-n="W" data-t="Weekly cleanup"><div class="dwho">Subagent <code>cleanup</code>, Sonnet, once a week</div>
 <p class="purpose">Fight bloat across the whole codebase once a week instead of polishing every PR. Agents add code faster than anyone removes it; this is where it gets removed.</p>
-<dl class="io"><dt>In</dt><dd>Whole repo, plus the week’s open <code>tech</code> issues logged by coders</dd><dt>Out</dt><dd>One cleanup PR, a triaged tech backlog, a pruned CLAUDE.md</dd></dl>
-<p class="donel"><b>Done when:</b> one green PR that shrinks the codebase, and every tech issue is fixed, turned into a story, or closed.</p>
+<dl class="io"><dt>In</dt><dd>Whole repo, plus the week’s open <code>tech-debt</code> issues logged by coders</dd><dt>Out</dt><dd>One cleanup PR, a triaged tech-debt backlog, a pruned CLAUDE.md</dd></dl>
+<p class="donel"><b>Done when:</b> one green PR that shrinks the codebase, and every tech-debt issue is fixed, turned into a story, or closed.</p>
 <div class="stack">
 <details class="sub"><summary>Steps</summary><div class="subbody"><ol class="steps">
 <li>Branch once for the week.</li>
 <li>Run the free deterministic tools across the repo.</li>
-<li>Cleanup subagent works through the findings and open tech issues, one commit per theme, tests after each.</li>
+<li>Cleanup subagent works through the findings and open tech-debt issues, one commit per theme, tests after each.</li>
 <li>Triage what’s left: fix now, make it a story, or close it.</li>
 <li>Prune CLAUDE.md: drop lines that no longer earn their place, keep it under 200.</li>
 <li>Docs subagent checks <code>docs/</code> against the code for drift.</li>
@@ -315,8 +315,8 @@ Short, plain words. Do not touch code.</pre></div></details><details class="sub"
 ruff check . --select F401,F841,ERA001 --fix
 vulture src/ --min-confidence 80
 npx jscpd src/
-gh issue list --label tech --state open
-&gt; Use the cleanup subagent on the findings and open tech issues.
+gh issue list --label tech-debt --state open
+&gt; Use the cleanup subagent on the findings and open tech-debt issues.
 pytest
 gh pr create --fill --label cleanup</pre></div></details>
 <details class="sub"><summary>Agent and command files</summary><div class="subbody"><pre>.claude/agents/cleanup.md
@@ -326,15 +326,15 @@ description: Weekly whole-codebase cleanup. Removes bloat without changing behav
 tools: Read, Grep, Glob, Edit, Bash
 model: sonnet
 ---
-Inputs: tool findings and open issues labelled `tech`. Delete
+Inputs: tool findings and open issues labelled `tech-debt`. Delete
 dead code, merge duplicate helpers into the existing one, remove
 needless try/except and wrappers, simplify oversized functions.
 Behaviour must not change: run pytest after each change and
 revert anything that turns a test red. One commit per theme:
-cleanup: &lt;theme&gt;. Close fixed tech issues with "Fixed in &lt;sha&gt;".
+cleanup: &lt;theme&gt;. Close fixed tech-debt issues with "Fixed in &lt;sha&gt;".
 Comment on anything risky instead of changing it.</pre></div></details>
 <details class="sub"><summary>Learn Faster</summary><div class="subbody"><div class="ex"><ul class="plain">
-<li>Merges the two LLM helpers with overlapping retries, the tech issue logged during #42.</li>
+<li>Merges the two LLM helpers with overlapping retries, the tech-debt issue logged during #42.</li>
 <li>Deletes a prompt template no lesson uses any more.</li>
 <li>jscpd finds the same step-state formatting in two UI handlers; folded into one.</li>
 <li>CLAUDE.md drops a line about an old file layout.</li>
@@ -360,7 +360,7 @@ Use the researcher subagent on issue $ARGUMENTS.</pre>
 <div class="note">For Learn Faster: recover the unpushed live code and push it before the first research run. Otherwise the researcher maps stale code. Don’t run <code>fly deploy</code> until that’s done.</div>
 <pre># labels, once
 for l in research plan tests code review; do gh label create "stage:$l"; done
-gh label create tech; gh label create cleanup</pre>
+gh label create tech-debt; gh label create cleanup</pre>
 <h3>Cloud environment (claude.ai/code)</h3>
 <pre># Setup script
 pip install -r requirements.txt
@@ -379,13 +379,13 @@ ANTHROPIC_API_KEY=...   # separate, spend-capped key
 <tr><td>Current stage</td><td>Issue label <code>stage:*</code></td></tr>
 <tr><td>Tests and code</td><td>Branch commits, pushed after every step</td></tr>
 <tr><td>Review</td><td>PR comments</td></tr>
-<tr><td>Tech debt</td><td>Issues labelled <code>tech</code></td></tr>
+<tr><td>Tech debt</td><td>Issues labelled <code>tech-debt</code></td></tr>
 <tr><td>Lessons</td><td>CLAUDE.md, committed</td></tr>
 </table></div>
 <p>Inside one session, subagents share the VM’s files, so scratch files are fine. Push anything the next session needs before this one ends. The tester reads only the issue body, so research and plan in the comments never reach it.</p>
 </div></details><details class="sec"><summary>Rules that keep quality up and tokens down</summary><div class="subbody">
 <ol class="rules">
-<li>State lives in GitHub: the issue, its labels, the branch and the PR. Push before any session ends.</li><li>Bloat is handled weekly, not per PR. Coders log mess as <code>tech</code> issues; the weekly cleanup consumes them.</li>
+<li>State lives in GitHub: the issue, its labels, the branch and the PR. Push before any session ends.</li><li>Bloat is handled weekly, not per PR. Coders log mess as <code>tech-debt</code> issues; the weekly cleanup consumes them.</li>
 <li>Opus plans at high effort; <code>/model opusplan</code> automates the switch. Sonnet researches, tests and builds, at high or max effort. A tight plan is what lets Sonnet match Opus. Escalate to Opus for subtle bugs or multi-file refactors.</li>
 <li>Stay under about 60% of the context window. If a phase needs more, split it.</li>
 <li>CLAUDE.md answers “how do we work here?”, never “what are we building now?”. Every subagent loads it, so feature details there leak bias and multiply cost.</li>
