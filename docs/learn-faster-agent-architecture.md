@@ -29,7 +29,7 @@ Courses:
 
 ```
 learner submits work
-  -> CODE runs the tests and red-flag scan (always, no model)          e.g. "9 of 15 pass" (5 questions x 3 runs)
+  -> CODE runs the tests (always, no model) and asks Jev the method questions          e.g. "9 of 15 pass" (5 questions x 3 runs)
   -> MODEL reads: attempt + test results + learner record + skill map
      returns ONE tutor move from the fixed list
   -> CODE checks the move against the four gates
@@ -75,7 +75,7 @@ def built_alone_gate(move, s):   # built alone
     if move == "built_alone":
         return (s.help_since_last_attempt == 0
                 and s.last_test_result.passed == s.last_test_result.total
-                and s.red_flags_clear and s.judge_method_ok
+                and s.judge_method_ok
                 and s.walkthrough_passed)   # AI tools allowed; she must own it
 
 def progress_gate(s):         # before session close
@@ -95,7 +95,7 @@ A miss is never scored down. A blocked move returns its reason to the model.
 ## 5. Tests and judge
 
 - Test runner (code): run the learner's agent against fixed test questions, several runs each. Report a `TestResult`: `passed / total` plus `failures`.
-- Red-flag scan (code): detect known wrong methods listed in `red_flag_rules`, e.g. `if "refund" in question:` in place of a tool description. Hits go in `TestResult.red_flags`.
+- Method check (Jev): detect known wrong methods by asking Jev yes/no method questions listed in each milestone's `method_questions`, e.g. "does it route by matching the word 'refund' in the question?". Answers above the threshold become `JudgeIssue`s in a `JudgeReview`. Replaces the red-flag rules/scan (owner decision 2026-11-20); same meaning, a calibrated model reads the code instead of regex.
 - Judge (separate model): reviews method where code cannot, against the course's `judge_rubric`; returns a `JudgeReview`. The acting model never grades itself.
 
 ## 6. Recall and mastery (locked)
@@ -108,7 +108,7 @@ A miss is never scored down. A blocked move returns its reason to the model.
 
 ## 7. Data model
 
-Python classes are CamelCase; stored fields are snake_case. Code: `src/schemas.py`. `TestResult.failures` and `red_flags` are lists of strings for now.
+Python classes are CamelCase; stored fields are snake_case. Code: `src/schemas.py`. `TestResult.failures` is a list of failures for now.
 
 | Entity | Fields |
 |---|---|
@@ -117,7 +117,7 @@ Python classes are CamelCase; stored fields are snake_case. Code: `src/schemas.p
 | `Task` | id, milestone, skill_ids[], brief {why, done_looks_like, you_start_with} |
 | `Submission` | id, task_id, learner_id, content, content_type (code now), ts |
 | `WalkthroughCheck` | submission_id, kind (explain/change/fix), passed, ts |
-| `TestResult` | submission_id, passed, total, failures[], red_flags[] |
+| `TestResult` | submission_id, passed, total, failures[] |
 | `JudgeReview` | submission_id, method_ok, notes, model |
 | `TutorMoveLog` | session_id, move, skill_id, gate, allowed, reason, ts, tokens, cost_usd |
 | `TutorHelpLog` | session_id, task_id, kind (explain/example/hint/fix), ts |
@@ -133,7 +133,7 @@ Rule: anything that is not a moat is public. The method is public; data and tune
 | Public (core package, GitHub) | Private (imports core; the site deploys from here) |
 |---|---|
 | Loop, moves, all four gates | Context graphs per domain and full course spines (the moat) |
-| Test runner, red-flag scan, judge | Tuned values (gaps, thresholds) |
+| Test runner, method check, judge | Tuned values (gaps, thresholds) |
 | `TutorMoveLog`, `TutorHelpLog`, trace view | Eval sets from real learner sessions |
 | Eval harness + edge-case evals | Learner data |
 | Head-to-head benchmark | Company layer (courses from docs, team report, admin) |
@@ -151,7 +151,7 @@ Rule: anything that is not a moat is public. The method is public; data and tune
 | Recall | Spacing fields in `src/schemas.py` unused | Need-driven recall, `SkillUseLog` logging |
 | Personalising | `modality_preference` | Remove; use prior knowledge |
 | Help | Not recorded | `TutorHelpLog` |
-| Checks | None on learner code | Test runner + red-flag scan |
+| Checks | None on learner code | Test runner + Jev method check |
 | Evals | 3 judges, 6 golden cases (`evals/golden/`) | Add edge-case evals (section 11) |
 | Benchmark | `run_compare.py` / `evals/compare.py`: workflow vs autonomous | Add plain Claude and plain GPT baselines |
 
@@ -196,7 +196,7 @@ Ordered by dependency. Each step is a story that goes through the repo's issue-t
 Phase 1: foundations (one session)
 1. Baseline: run current tests and evals; save scores to `docs/baseline.md`.
 2. Data model (section 7) and course format. Coding course with the 2-milestone sample project (order-status tool, then refund tool), its tests and a reference solution. Stop for schema review.
-3. Test runner (`TestResult`: passed/total + failures, several runs each) and red-flag scan (flags `if "refund" in question:` routing).
+3. Test runner (`TestResult`: passed/total + failures, several runs each) and Jev method check (flags `if "refund" in question:` routing).
 4. Scripted-learner eval harness for section 11. Most evals fail until Phase 2. Record the failures.
 
 Phase 2: the loop

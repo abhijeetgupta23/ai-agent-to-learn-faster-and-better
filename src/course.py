@@ -8,12 +8,14 @@ milestone tests without adding file or subprocess code to the schema module.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from pydantic import PrivateAttr, ValidationError
 
+import src.llm as llm
 from src.checks import run_tests
-from src.schemas import Course, Submission, TestResult
+from src.schemas import Course, JudgeIssue, JudgeReview, Submission, TestResult
 
 COURSE_FILE = "course.json"
 TEST_TIMEOUT_SECONDS = 60
@@ -55,6 +57,30 @@ class LoadedCourse(Course):
         """Run the milestone's tests against her code, `runs` times, in a throwaway folder."""
         m = self._milestone(milestone_id)
         return self._run(m, submission.content, submission.id, runs, timeout)
+
+    def check_method(self, submission: Submission, milestone_id: str, *,
+                     threshold: float = 0.5) -> JudgeReview:
+        """Ask Jev the milestone's method questions about her code (never runs it).
+
+        A question is an issue when P(wrong answer) >= threshold. Any Jev failure or
+        unusable answer raises `llm.JevError`; it never reports method_ok by default.
+        """
+        m = self._milestone(milestone_id)
+        try:
+            answers = llm.ask_jev(submission.content, m.method_questions)
+        except Exception as exc:
+            raise llm.JevError(f"Jev call failed: {type(exc).__name__}: {exc}") from exc
+        issues = []
+        for q in m.method_questions:
+            p_yes = answers.get(q.id) if isinstance(answers, dict) else None
+            if (isinstance(p_yes, bool) or not isinstance(p_yes, (int, float))
+                    or math.isnan(p_yes) or not 0 <= p_yes <= 1):
+                raise llm.JevError(f"Jev gave no usable answer for question: {q.id}")
+            p_wrong = p_yes if q.wrong_answer == "yes" else 1 - p_yes
+            if p_wrong >= threshold:
+                issues.append(JudgeIssue(question_id=q.id, probability=p_wrong))
+        return JudgeReview(submission_id=submission.id, method_ok=not issues,
+                           issues=issues, model=llm.JEV_MODEL)
 
 
 def load_course(path: str | Path) -> LoadedCourse:

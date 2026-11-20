@@ -19,9 +19,10 @@ Real courses live in the private repo. This repo holds only the sample `support_
 |---|---|
 | `id`, `title`, `subject` | Names the course; `subject` is `code` for now |
 | `skills[]` | `id`, `course`, `needs[]` (skill ids), `must_know`, optional `first_learned_session` |
-| `milestones[]` | `id`, `order`, `title`, `task`, `tests[]`, `reference_solution` |
+| `milestones[]` | `id`, `order`, `title`, `task`, `submission_file`, `tests[]`, `reference_solution`, `method_questions[]` |
+| `milestones[].submission_file` | The file name her code is saved as inside the throwaway test folder (e.g. `support_agent.py`) |
+| `milestones[].method_questions[]` | At least one per milestone: `id`, `question`, `wrong_answer` (`yes` or `no`); optional `yes_means`, `no_means` |
 | `milestones[].task` | `id`, `milestone` (same as the milestone id), `skill_ids[]`, `brief {why, done_looks_like, you_start_with}` |
-| `red_flag_rules[]` | `id`, `description`, `pattern` (valid regex); optional |
 | `judge_rubric` | `criteria[]` (at least one) |
 | `walkthrough_questions` | Lists of questions for each kind: `explain`, `change`, `fix` (all three required) |
 
@@ -47,7 +48,10 @@ All failures raise `CourseError` with a message naming the field.
 | `load_course(path)` | Reads and validates `<path>/course.json`; returns a `LoadedCourse` (a `Course` that remembers its folder) |
 | `LoadedCourse.run_reference_solution()` | For each milestone in order: runs its tests with pytest in a subprocess, with the reference folder on `PYTHONPATH`, no `ANTHROPIC_API_KEY`, 60 s limit. Returns one `TestResult` per milestone (`submission_id` = `reference:<milestone id>`) |
 
-A timeout gives `passed=0, total=0` and a failure line. A healthy course returns `passed == total` for every milestone.
+| `LoadedCourse.check_submission(submission, milestone_id, runs=3, timeout=60)` | Copies her code into a throwaway folder as `submission_file`, runs the milestone's tests `runs` times, no API keys in the environment. Returns a `TestResult`; a test that fails in some runs is reported once, as flaky |
+| `LoadedCourse.check_method(submission, milestone_id, threshold=0.5)` | Sends the method questions and her code to Jev in one call (her code is never run). P(wrong) = P(yes) if `wrong_answer` is `yes`, else 1 - P(yes); at or above `threshold` it is a `JudgeIssue`. Returns a `JudgeReview`; any Jev failure raises `JevError` |
+
+Needs `TYPESAFE_API_KEY` for the live Jev call; tests stub it. A timeout gives `passed=0, total=0` and a failure line. A healthy course returns `passed == total` for every milestone.
 
 ## Add a course
 
