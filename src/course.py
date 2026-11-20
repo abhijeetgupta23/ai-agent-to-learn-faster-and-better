@@ -54,14 +54,21 @@ class LoadedCourse(Course):
 
 
 def _parse_pytest(submission_id: str, out: str) -> TestResult:
-    last = out.splitlines()[-1] if out.strip() else ""
+    # Use the last pytest summary line, not the last line of output: warnings or
+    # plugins can print after it (or to stderr), which hid the summary in CI.
+    summary = re.compile(r"\b\d+ (?:passed|failed|errors?)\b")
+    lines = [ln for ln in out.splitlines() if summary.search(ln)]
+    last = lines[-1] if lines else ""
 
     def count(word: str) -> int:
         return sum(int(n) for n in re.findall(rf"(\d+) {word}\b", last))
 
     passed = count("passed")
-    failed = count("failed") + count("error")
+    failed = count("failed") + count("errors?")
     failures = [m.group(1) for m in re.finditer(r"^(?:FAILED|ERROR) (\S+)", out, re.M)]
+    if not last:
+        tail = " | ".join(out.strip().splitlines()[-5:])
+        failures.append(f"no pytest summary in output: {tail[:300]}")
     return TestResult(submission_id=submission_id, passed=passed, total=passed + failed,
                       failures=failures)
 
