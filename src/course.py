@@ -42,6 +42,7 @@ class LoadedCourse(Course):
         )
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["COLUMNS"] = "200"
+        env["CI"] = "1"  # pytest skips trimming summary messages when CI is set
         cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-rfE",
                *[str(self._root / t) for t in m.tests]]
         sid = f"reference:{m.id}"
