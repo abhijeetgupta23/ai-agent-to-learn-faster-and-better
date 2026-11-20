@@ -60,22 +60,12 @@ def tr(**over):
     return schemas.TestResult(**{"submission_id": "s1", "passed": 1, "total": 2, **over})
 
 
-def test_test_result_keeps_failure_and_red_flag_details_through_json():
-    r = tr(failures=[{"test": "test_refund.py::test_x", "message": "assert 1 == 2"}],
-           red_flags=[{"rule_id": "keyword_routing", "line": 12, "message": "keyword if"}])
+def test_test_result_keeps_failure_details_through_json():
+    r = tr(failures=[{"test": "test_refund.py::test_x", "message": "assert 1 == 2"}])
     again = schemas.TestResult.model_validate_json(r.model_dump_json())
     assert again == r
     data = json.loads(r.model_dump_json())
     assert data["failures"] == [{"test": "test_refund.py::test_x", "message": "assert 1 == 2"}]
-    assert data["red_flags"] == [{"rule_id": "keyword_routing", "line": 12,
-                                  "message": "keyword if"}]
-
-
-def test_red_flag_line_may_be_empty():
-    r = tr(red_flags=[{"rule_id": "keyword_routing", "message": "m"}])
-    assert r.red_flags[0].line is None
-    r2 = tr(red_flags=[{"rule_id": "keyword_routing", "line": None, "message": "m"}])
-    assert r2.red_flags[0].line is None
 
 
 def test_failure_without_test_raises():
@@ -83,16 +73,9 @@ def test_failure_without_test_raises():
         tr(failures=[{"message": "no name"}])
 
 
-def test_red_flag_without_rule_id_raises():
-    with pytest.raises(ValidationError):
-        tr(red_flags=[{"line": 3, "message": "no rule"}])
-
-
-def test_old_string_failures_and_red_flags_are_rejected():
+def test_old_string_failures_are_rejected():
     with pytest.raises(ValidationError):
         tr(failures=["test_x"])
-    with pytest.raises(ValidationError):
-        tr(red_flags=["keyword_routing"])
 
 
 @pytest.mark.parametrize("over", [dict(passed=3, total=2), dict(passed=-1), dict(total=-1)])

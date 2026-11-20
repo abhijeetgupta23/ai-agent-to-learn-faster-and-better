@@ -275,12 +275,6 @@ class TestFailure(_Strict):
     message: str
 
 
-class RedFlag(_Strict):
-    rule_id: str = Id
-    line: int | None = None
-    message: str = ""
-
-
 class TestResult(_Strict):
     __test__ = False  # not a pytest class
 
@@ -288,7 +282,6 @@ class TestResult(_Strict):
     passed: int = Field(ge=0)
     total: int = Field(ge=0)
     failures: list[TestFailure] = Field(default_factory=list)
-    red_flags: list[RedFlag] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _passed_not_over_total(self) -> "TestResult":
@@ -297,10 +290,15 @@ class TestResult(_Strict):
         return self
 
 
+class JudgeIssue(_Strict):
+    question_id: str = Id
+    probability: float = Field(ge=0.0, le=1.0)  # P(the wrong answer)
+
+
 class JudgeReview(_Strict):
     submission_id: str = Id
     method_ok: bool
-    notes: str
+    issues: list[JudgeIssue] = Field(default_factory=list)
     model: str
 
 
@@ -340,21 +338,12 @@ class MasteryLog(_Strict):
     ts: UtcTime
 
 
-class RedFlagRule(_Strict):
+class MethodQuestion(_Strict):
     id: str = Id
-    description: str
-    pattern: str  # regex; data only, nothing runs it yet
-
-    @field_validator("pattern")
-    @classmethod
-    def _pattern_compiles(cls, v: str) -> str:
-        import re
-
-        try:
-            re.compile(v)
-        except re.error as e:
-            raise ValueError(f"pattern is not a valid regex: {e}") from e
-        return v
+    question: str = Id
+    wrong_answer: Literal["yes", "no"]
+    yes_means: str = ""
+    no_means: str = ""
 
 
 class JudgeRubric(_Strict):
@@ -368,6 +357,23 @@ class Milestone(_Strict):
     task: Task
     tests: list[str] = Field(min_length=1)  # paths relative to the course folder
     reference_solution: str = Id  # path relative to the course folder
+    submission_file: str = Id  # file name her code is saved as; the tests import it
+    method_questions: list[MethodQuestion] = Field(min_length=1)
+
+    @field_validator("submission_file")
+    @classmethod
+    def _submission_file_is_py(cls, v: str) -> str:
+        if not v.endswith(".py"):
+            raise ValueError("submission_file must end in .py")
+        return v
+
+    @field_validator("method_questions")
+    @classmethod
+    def _question_ids_unique(cls, v: list[MethodQuestion]) -> list[MethodQuestion]:
+        ids = [q.id for q in v]
+        if len(set(ids)) != len(ids):
+            raise ValueError("method_questions ids must be unique")
+        return v
 
 
 class Course(_Strict):
@@ -376,7 +382,6 @@ class Course(_Strict):
     subject: str
     skills: list[Skill] = Field(min_length=1)
     milestones: list[Milestone] = Field(min_length=1)
-    red_flag_rules: list[RedFlagRule] = Field(default_factory=list)
     judge_rubric: JudgeRubric
     walkthrough_questions: dict[WalkthroughKind, list[str]]
 

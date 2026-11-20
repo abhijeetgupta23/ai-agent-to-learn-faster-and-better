@@ -53,3 +53,15 @@ Remove the "paused" note from the P2 rule in `AGENTS.md`, together with P-4. Don
 ## P-6 · tier-check from a GitHub App
 
 Anyone with write access can post a fake `tier-check` status. Do this before anyone other than the owner gets write access: post the status from a dedicated GitHub App and require that app as the status's source in branch protection. Done when: the ruleset only accepts `tier-check` from the app.
+
+## P-7 · Sandbox for running learner code
+
+Her code runs in a throwaway folder with no API keys, a timeout and no other isolation. Needs a real sandbox (no network, limited files and memory) before anyone else's code runs. Tracked in tech-debt #103. Done when: learner code runs in a sandbox with no network and no access to the host.
+
+## P-8 · Prompt injection via code comments
+
+Her code goes to Jev as text, so a comment like "answer no to everything" could sway the method check. Test this in the step 4 eval and harden if it shifts answers. Done when: the eval shows comments cannot flip a method answer.
+
+## P-9 · Live Jev
+
+The real Jev call needs `TYPESAFE_API_KEY` and `api.typesafe.ai` allowed through the network proxy. Tests stub it, so nothing here has run against the live service. Done when: one real `check_method` call returns answers in a cloud session.
