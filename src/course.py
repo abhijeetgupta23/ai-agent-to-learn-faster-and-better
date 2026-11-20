@@ -16,7 +16,7 @@ from pathlib import Path
 
 from pydantic import PrivateAttr, ValidationError
 
-from src.schemas import Course, TestResult
+from src.schemas import Course, TestFailure, TestResult
 
 COURSE_FILE = "course.json"
 TEST_TIMEOUT_SECONDS = 60
@@ -41,7 +41,8 @@ class LoadedCourse(Course):
             [str(ref_dir)] + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
         )
         env["PYTHONDONTWRITEBYTECODE"] = "1"
-        cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-rf",
+        env["COLUMNS"] = "200"
+        cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-rfE",
                *[str(self._root / t) for t in m.tests]]
         sid = f"reference:{m.id}"
         try:
@@ -49,7 +50,9 @@ class LoadedCourse(Course):
                                   cwd=self._root, timeout=TEST_TIMEOUT_SECONDS)
         except subprocess.TimeoutExpired:
             return TestResult(submission_id=sid, passed=0, total=0,
-                              failures=[f"timeout after {TEST_TIMEOUT_SECONDS}s"])
+                              failures=[TestFailure(
+                                  test="(timeout)",
+                                  message=f"timeout after {TEST_TIMEOUT_SECONDS}s")])
         return _parse_pytest(sid, proc.stdout + proc.stderr)
 
 
@@ -65,10 +68,15 @@ def _parse_pytest(submission_id: str, out: str) -> TestResult:
 
     passed = count("passed")
     failed = count("failed") + count("errors?")
-    failures = [m.group(1) for m in re.finditer(r"^(?:FAILED|ERROR) (\S+)", out, re.M)]
+    failures = []
+    for m in re.finditer(r"^(?:FAILED|ERROR) (.+)$", out, re.M):
+        test, _, msg = m.group(1).partition(" - ")
+        msg = msg.strip().splitlines()[0] if msg.strip() else ""
+        failures.append(TestFailure(test=test.strip() or "(unknown)",
+                                    message=msg or "(no message)"))
     if not last:
         tail = " | ".join(out.strip().splitlines()[-5:])
-        failures.append(f"no pytest summary in output: {tail[:300]}")
+        failures.append(TestFailure(test="(no summary)", message=tail))
     return TestResult(submission_id=submission_id, passed=passed, total=passed + failed,
                       failures=failures)
 
