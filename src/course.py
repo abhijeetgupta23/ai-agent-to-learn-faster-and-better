@@ -8,15 +8,12 @@ milestone tests without adding file or subprocess code to the schema module.
 from __future__ import annotations
 
 import json
-import os
-import re
-import subprocess
-import sys
 from pathlib import Path
 
 from pydantic import PrivateAttr, ValidationError
 
-from src.schemas import Course, TestFailure, TestResult
+from src.checks import run_tests
+from src.schemas import Course, Submission, TestResult
 
 COURSE_FILE = "course.json"
 TEST_TIMEOUT_SECONDS = 60
@@ -31,55 +28,33 @@ class LoadedCourse(Course):
 
     def run_reference_solution(self) -> list[TestResult]:
         """Run each milestone's tests against its reference solution (one result each)."""
-        return [self._run_milestone(m) for m in sorted(self.milestones, key=lambda m: m.order)]
+        return [self._run_reference(m) for m in sorted(self.milestones, key=lambda m: m.order)]
 
-    def _run_milestone(self, m) -> TestResult:
+    def _milestone(self, milestone_id: str):
+        for m in self.milestones:
+            if m.id == milestone_id:
+                return m
+        raise CourseError(f"unknown milestone: {milestone_id}")
+
+    def _run(self, m, content: str, sid: str, runs: int, timeout: int) -> TestResult:
+        passed, total, failures = run_tests([self._root / t for t in m.tests],
+                                            m.submission_file, content,
+                                            runs=runs, timeout=timeout)
+        return TestResult(submission_id=sid, passed=passed, total=total, failures=failures)
+
+    def _run_reference(self, m) -> TestResult:
         ref = self._root / m.reference_solution
-        ref_dir = ref if ref.is_dir() else ref.parent
-        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
-        env["PYTHONPATH"] = os.pathsep.join(
-            [str(ref_dir)] + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
-        )
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
-        env["COLUMNS"] = "200"
-        env["CI"] = "1"  # pytest skips trimming summary messages when CI is set
-        cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-rfE",
-               *[str(self._root / t) for t in m.tests]]
-        sid = f"reference:{m.id}"
-        try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, env=env,
-                                  cwd=self._root, timeout=TEST_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired:
-            return TestResult(submission_id=sid, passed=0, total=0,
-                              failures=[TestFailure(
-                                  test="(timeout)",
-                                  message=f"timeout after {TEST_TIMEOUT_SECONDS}s")])
-        return _parse_pytest(sid, proc.stdout + proc.stderr)
+        src = ref / m.submission_file if ref.is_dir() else ref
+        if not src.is_file():
+            raise CourseError(f"milestones.{m.id}.reference_solution: "
+                              f"{m.submission_file} not found in {m.reference_solution}")
+        return self._run(m, src.read_text(), f"reference:{m.id}", 1, TEST_TIMEOUT_SECONDS)
 
-
-def _parse_pytest(submission_id: str, out: str) -> TestResult:
-    # Use the last pytest summary line, not the last line of output: warnings or
-    # plugins can print after it (or to stderr), which hid the summary in CI.
-    summary = re.compile(r"\b\d+ (?:passed|failed|errors?)\b")
-    lines = [ln for ln in out.splitlines() if summary.search(ln)]
-    last = lines[-1] if lines else ""
-
-    def count(word: str) -> int:
-        return sum(int(n) for n in re.findall(rf"(\d+) {word}\b", last))
-
-    passed = count("passed")
-    failed = count("failed") + count("errors?")
-    failures = []
-    for m in re.finditer(r"^(?:FAILED|ERROR) (.+)$", out, re.M):
-        test, _, msg = m.group(1).partition(" - ")
-        msg = msg.strip().splitlines()[0] if msg.strip() else ""
-        failures.append(TestFailure(test=test.strip() or "(unknown)",
-                                    message=msg or "(no message)"))
-    if not last:
-        tail = " | ".join(out.strip().splitlines()[-5:])
-        failures.append(TestFailure(test="(no summary)", message=tail))
-    return TestResult(submission_id=submission_id, passed=passed, total=passed + failed,
-                      failures=failures)
+    def check_submission(self, submission: Submission, milestone_id: str, *,
+                         runs: int = 3, timeout: int = TEST_TIMEOUT_SECONDS) -> TestResult:
+        """Run the milestone's tests against her code, `runs` times, in a throwaway folder."""
+        m = self._milestone(milestone_id)
+        return self._run(m, submission.content, submission.id, runs, timeout)
 
 
 def load_course(path: str | Path) -> LoadedCourse:
