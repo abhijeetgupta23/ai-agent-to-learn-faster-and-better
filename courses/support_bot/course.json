@@ -3,10 +3,36 @@
   "title": "Build a support bot's tools",
   "subject": "code",
   "skills": [
-    {"id": "tool_definition", "course": "support_bot", "needs": [], "must_know": true},
-    {"id": "tool_description", "course": "support_bot", "needs": ["tool_definition"], "must_know": true},
-    {"id": "tool_routing", "course": "support_bot", "needs": ["tool_description"], "must_know": true},
-    {"id": "input_validation", "course": "support_bot", "needs": ["tool_definition"], "must_know": false}
+    {
+      "id": "tool_definition",
+      "course": "support_bot",
+      "needs": [],
+      "must_know": true
+    },
+    {
+      "id": "tool_description",
+      "course": "support_bot",
+      "needs": [
+        "tool_definition"
+      ],
+      "must_know": true
+    },
+    {
+      "id": "tool_routing",
+      "course": "support_bot",
+      "needs": [
+        "tool_description"
+      ],
+      "must_know": true
+    },
+    {
+      "id": "input_validation",
+      "course": "support_bot",
+      "needs": [
+        "tool_definition"
+      ],
+      "must_know": false
+    }
   ],
   "milestones": [
     {
@@ -16,15 +42,30 @@
       "task": {
         "id": "task_order_status",
         "milestone": "order_status_tool",
-        "skill_ids": ["tool_definition", "tool_description"],
+        "skill_ids": [
+          "tool_definition",
+          "tool_description"
+        ],
         "brief": {
           "why": "A support bot is only as good as the tools it can call. Order status is the most common question customers ask.",
           "done_looks_like": "get_order_status(order_id) returns the status for a known order, raises a clear error for an unknown one, and a TOOLS spec describes the tool so a model knows when to use it.",
           "you_start_with": "An empty support_agent.py and a small stub dictionary of orders. No network and no API key."
         }
       },
-      "tests": ["milestones/01_order_status/tests/test_order_status.py"],
-      "reference_solution": "milestones/01_order_status/reference"
+      "tests": [
+        "milestones/01_order_status/tests/test_order_status.py"
+      ],
+      "reference_solution": "milestones/01_order_status/reference",
+      "submission_file": "support_agent.py",
+      "method_questions": [
+        {
+          "id": "hardcoded_answer",
+          "question": "Does the code return a fixed status for a specific order id instead of looking it up?",
+          "wrong_answer": "yes",
+          "yes_means": "Answers are hard-coded.",
+          "no_means": "Answers come from a lookup."
+        }
+      ]
     },
     {
       "id": "refund_tool",
@@ -33,20 +74,39 @@
       "task": {
         "id": "task_refund",
         "milestone": "refund_tool",
-        "skill_ids": ["tool_definition", "tool_routing", "input_validation"],
+        "skill_ids": [
+          "tool_definition",
+          "tool_routing",
+          "input_validation"
+        ],
         "brief": {
           "why": "Refunds move money, so the tool must check its inputs and the bot must pick the right tool from its description, not from keywords.",
           "done_looks_like": "issue_refund(order_id, amount) refunds within policy, refuses amounts over the order total and orders already refunded, and TOOLS describes both tools with no keyword routing.",
           "you_start_with": "Your order-status tool from milestone 1 and the same stub orders."
         }
       },
-      "tests": ["milestones/02_refund/tests/test_refund.py"],
-      "reference_solution": "milestones/02_refund/reference"
+      "tests": [
+        "milestones/02_refund/tests/test_refund.py"
+      ],
+      "reference_solution": "milestones/02_refund/reference",
+      "submission_file": "support_agent.py",
+      "method_questions": [
+        {
+          "id": "keyword_routing",
+          "question": "Does the code pick a tool by checking for a keyword in the question instead of describing the tools to the model?",
+          "wrong_answer": "yes",
+          "yes_means": "Tools are chosen by keyword.",
+          "no_means": "Tools are chosen from their descriptions."
+        },
+        {
+          "id": "hardcoded_answer",
+          "question": "Does the code return a fixed status for a specific order id instead of looking it up?",
+          "wrong_answer": "yes",
+          "yes_means": "Answers are hard-coded.",
+          "no_means": "Answers come from a lookup."
+        }
+      ]
     }
-  ],
-  "red_flag_rules": [
-    {"id": "keyword_routing", "description": "Picks a tool by checking for a keyword in the question instead of describing the tool to the model.", "pattern": "if\\s+[\"']\\w+[\"']\\s+in\\s+\\w+"},
-    {"id": "hardcoded_answer", "description": "Returns a fixed status string for a specific order id instead of looking it up.", "pattern": "return\\s+[\"'](shipped|delivered|processing|refunded)[\"']"}
   ],
   "judge_rubric": {
     "criteria": [
