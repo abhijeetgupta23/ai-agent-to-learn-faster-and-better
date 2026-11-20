@@ -468,6 +468,14 @@ def ask_jev(code: str, questions: list, *, model: str = JEV_MODEL) -> dict[str, 
             qs[q.id] = spec
         client = TypeSafeClient()
         response = client.system_one(state={"code": code}, questions=qs, model=model)
-        return {qid: response.nouls[qid].noul for qid in qs}
+        answers = {qid: response.nouls[qid].noul for qid in qs}
     except Exception as exc:  # SDK errors, timeouts, missing key, missing answers
         raise JevError(f"Jev call failed: {type(exc).__name__}: {exc}") from exc
+    # Count Jev spend like every other model call. Jev has no price in cost.PRICING
+    # yet, so it is charged at the fallback price: over-counts, never under-counts.
+    usage = getattr(response, "usage", None)
+    cost.record(getattr(response, "model", None) or model, {
+        "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
+        "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
+    })
+    return answers

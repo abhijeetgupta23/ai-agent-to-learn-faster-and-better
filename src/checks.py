@@ -39,6 +39,11 @@ def _parse_junit(xml_path: Path, stems: set[str]) -> list[tuple[str, str | None]
         if bad is None:
             bad = case.find("error")
         msg = _first_line(bad.get("message") or bad.text) if bad is not None else None
+        if msg is None:
+            # A skipped or xfailed test ran no assertions, so it never counts as passed.
+            skip = case.find("skipped")
+            if skip is not None:
+                msg = "skipped: " + _first_line(skip.get("message") or skip.text)
         parts = cls.split(".") if cls else []
         if not parts or parts[0] not in stems:
             # Collection or import error: pytest reports it against the module.
