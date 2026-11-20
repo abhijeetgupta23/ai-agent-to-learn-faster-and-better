@@ -7,7 +7,7 @@ before: paste prompt → plan mode → commit per step
 after:  pick next step → story issue → tier → research → plan → tests → code → PR
 ```
 
-Brief: `docs/learn-faster-agent-architecture.md` (build order: §12, open decisions: §10, evals: §11).
+Brief: `docs/learn-faster-agent-architecture.md` (build order: §12, open decisions: §10, evals: §11). Names: `docs/GLOSSARY.md`.
 Process: `CLAUDE.md` and `docs/SDLC.md`. If this page and those disagree, they win.
 
 ## Ground rules
@@ -25,8 +25,8 @@ tier-check decides the real tier from the diff. This is a forecast, so L stories
 | Step | What | Likely tier | Why |
 |---|---|---|---|
 | 1 | Baseline scores | S | Docs only |
-| 2 | Data model + course-pack format | L | Data model change, `src/schemas.py` |
-| 3 | Check runner + static read | L | New module; runs learner code |
+| 2 | Data model + course format | L | Data model change, `src/schemas.py` |
+| 3 | Test runner + red-flag scan | L | New module; runs learner code |
 | 4 | Scripted-learner eval harness | L | New module |
 | 5–8 | Loop rewrite, gates, judge, trace | L | Changes control flow, model calls, data shape |
 | 9 | Same-session evals green | M or L | Depends on what the fixes touch |
@@ -46,12 +46,12 @@ Step notes:
 1. Baseline: run current tests and evals; save every score and failure count
    to docs/baseline.md. If an eval needs an API key we don't have, record it
    as "not run" with the reason.
-2. Data model (§7) and course-pack format (§1 "Course packs"). Coding pack with
-   the 2-piece sample project (order-status tool, then refund tool), its tests
+2. Data model (§7) and course format (§1 "Courses"). Coding course with
+   the 2-milestone sample project (order-status tool, then refund tool), its tests
    and a reference solution. The plan comment must show the full schema; I
    approve it before /test.
-3. Check runner (passed/total + failures, several runs each) and static read
-   (flags `if "refund" in question:` routing).
+3. Test runner (`TestResult`: passed/total + failures, several runs each) and
+   red-flag scan (flags `if "refund" in question:` routing).
 4. Scripted-learner eval harness for §11 with pass conditions wired. Most fail
    until Phase 2; record which in docs/baseline.md.
 
