@@ -11,7 +11,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -189,3 +189,192 @@ class EvalResult(BaseModel):
     @property
     def passed(self) -> bool:
         return all(j.score >= 0.6 for j in self.judge_results)
+
+
+# ---------------------------------------------------------------------------
+# Learn Faster v1 (§7): records and course format. Added next to the old
+# models; nothing above is changed.
+# ---------------------------------------------------------------------------
+
+PriorLevel = Literal["none", "seen", "used"]
+TutorMove = Literal[
+    "ask", "walkthrough_check", "set_task", "explain", "example", "hint",
+    "fix", "note", "built_alone", "show_progress", "confirm_mastery",
+]
+HelpKind = Literal["explain", "example", "hint", "fix"]
+WalkthroughKind = Literal["explain", "change", "fix"]
+ContentType = Literal["code"]  # more subjects later
+GateName = Literal["try_first_gate", "built_alone_gate", "progress_gate", "mastery_gate"]
+
+Id = Field(min_length=1)
+
+
+class _Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class Learner(_Strict):
+    id: str = Id
+    prior_knowledge: dict[str, PriorLevel] = Field(default_factory=dict)  # skill_id -> level
+    current_course: str | None = None
+    current_milestone: str | None = None
+
+
+class Skill(_Strict):
+    id: str = Id
+    course: str = Id
+    needs: list[str] = Field(default_factory=list)
+    must_know: bool = False
+    first_learned_session: str | None = None  # None until first learned
+
+
+class TaskBrief(_Strict):
+    why: str = Id
+    done_looks_like: str = Id
+    you_start_with: str = Id
+
+
+class Task(_Strict):
+    id: str = Id
+    milestone: str = Id
+    skill_ids: list[str] = Field(min_length=1)
+    brief: TaskBrief
+
+
+class Submission(_Strict):
+    id: str = Id
+    task_id: str = Id
+    learner_id: str = Id
+    content: str
+    content_type: ContentType = "code"
+    ts: datetime
+
+
+class WalkthroughCheck(_Strict):
+    submission_id: str = Id
+    kind: WalkthroughKind
+    passed: bool
+    ts: datetime
+
+
+class TestResult(_Strict):
+    __test__ = False  # not a pytest class
+
+    submission_id: str = Id
+    passed: int = Field(ge=0)
+    total: int = Field(ge=0)
+    failures: list[str] = Field(default_factory=list)  # names of failed tests
+    red_flags: list[str] = Field(default_factory=list)  # ids of red-flag rules hit
+
+    @model_validator(mode="after")
+    def _passed_not_over_total(self) -> "TestResult":
+        if self.passed > self.total:
+            raise ValueError("passed cannot be greater than total")
+        return self
+
+
+class JudgeReview(_Strict):
+    submission_id: str = Id
+    method_ok: bool
+    notes: str
+    model: str
+
+
+class TutorMoveLog(_Strict):
+    session_id: str = Id
+    move: TutorMove
+    skill_id: str | None = None
+    gate: GateName | Literal[""] | None = None  # "" or None = no gate involved
+    allowed: bool
+    reason: str = ""
+    ts: datetime
+    tokens: int = Field(ge=0)
+    cost_usd: float = Field(ge=0)
+
+
+class TutorHelpLog(_Strict):
+    session_id: str = Id
+    task_id: str = Id
+    kind: HelpKind
+    ts: datetime
+
+
+class SkillUseLog(_Strict):
+    learner_id: str = Id
+    skill_id: str = Id
+    session_id: str = Id
+    gap_days: float | None = Field(default=None, ge=0)  # None = first use
+    help_used: bool
+    unaided: bool
+    ts: datetime
+
+
+class MasteryLog(_Strict):
+    learner_id: str = Id
+    skill_id: str = Id
+    confirmed: bool
+    ts: datetime
+
+
+class RedFlagRule(_Strict):
+    id: str = Id
+    description: str
+    pattern: str  # regex; data only, nothing runs it yet
+
+    @field_validator("pattern")
+    @classmethod
+    def _pattern_compiles(cls, v: str) -> str:
+        import re
+
+        try:
+            re.compile(v)
+        except re.error as e:
+            raise ValueError(f"pattern is not a valid regex: {e}") from e
+        return v
+
+
+class JudgeRubric(_Strict):
+    criteria: list[str] = Field(min_length=1)
+
+
+class Milestone(_Strict):
+    id: str = Id
+    order: int = Field(ge=1)
+    title: str
+    task: Task
+    tests: list[str] = Field(min_length=1)  # paths relative to the course folder
+    reference_solution: str = Id  # path relative to the course folder
+
+
+class Course(_Strict):
+    id: str = Id
+    title: str
+    subject: str
+    skills: list[Skill] = Field(min_length=1)
+    milestones: list[Milestone] = Field(min_length=1)
+    red_flag_rules: list[RedFlagRule] = Field(default_factory=list)
+    judge_rubric: JudgeRubric
+    walkthrough_questions: dict[WalkthroughKind, list[str]]
+
+    @model_validator(mode="after")
+    def _cross_checks(self) -> "Course":
+        ids = [s.id for s in self.skills]
+        if len(set(ids)) != len(ids):
+            raise ValueError("skill ids must be unique")
+        known = set(ids)
+        for s in self.skills:
+            for n in s.needs:
+                if n not in known:
+                    raise ValueError(f"skill {s.id!r} needs unknown skill {n!r}")
+        for m in self.milestones:
+            if m.task.milestone != m.id:
+                raise ValueError(f"task.milestone {m.task.milestone!r} != milestone id {m.id!r}")
+            for sid in m.task.skill_ids:
+                if sid not in known:
+                    raise ValueError(f"milestone {m.id!r} task names unknown skill {sid!r}")
+        if sorted(m.order for m in self.milestones) != list(range(1, len(self.milestones) + 1)):
+            raise ValueError("milestone orders must be 1..n with no gaps")
+        missing = {"explain", "change", "fix"} - set(self.walkthrough_questions)
+        if missing:
+            raise ValueError(f"walkthrough_questions missing kinds: {sorted(missing)}")
+        return self
