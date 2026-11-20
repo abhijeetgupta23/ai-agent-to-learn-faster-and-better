@@ -10,6 +10,7 @@ dependencies = [
     "uvicorn[standard]>=0.27",
     "python-dotenv>=1.0",
     "httpx>=0.27",
+    "typesafe-sdk==0.7.5",
 ]
 
 [project.optional-dependencies]

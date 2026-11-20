@@ -437,3 +437,37 @@ def generate_chart_png(instruction: str, *, max_tokens: int = 4096) -> bytes | N
         except Exception:
             continue
     return None
+
+
+# --- Jev: calibrated yes/no answers about a learner's code (issue #101) ---
+JEV_MODEL = "jev-latest"
+
+
+class JevError(Exception):
+    """Any failure talking to Jev (missing key, network, timeout, bad response)."""
+
+
+def ask_jev(code: str, questions: list, *, model: str = JEV_MODEL) -> dict[str, float]:
+    """One Jev call: {question_id: P(yes)} for every question about `code`.
+
+    The SDK is imported here so importing src.llm never needs the key or network.
+    """
+    try:
+        from typesafe_sdk import TypeSafeClient
+
+        qs: dict = {}
+        for q in questions:
+            spec: dict = {"type": "noul", "instructions": q.question}
+            criteria = {}
+            if q.yes_means:
+                criteria["true"] = q.yes_means
+            if q.no_means:
+                criteria["false"] = q.no_means
+            if criteria:
+                spec["criteria"] = criteria
+            qs[q.id] = spec
+        client = TypeSafeClient()
+        response = client.system_one(state={"code": code}, questions=qs, model=model)
+        return {qid: response.nouls[qid].noul for qid in qs}
+    except Exception as exc:  # SDK errors, timeouts, missing key, missing answers
+        raise JevError(f"Jev call failed: {type(exc).__name__}: {exc}") from exc

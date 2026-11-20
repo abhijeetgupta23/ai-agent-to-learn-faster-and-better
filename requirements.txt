@@ -7,3 +7,4 @@ httpx>=0.27
 # Optional provider experiment: DeepSeek via its OpenAI-compatible API
 # (only used when ADAPTIVE_LEARNING_MODEL=deepseek-*).
 openai>=1.50
+typesafe-sdk==0.7.5
