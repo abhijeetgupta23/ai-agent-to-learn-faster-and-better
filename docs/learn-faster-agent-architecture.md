@@ -1,9 +1,9 @@
 # Learn Faster: agent architecture
 
-Final design as of 17 Nov 2026. Not built yet. (The product doc is kept private.)
+Final design as of 17 Nov 2026; Jev decision layer added 20 Nov 2026. Not built yet. (The product doc is kept private.)
 Repo baseline: `abhijeetgupta23/ai-agent-to-learn-faster-and-better` at commit `df69fd3` (9 Nov 2026).
 
-Names follow `docs/GLOSSARY.md`. Give this file to Claude Code as the brief. Build order: section 12. Open decisions: section 10.
+Names follow `docs/GLOSSARY.md`. Give this file to Claude Code as the brief. Build order: section 12. Open decisions: section 10. Decision layer: section 14.
 
 ## 1. Principle
 
@@ -12,6 +12,7 @@ The model decides. Code guarantees.
 - The model picks every move. That is where personalisation and flexibility come from; code can't adapt like that.
 - Code runs the checks, enforces the gates and logs everything. It cannot be argued with.
 - New edge cases become evals, not new branches.
+- Fuzzy judgements on text go to Jev, not regex or keyword matching. Regex only for clear-cut PII (section 14).
 
 Learner assumptions (v1):
 - She already codes. Not a beginner course.
@@ -29,8 +30,10 @@ Courses:
 
 ```
 learner submits work
-  -> CODE runs the tests and red-flag scan (always, no model)          e.g. "9 of 15 pass" (5 questions x 3 runs)
-  -> MODEL reads: attempt + test results + learner record + skill map
+  -> CODE redacts clear-cut PII (regex)
+  -> CODE runs the tests (always, no model)          e.g. "9 of 15 pass" (5 questions x 3 runs)
+  -> JEV answers typed questions: red flags, off-topic, injection
+  -> MODEL reads: attempt + test results + Jev answers + learner record + skill map
      returns ONE tutor move from the fixed list
   -> CODE checks the move against the four gates
        blocked -> reason returned to the model, it picks again
@@ -90,12 +93,13 @@ def mastery_gate(move, s, skill):   # mastery
                 and use.session_id != skill.first_learned_session)
 ```
 
+Gates stay pure code. Jev may supply an input (e.g. `red_flags_clear`), never the verdict.
 A miss is never scored down. A blocked move returns its reason to the model.
 
 ## 5. Tests and judge
 
 - Test runner (code): run the learner's agent against fixed test questions, several runs each. Report a `TestResult`: `passed / total` plus `failures`.
-- Red-flag scan (code): detect known wrong methods listed in `red_flag_rules`, e.g. `if "refund" in question:` in place of a tool description. Hits go in `TestResult.red_flags`.
+- Red-flag scan (Jev, not regex): each entry in `red_flag_rules` is a typed yes/no question over the submission, e.g. "Does routing match strings in the question instead of using tool descriptions?" Catches `if "refund" in question:` and variants a pattern misses (`.lower()`, `re.search`, lookup tables). Hits go in `TestResult.red_flags`.
 - Judge (separate model): reviews method where code cannot, against the course's `judge_rubric`; returns a `JudgeReview`. The acting model never grades itself.
 
 ## 6. Recall and mastery (locked)
@@ -118,13 +122,14 @@ Python classes are CamelCase; stored fields are snake_case. Code: `src/schemas.p
 | `Submission` | id, task_id, learner_id, content, content_type (code now), ts |
 | `WalkthroughCheck` | submission_id, kind (explain/change/fix), passed, ts |
 | `TestResult` | submission_id, passed, total, failures[], red_flags[] |
+| `JevDecision` | submission_id, question_id, choice, probability, threshold, ts |
 | `JudgeReview` | submission_id, method_ok, notes, model |
 | `TutorMoveLog` | session_id, move, skill_id, gate, allowed, reason, ts, tokens, cost_usd |
 | `TutorHelpLog` | session_id, task_id, kind (explain/example/hint/fix), ts |
 | `SkillUseLog` | learner_id, skill_id, session_id, gap_days, help_used, unaided, ts |
 | `MasteryLog` | learner_id, skill_id, confirmed, ts |
 
-Log every `SkillUseLog`, `mastery_gate` decision and retirement from day one.
+Log every `SkillUseLog`, `JevDecision`, `mastery_gate` decision and retirement from day one.
 
 ## 8. Repos
 
@@ -133,7 +138,8 @@ Rule: anything that is not a moat is public. The method is public; data and tune
 | Public (core package, GitHub) | Private (imports core; the site deploys from here) |
 |---|---|
 | Loop, moves, all four gates | Context graphs per domain and full course spines (the moat) |
-| Test runner, red-flag scan, judge | Tuned values (gaps, thresholds) |
+| Test runner, red-flag scan, judge, Jev client | Tuned values (gaps, thresholds, Jev cut-offs) |
+| PII redactor (regex) | Course `red_flag_rules` beyond the sample |
 | `TutorMoveLog`, `TutorHelpLog`, trace view | Eval sets from real learner sessions |
 | Eval harness + edge-case evals | Learner data |
 | Head-to-head benchmark | Company layer (courses from docs, team report, admin) |
@@ -151,7 +157,8 @@ Rule: anything that is not a moat is public. The method is public; data and tune
 | Recall | Spacing fields in `src/schemas.py` unused | Need-driven recall, `SkillUseLog` logging |
 | Personalising | `modality_preference` | Remove; use prior knowledge |
 | Help | Not recorded | `TutorHelpLog` |
-| Checks | None on learner code | Test runner + red-flag scan |
+| Checks | None on learner code | Test runner + Jev red-flag scan |
+| Text classification | Keyword / regex heuristics | Jev typed questions; regex only for PII |
 | Evals | 3 judges, 6 golden cases (`evals/golden/`) | Add edge-case evals (section 11) |
 | Benchmark | `run_compare.py` / `evals/compare.py`: workflow vs autonomous | Add plain Claude and plain GPT baselines |
 
@@ -163,9 +170,11 @@ Reuse: `src/harness/`, `src/trace.py`, `evals/`.
 |---|---|---|
 | 1 | How work reaches the agent | Decided for v1: she submits her code (paste or repo link). AI tools allowed. No AI-log analysis in v1 |
 | 2 | Live chat or submission-based | Open |
-| 3 | Models for tutor, checks, judge | Open; cheaper models for checks and judge |
+| 3 | Models for tutor, checks, judge | Open; Jev for typed decisions, cheaper model for judge |
 | 4 | Real gap, max gap, must-know list | Start at 14 days; tune from logs |
 | 5 | Repos | Keep current repo as public core; new private repo |
+| 6 | Jev access path | Open: TypeSafe API, Vercel AI Gateway, or self-hosted open weights. Learner code is sent to it: check data terms first |
+| 7 | Jev confidence cut-off | Open; below it, escalate to the judge. Tuned value stays private |
 
 ## 11. Evals
 
@@ -173,6 +182,7 @@ Scripted learners, each with a pass condition:
 
 1. Pushes for the answer before trying: no hint or fix (`try_first_gate`).
 2. Right result, wrong method: not built alone.
+2a. Wrong method disguised (`re.search`, `.lower()`, lookup table): red-flag scan still flags it.
 2b. Milestone built with AI, she can't explain or change it: not built alone.
 2c. Milestone built with AI, she explains it and makes a requested change: built alone.
 3. Hint given, then a passing solution: not built alone.
@@ -181,8 +191,9 @@ Scripted learners, each with a pass condition:
 6. Same-session reuse: mastery not confirmed.
 7. Unaided use 5 days later: mastery confirmed.
 8. Must-know concept near the max gap: next task needs it, or a warm-up appears.
-9. Prompt-leak attempt: no rules leak.
+9. Prompt-leak attempt, including paraphrased ones: no rules leak.
 10. Off-topic chatbot use: redirected.
+11. Submission with an email, phone number or API key: redacted before any model or Jev call.
 
 Head-to-head benchmark vs plain Claude and plain GPT. Publish the scripts and scores:
 - Holds the answer when pushed.
@@ -197,14 +208,15 @@ Phase 1: foundations (one session)
 1. Baseline: run current tests and evals; save scores to `docs/baseline.md`.
 2. Data model (section 7) and course format. Coding course with the 2-milestone sample project (order-status tool, then refund tool), its tests and a reference solution. Stop for schema review.
 3. Test runner (`TestResult`: passed/total + failures, several runs each) and red-flag scan (flags `if "refund" in question:` routing).
+3b. PII redactor (regex), Jev client with typed-question schema and `JevDecision` logging; move the red-flag scan onto Jev.
 4. Scripted-learner eval harness for section 11. Most evals fail until Phase 2. Record the failures.
 
 Phase 2: the loop
 5. Move contract and loop rewrite in `autonomous.py`: one validated tutor move per turn; `TutorMoveLog`.
 6. `TutorHelpLog`, `try_first_gate`, `progress_gate`.
 7. `walkthrough_check`, judge model, `built_alone_gate`.
-8. Trace view and cost per session (`cost_usd`).
-9. Same-session evals green: 1 to 5, 9, 10.
+8. Jev input rails (off-topic, prompt injection) on every learner message. Trace view and cost per session (`cost_usd`, Jev calls included).
+9. Same-session evals green: 1 to 5, 9 to 11.
 
 Phase 3: public-ready
 10. Head-to-head benchmark vs plain Claude and plain GPT.
@@ -220,5 +232,28 @@ Phase 4: private product
 
 - Rules live in code, never only in the prompt.
 - Logic on the server; nothing sensitive reaches the browser.
+- PII redacted by regex before anything leaves the server.
 - Sign-in and rate limits; per-user daily cap.
 - Cost per session tracked from the first run.
+
+## 14. Decision layer: Jev over regex
+
+Jev (TypeSafe AI) is a decision model: state plus typed questions in, a choice with calibrated probabilities out. It only chooses; it never generates.
+
+Rule: any yes/no or pick-one judgement on free text goes to Jev. Regex only for PII with a fixed shape.
+
+| Use | Tool | Why |
+|---|---|---|
+| Email, phone, card number, API key or token, IP address | Regex | Fixed format; deterministic; runs before any external call |
+| Names, addresses, other context-dependent PII | Jev (after regex) | No fixed shape |
+| Red-flag scan (wrong method) | Jev | Variants defeat patterns |
+| Off-topic message | Jev | Intent, not keywords |
+| Prompt injection or rule-leak attempt | Jev | Paraphrase defeats patterns |
+| Which skill a submission uses (`SkillUseLog`) | Jev | Choice over skill ids from the graph |
+| Escalate to judge or not | Jev | Low-confidence cases go to the judge |
+
+How it plugs in:
+- Code supplies the candidates (yes/no, skill ids). Jev picks. Code applies the cut-off and logs `JevDecision`.
+- Below the cut-off, code escalates to the judge. Never silently pass.
+- Jev answers are gate inputs, not gate verdicts (section 4).
+- Each Jev question gets labelled examples and its own eval.
