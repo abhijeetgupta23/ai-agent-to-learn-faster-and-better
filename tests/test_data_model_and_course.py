@@ -12,7 +12,7 @@ No LLM is called anywhere; everything is offline.
 
 import json
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -22,7 +22,7 @@ from src import schemas
 from src.course import CourseError, load_course
 
 SAMPLE = Path(__file__).resolve().parent.parent / "courses" / "support_bot"
-TS = datetime(2026, 1, 2, 3, 4, 5)
+TS = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
 
 VALID = {
     "Learner": dict(id="l1", prior_knowledge={}, current_course="support_bot",
@@ -34,8 +34,8 @@ VALID = {
     "Submission": dict(id="s1", task_id="t1", learner_id="l1", content="print(1)",
                        content_type="code", ts=TS),
     "WalkthroughCheck": dict(submission_id="s1", kind="explain", passed=True, ts=TS),
-    "TestResult": dict(submission_id="s1", passed=2, total=3, failures=["q3"],
-                       red_flags=["keyword_routing"]),
+    "TestResult": dict(submission_id="s1", passed=2, total=3, failures=[dict(test="t.py::q3", message="boom")],
+                       red_flags=[dict(rule_id="keyword_routing", line=12, message="m")]),
     "JudgeReview": dict(submission_id="s1", method_ok=True, notes="ok", model="judge-m"),
     "TutorMoveLog": dict(session_id="se1", move="hint", skill_id="tool_use",
                          gate="try_first_gate", allowed=False, reason="no attempt",
