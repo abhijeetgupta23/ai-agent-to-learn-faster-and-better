@@ -20,7 +20,7 @@ Learner assumptions (v1):
 - Tutor help counts against "built alone". Her own AI tool use does not.
 
 Courses:
-- The loop, tutor moves, gates and recall are domain-agnostic. Everything specific to a subject lives in a course: the skills (with `needs`), the project and its milestones with briefs, the tests, `red_flag_rules`, the `judge_rubric` and `walkthrough_questions`.
+- The loop, tutor moves, gates and recall are domain-agnostic. Everything specific to a subject lives in a course: the skills (with `needs`), the project and its milestones with briefs, the tests, the `method_questions` (asked to Jev), the `judge_rubric` and `walkthrough_questions`.
 - Submissions are generic artifacts (code now; emails, scripts or role-play transcripts in later domains). Checks plug in per course.
 - Only the coding course (building AI agents) gets built now. Non-tech domains (for example sales, with simulated buyers as the test suite) come later.
 - Done = the project works: it passes the course's final acceptance test, and she owns it (demo plus a change request).
