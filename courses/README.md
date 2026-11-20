@@ -56,3 +56,9 @@ A timeout gives `passed=0, total=0` and a failure line. A healthy course returns
 3. Run `load_course("courses/<id>").run_reference_solution()`; every result must be all-pass.
 4. Keep it offline: tests need no network and no API key.
 5. Real course content goes in the private repo, not here.
+
+## Example: one learner session
+
+One learner on milestone 2 (refund tool): each gate decision and the rows saved. Course ids and texts are real; the learner and timings are made up. Step 2 ships these row shapes; the gates that write them come in steps 5–7 and 13.
+
+![Example session flowchart](../docs/issues/94/example-session.png)
