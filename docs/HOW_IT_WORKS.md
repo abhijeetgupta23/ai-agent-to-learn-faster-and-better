@@ -152,3 +152,21 @@ both as passing because the expected band is `[2, 3]`. The trace makes this
 non-determinism legible: you can see *why* a given run chose what it chose,
 rather than being surprised by a different number with no explanation. That's the
 difference between a black box and an auditable one.
+
+---
+
+## Courses
+
+**In plain words:** The old loop above teaches from a concept graph. Learn Faster adds a course: a folder with a project split into milestones, each with tests and a reference solution. Only the data and loader exist so far; the tutor loop that uses them is not built yet.
+
+```
+courses/<id>/course.json ──load_course──▶ LoadedCourse ──run_reference_solution──▶ one TestResult per milestone
+```
+
+| Piece | Where |
+|---|---|
+| Records (`Course`, `Skill`, `TestResult`, logs) | `src/schemas.py` |
+| Loader and reference run | `src/course.py` |
+| Sample course | `courses/support_bot/` |
+| Format and how to add one | `courses/README.md` |
+| Names | `docs/GLOSSARY.md` |
