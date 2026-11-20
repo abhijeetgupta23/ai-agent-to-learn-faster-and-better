@@ -319,6 +319,7 @@ The image honours `$PORT` if the platform sets one (Railway, Heroku), else serve
 - **Budget caps** — a per-session USD cap terminates a session gracefully when crossed, and a persisted daily global cap flips session endpoints to a "budget exhausted for today" response (the counter is JSON on disk, so restarts don't reset the day). Spend is metered live in [`src/harness/cost.py`](src/harness/cost.py) and echoed in every session response.
 - **Rate limiting** — a crude per-IP sliding-window cap on session creation.
 - **LangSmith** — set `LANGSMITH_TRACING=true` + `LANGSMITH_API_KEY` to enable tracing; config-only, no code change.
+- **LangChain docs MCP** — `.mcp.json` adds LangChain's public docs (`docs.langchain.com/mcp`) and API reference (`reference.langchain.com/mcp`) MCP servers, no key needed, so Claude Code can look up LangChain, LangGraph and LangSmith docs. Tools appear in the next session.
 
 ---
 
