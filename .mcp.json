@@ -1,17 +1,5 @@
 {
   "mcpServers": {
-    "langsmith": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "langsmith-mcp-server==0.1.1",
-        "langsmith-mcp-server"
-      ],
-      "env": {
-        "LANGSMITH_API_KEY": "${LANGSMITH_API_KEY:-set-by-environment-secret}",
-        "LANGSMITH_ENDPOINT": "https://api.smith.langchain.com"
-      }
-    },
     "docs-langchain": {
       "type": "http",
       "url": "https://docs.langchain.com/mcp"
