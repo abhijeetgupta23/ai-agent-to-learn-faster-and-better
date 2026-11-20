@@ -19,7 +19,7 @@ Code: `src/schemas.py` (the records), `src/course.py` (the loader).
 | `walkthrough_questions` | The course's prompts for the walkthrough, by kind: `explain`, `change`, `fix`. | ownership-check prompts |
 | `TestResult` | Passed / total plus failures and red flags for one submission. | `CheckRun` |
 | `red_flag_rules` | The course's list of known wrong methods (id, description, regex pattern). | static rules |
-| red-flag scan / `red_flags` | Code looks for those wrong methods. `TestResult.red_flags` holds the rule ids hit. | static read, `static_flags` |
+| red-flag scan / `red_flags` | Code looks for those wrong methods. `TestResult.red_flags` holds one `RedFlag` (rule_id, line, message) per hit. | static read, `static_flags` |
 | `JudgeReview` | The separate model's verdict on method: `method_ok`, notes, model name. | `JudgeVerdict` |
 | `judge_rubric` | The course's criteria the judge uses. | judge rubric (loose) |
 | tutor move / `TutorMove` | One action the model picks per turn from the fixed list of 11. | move |
@@ -37,7 +37,8 @@ Code: `src/schemas.py` (the records), `src/course.py` (the loader).
 
 ## What the code does today
 
-- `TestResult.failures` (failed test ids) and `TestResult.red_flags` (rule ids) are lists of strings for now. Richer records may replace them later.
+- `TestResult.failures` is a list of `TestFailure` (test id, first line of the message) and `TestResult.red_flags` a list of `RedFlag` (rule_id, line, message).
+- Every `ts` on the new records must carry a timezone and is stored in UTC; a time with no timezone is rejected.
 - `red_flag_rules` are data only. Nothing runs the regex yet.
 - The four gate names are valid values for `TutorMoveLog.gate`. The gates themselves are not built yet.
 - `Submission.content_type` accepts only `code`.

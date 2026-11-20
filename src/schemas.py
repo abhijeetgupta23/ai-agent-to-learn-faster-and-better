@@ -7,11 +7,19 @@ errors rather than swallowing malformed LLM output.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +216,9 @@ GateName = Literal["try_first_gate", "built_alone_gate", "progress_gate", "maste
 
 Id = Field(min_length=1)
 
+# A timestamp that must carry a timezone, always stored in UTC.
+UtcTime = Annotated[AwareDatetime, AfterValidator(lambda t: t.astimezone(timezone.utc))]
+
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -247,14 +258,27 @@ class Submission(_Strict):
     learner_id: str = Id
     content: str
     content_type: ContentType = "code"
-    ts: datetime
+    ts: UtcTime
 
 
 class WalkthroughCheck(_Strict):
     submission_id: str = Id
     kind: WalkthroughKind
     passed: bool
-    ts: datetime
+    ts: UtcTime
+
+
+class TestFailure(_Strict):
+    __test__ = False  # not a pytest class
+
+    test: str = Id
+    message: str
+
+
+class RedFlag(_Strict):
+    rule_id: str = Id
+    line: int | None = None
+    message: str = ""
 
 
 class TestResult(_Strict):
@@ -263,8 +287,8 @@ class TestResult(_Strict):
     submission_id: str = Id
     passed: int = Field(ge=0)
     total: int = Field(ge=0)
-    failures: list[str] = Field(default_factory=list)  # names of failed tests
-    red_flags: list[str] = Field(default_factory=list)  # ids of red-flag rules hit
+    failures: list[TestFailure] = Field(default_factory=list)
+    red_flags: list[RedFlag] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _passed_not_over_total(self) -> "TestResult":
@@ -287,7 +311,7 @@ class TutorMoveLog(_Strict):
     gate: GateName | Literal[""] | None = None  # "" or None = no gate involved
     allowed: bool
     reason: str = ""
-    ts: datetime
+    ts: UtcTime
     tokens: int = Field(ge=0)
     cost_usd: float = Field(ge=0)
 
@@ -296,7 +320,7 @@ class TutorHelpLog(_Strict):
     session_id: str = Id
     task_id: str = Id
     kind: HelpKind
-    ts: datetime
+    ts: UtcTime
 
 
 class SkillUseLog(_Strict):
@@ -306,14 +330,14 @@ class SkillUseLog(_Strict):
     gap_days: float | None = Field(default=None, ge=0)  # None = first use
     help_used: bool
     unaided: bool
-    ts: datetime
+    ts: UtcTime
 
 
 class MasteryLog(_Strict):
     learner_id: str = Id
     skill_id: str = Id
     confirmed: bool
-    ts: datetime
+    ts: UtcTime
 
 
 class RedFlagRule(_Strict):
